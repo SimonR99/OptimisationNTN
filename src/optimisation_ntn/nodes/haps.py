@@ -5,6 +5,7 @@ class HAPS(BaseNode):
     def __init__(self, node_id):
         super().__init__(node_id)
         self.state = "off"
+        self.battery_capacity = 1000
 
     def turn_on(self):
         self.state = "on"

@@ -18,6 +18,7 @@ class CommunicationLink:
         self.signal_power = signal_power
         self.noise_power = noise_power
         self.capacity = self.calculate_capacity()
+        self.path_loss = None  # TODO : Add path loss calcul base on node type
 
     def calculate_capacity(self):
         snr = self.signal_power / self.noise_power
