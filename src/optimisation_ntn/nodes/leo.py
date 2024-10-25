@@ -1,3 +1,7 @@
+import numpy as np
+
+from optimisation_ntn.utils.type import Position
+
 from .base_node import BaseNode
 
 
@@ -12,8 +16,22 @@ class LEO(BaseNode):
 
     bolztmann_constant = 1.38064852e-23
 
-    def __init__(self, node_id):
-        super().__init__(node_id)
+    intial_angle = -(
+        180
+        - 100
+        - np.rad2deg(
+            np.arcsin(
+                (earth_radius + 20e3)
+                * np.sin(np.deg2rad(100))
+                / (earth_radius + leo_altitude)
+            )
+        )
+    )
+
+    final_angle = -intial_angle
+
+    def __init__(self, node_id, position):
+        super().__init__(node_id, position)
         self.state = "off"
         self.battery_capacity = 100
 
@@ -27,6 +45,11 @@ class LEO(BaseNode):
         ) ** 0.5
 
     @property
+    def angular_speed(self):
+        """return the angular speed of the LEO satellite in rad/s"""
+        return self.speed / (self.earth_radius + self.leo_altitude)
+
+    @property
     def spectral_noise_density(self):
         return self.bolztmann_constant * self.leo_temperature
 
@@ -38,3 +61,6 @@ class LEO(BaseNode):
 
     def __str__(self):
         return f"LEO {self.node_id}"
+
+    def tick(self, time):
+        pass

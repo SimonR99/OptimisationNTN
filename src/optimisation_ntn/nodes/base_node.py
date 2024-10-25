@@ -18,5 +18,5 @@ class BaseNode(ABC):
     def __str__(self):
         return f"Node {self.node_id}"
 
-    def update(self):
+    def tick(self, time):
         pass
