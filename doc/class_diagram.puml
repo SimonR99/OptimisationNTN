@@ -1,0 +1,95 @@
+@startuml
+
+class Node {
+  - id: int
+  - capacity: int
+  - energy_profile: str
+  - state: str
+  + power_on(): void
+  + power_off(): void
+  + is_active(): bool
+}
+
+class BaseStation {
+}
+
+class HAPS {
+  - battery_capacity: int
+  + consume_energy(amount: int): void
+}
+
+class SatelliteLEO {
+  - battery_capacity: int
+  + consume_energy(amount: int): void
+}
+
+class Position {
+  - x: float
+  - y: float
+}
+
+class Request {
+  - user_id: int
+  - size: int
+  - qos_profile: str
+}
+
+class User {
+  - id: int
+  - location: Position
+  - request_size: int
+  - active_request: bool
+  + generate_request(): Request
+}
+
+class CommunicationLink {
+  - node_a: Node
+  - node_b: Node
+  - bandwidth: float
+  - signal_power: float
+  - noise_power: float
+  + calculate_capacity(): float
+}
+
+class Network {
+  - nodes: list
+  - users: list
+  - links: list
+  - strategy: OptimizationStrategy
+  + add_node(node: Node): void
+  + add_user(user: User): void
+  + add_link(link: CommunicationLink): void
+  + assign_requests(): void
+  + set_strategy(strategy: OptimizationStrategy): void
+  + optimize(): void
+}
+
+interface OptimizationStrategy {
+  + execute(network: Network): void
+}
+
+class GeneticAlgorithm {
+  + execute(network: Network): void
+}
+
+class QLearningAlgorithm {
+  + execute(network: Network): void
+}
+
+Node <|-- BaseStation
+Node <|-- HAPS
+Node <|-- SatelliteLEO
+
+User *-- Request
+
+Network *-- Node
+Network *-- User
+Network *-- CommunicationLink
+Network o-- OptimizationStrategy
+
+OptimizationStrategy <|.. GeneticAlgorithm
+OptimizationStrategy <|.. QLearningAlgorithm
+
+CommunicationLink o-- Node
+
+@enduml
