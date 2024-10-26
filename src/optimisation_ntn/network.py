@@ -1,4 +1,4 @@
-from optimisation_ntn.nodes.haps import HAPS
+from .nodes.haps import HAPS
 
 
 class Network:
