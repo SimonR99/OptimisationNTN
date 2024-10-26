@@ -11,4 +11,4 @@ class TestLEO(unittest.TestCase):
 
     def test_initial_angle(self):
         leo = LEO(1, Position(0, 0))
-        self.assertAlmostEqual(leo.intial_angle, -13.6, places=0)
+        self.assertAlmostEqual(leo.initial_angle, -13.6, places=0)
