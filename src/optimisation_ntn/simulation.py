@@ -2,7 +2,7 @@
 
 import argparse
 
-from optimisation_ntn.network import Network
+from .network import Network
 
 
 class Simulation:

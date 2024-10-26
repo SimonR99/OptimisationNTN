@@ -6,7 +6,7 @@ import sys
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCharts import QChart, QChartView, QLineSeries
 
-from optimisation_ntn.simulation import Simulation
+from .simulation import Simulation
 
 # Task bar Icon on Windows 11
 ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("optimisation_ntn")

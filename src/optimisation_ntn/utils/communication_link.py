@@ -2,7 +2,7 @@ from typing import Union
 
 import numpy as np
 
-from optimisation_ntn.nodes.base_node import BaseNode
+from ..nodes.base_node import BaseNode
 
 
 class CommunicationLink:

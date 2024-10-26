@@ -1,6 +1,6 @@
 from abc import ABC
 
-from optimisation_ntn.utils.type import Position
+from ..utils.type import Position
 
 
 class BaseNode(ABC):
