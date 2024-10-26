@@ -1,22 +1,18 @@
-
 name: continuous_integration
-
 on: push
-
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
-
       - name: Setup Python
         uses: actions/setup-python@v4
       
       - name: Install Dependencies
-        run: 
+        run: |
           pip install -r requirements.txt
-          pip install .
-
+          pip install -e .
+          
       - name: test_script
         run: pytest
