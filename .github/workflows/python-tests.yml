@@ -1,5 +1,7 @@
-name: continuous_integration
+name: Python Tests
+
 on: push
+
 jobs:
   test:
     runs-on: ubuntu-latest
