@@ -1,4 +1,5 @@
-name: Run Tests
+
+name: continuous_integration
 
 on: push
 
@@ -11,12 +12,10 @@ jobs:
 
       - name: Setup Python
         uses: actions/setup-python@v4
-
+      
       - name: Install Dependencies
-        run: |
-          pip install --user -r requirements.txt
-          pip install --user -e .
-      - name: Run Pytest
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-        run: pytest tests
+        run: 
+          pip install -r requirements.txt
+
+      - name: test_script
+        run: pytest
