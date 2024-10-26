@@ -14,8 +14,9 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install -r requirements.txt
-          pip install -e .  # Install the optimisation_ntn package in editable mode
-
+          pip install --user -r requirements.txt
+          pip install --user -e .
       - name: Run Pytest
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: pytest tests
