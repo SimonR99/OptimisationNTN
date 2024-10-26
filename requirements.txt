@@ -1,8 +1,12 @@
 colorama==0.4.6
 iniconfig==2.0.0
 numpy==2.1.2
--e git+https://github.com/SimonR99/OptimisationNTN.git@d12ef4d34f1b5fc960e51e5183c9b10af61dbea3#egg=optimisation_ntn
+-e git+https://github.com/SimonR99/OptimisationNTN.git@376df940dfc6dbb71bf1aaad8250492482829f6c#egg=optimisation_ntn
 packaging==24.1
 pillow==11.0.0
 pluggy==1.5.0
+PySide6==6.8.0.2
+PySide6_Addons==6.8.0.2
+PySide6_Essentials==6.8.0.2
 pytest==8.3.3
+shiboken6==6.8.0.2

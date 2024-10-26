@@ -20,7 +20,7 @@ $ pip install -e .
 Once the package is installed, you can run the simulation using the following command:
 
 ```sh
-$ python -m optimisation_ntn.main
+$ python -m optimisation_ntn.simulation
 ```
 
 This command will start the real-time NTN optimization simulation GUI. In the app, you will be able to:
@@ -28,3 +28,11 @@ This command will start the real-time NTN optimization simulation GUI. In the ap
 - Start, stop, and reset the simulation.
 - Adjust the speed of the simulation in real time.
 - View the current number of base stations, HAPS, and LEO satellites.
+
+### Running with the user interface
+
+To run the simulation with the user interface, use the following command:
+
+```sh
+$ python -m optimisation_ntn.gui
+```
