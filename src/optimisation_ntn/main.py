@@ -1,6 +1,6 @@
 # This file run the simulation when executed
 
-from .network import Network
+from optimisation_ntn.network import Network
 
 
 def main():
@@ -9,6 +9,7 @@ def main():
     network = Network()
     for _ in range(max_time):
         network.tick()
+
 
 if __name__ == "__main__":
     main()

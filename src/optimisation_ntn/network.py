@@ -1,3 +1,6 @@
+from optimisation_ntn.nodes.haps import HAPS
+
+
 class Network:
     def __init__(self):
         self.nodes = []

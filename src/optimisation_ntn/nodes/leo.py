@@ -16,7 +16,7 @@ class LEO(BaseNode):
 
     bolztmann_constant = 1.38064852e-23
 
-    intial_angle = -(
+    initial_angle = -(
         180
         - 100
         - np.rad2deg(
@@ -28,7 +28,7 @@ class LEO(BaseNode):
         )
     )
 
-    final_angle = -intial_angle
+    final_angle = -initial_angle
 
     def __init__(self, node_id, position):
         super().__init__(node_id, position)
