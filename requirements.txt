@@ -1,7 +1,6 @@
 colorama==0.4.6
 iniconfig==2.0.0
 numpy==2.1.2
--e git+https://github.com/SimonR99/OptimisationNTN.git@376df940dfc6dbb71bf1aaad8250492482829f6c#egg=optimisation_ntn
 packaging==24.1
 pillow==11.0.0
 pluggy==1.5.0
