@@ -9,5 +9,3 @@ PySide6_Addons==6.8.0.2
 PySide6_Essentials==6.8.0.2
 pytest==8.3.3
 shiboken6==6.8.0.2
-optimisation_ntn~=0.1.0
-sympy~=1.13.3
