@@ -60,4 +60,4 @@ if __name__ == "__main__":
 
     simulation = Simulation()
 
-    simulation.run(max_time=args.max_time)
+    simulation.run()
