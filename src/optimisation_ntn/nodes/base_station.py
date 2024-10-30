@@ -1,9 +1,11 @@
+from optimisation_ntn.utils.type import Position
+
 from .base_node import BaseNode
 
 
 class BaseStation(BaseNode):
-    def __init__(self, node_id):
-        super().__init__(node_id)
+    def __init__(self, node_id: int, initial_position: Position):
+        super().__init__(node_id, initial_position)
         self.state = "off"
 
     def turn_on(self):
