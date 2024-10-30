@@ -4,7 +4,7 @@ from ..utils.type import Position
 from .base_node import BaseNode
 
 
-class LEO(BaseNode):
+class Leo(BaseNode):
 
     leo_altitude = 500e3
     leo_temperature = 200
@@ -29,9 +29,9 @@ class LEO(BaseNode):
 
     final_angle = -initial_angle
 
-    def __init__(self, node_id, position):
-        super().__init__(node_id, position)
-        self.state = "off"
+    def __init__(self, node_id: int, initial_position: Position):
+        super().__init__(node_id, initial_position)
+        self.state = False
         self.battery_capacity = 100
 
     @property
@@ -53,10 +53,10 @@ class LEO(BaseNode):
         return self.bolztmann_constant * self.leo_temperature
 
     def turn_on(self):
-        self.state = "on"
+        self.state = True
 
     def turn_off(self):
-        self.state = "off"
+        self.state = False
 
     def __str__(self):
         return f"LEO {self.node_id}"

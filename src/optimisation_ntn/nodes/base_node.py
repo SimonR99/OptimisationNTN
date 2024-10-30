@@ -8,13 +8,13 @@ class BaseNode(ABC):
     def __init__(self, node_id: int, initial_position: Position):
         self.node_id = node_id
         self.position = initial_position
-        self.state = "on"
+        self.state = False
 
     def turn_on(self):
-        self.state = "on"
+        self.state = True
 
     def turn_off(self):
-        self.state = "off"
+        self.state = False
 
     def __str__(self):
         return f"Node {self.node_id}"
