@@ -2,8 +2,8 @@ import argparse
 
 from optimisation_ntn.simulation import Simulation
 from optimisation_ntn.nodes.base_station import BaseStation
-from optimisation_ntn.nodes.haps import Haps
-from optimisation_ntn.nodes.leo import Leo
+from optimisation_ntn.nodes.haps import HAPS
+from optimisation_ntn.nodes.leo import LEO
 from optimisation_ntn.utils.type import Position
 
 
@@ -59,10 +59,10 @@ class Main:
     bs4 = BaseStation(4, Position(3.5, 0))
     nodes.append(bs4)
 
-    haps = Haps(5, Position(2, 20))
+    haps = HAPS(5, Position(2, 20))
     nodes.append(haps)
 
-    leo = Leo(6, Position(4, 500))
+    leo = LEO(6, Position(4, 500))
     nodes.append(leo)
 
     simulation = Simulation()

@@ -4,7 +4,7 @@ from ..utils.type import Position
 from .base_node import BaseNode
 
 
-class Leo(BaseNode):
+class LEO(BaseNode):
 
     leo_altitude = 500e3
     leo_temperature = 200

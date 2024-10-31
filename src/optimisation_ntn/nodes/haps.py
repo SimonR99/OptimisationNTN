@@ -2,7 +2,7 @@ from .base_node import BaseNode
 from ..utils.type import Position
 
 
-class Haps(BaseNode):
+class HAPS(BaseNode):
     def __init__(self, node_id: int, initial_position: Position):
         super().__init__(node_id, initial_position)
         self.state = False
