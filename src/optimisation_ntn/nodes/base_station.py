@@ -1,3 +1,5 @@
+from optimisation_ntn.utils.type import Position
+
 from .base_node import BaseNode
 from ..utils.type import Position
 
