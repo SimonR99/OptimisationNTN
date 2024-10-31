@@ -40,7 +40,7 @@ class LEO(BaseNode):
             start_angle, self.leo_orbit_radius
         )
         super().__init__(node_id, Earth.global_coordinate_to_local(global_position))
-        self.state = "off"
+        self.state = False
         self.battery_capacity = 100
         self.current_angle = start_angle
 
@@ -63,10 +63,10 @@ class LEO(BaseNode):
         return self.bolztmann_constant * self.leo_temperature
 
     def turn_on(self):
-        self.state = "on"
+        self.state = True
 
     def turn_off(self):
-        self.state = "off"
+        self.state = False
 
     def __str__(self):
         return f"LEO {self.node_id}"
