@@ -5,9 +5,9 @@ from ..utils.type import Position
 
 class BaseNode(ABC):
 
-    def __init__(self, node_id: int, initia_position: Position | None = None):
+    def __init__(self, node_id: int, initial_position: Position | None = None):
         self.node_id = node_id
-        self.position = initia_position
+        self.position = initial_position
         self.state = "on"
 
     def turn_on(self):
