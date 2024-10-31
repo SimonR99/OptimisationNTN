@@ -1,6 +1,9 @@
 from typing import Union
+from urllib.request import Request
 
 import numpy as np
+
+from optimisation_ntn.nodes.leo import LEO
 
 from ..nodes.base_node import BaseNode
 
@@ -20,7 +23,14 @@ class CommunicationLink:
         self.signal_power = signal_power
         self.noise_power = noise_power
         self.capacity = self.calculate_capacity()
-        self.path_loss = None  # TODO : Add path loss calcul base on node type
+
+        # Leo to Haps link
+        if isinstance(node_a, LEO) or node_b is isinstance(node_b, LEO):
+            self.path_loss = 1
+        else:  # Other link
+            self.path_loss = 2
+
+        self.transmission_queue: list[Request] = []  # FIFO queue
 
     @property
     def link_length(self):
@@ -35,3 +45,9 @@ class CommunicationLink:
         snr = self.signal_power / self.noise_power
         capacity = self.bandwidth * np.log2(1 + snr)
         return capacity
+
+    def add_to_queue(self, request: Request):
+        self.transmission_queue.append(request)
+
+    def tick(self, time: float):
+        pass  # TODO : Deliver one packet at the time, when shannon is done for a packet, deliver the next one
