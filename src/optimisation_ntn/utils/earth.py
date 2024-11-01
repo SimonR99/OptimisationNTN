@@ -7,6 +7,11 @@ from optimisation_ntn.utils.type import Position
 
 class Earth(ABC):
     radius = 6.371e6  # m
+    mass = 5.972e24  # kg
+    gravitational_constant = 6.67430e-11  # m^3 kg^-1 s^-2
+
+    bolztmann_constant = 1.38064852e-23  # J/K
+    speed_of_light = 299792458  # m/s
 
     @staticmethod
     def calculate_position_from_angle(angle, orbit_radius):
