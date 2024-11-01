@@ -5,6 +5,7 @@ from optimisation_ntn.nodes.base_station import BaseStation
 from optimisation_ntn.nodes.haps import HAPS
 from optimisation_ntn.nodes.leo import LEO
 from optimisation_ntn.utils.type import Position
+from optimisation_ntn.algorithms.req_generator import ReqGenerator
 
 
 class Main:
@@ -45,26 +46,32 @@ class Main:
 
     args = parser.parse_args()
 
+    req_generator = ReqGenerator(5, 10)
+
     nodes = []
 
-    bs1 = BaseStation(1, Position(0.5, 0))
-    nodes.append(bs1)
+    #bs1 = BaseStation(1, Position(0.5, 0))
+    #nodes.append(bs1)
 
-    bs2 = BaseStation(2, Position(1.5, 0))
-    nodes.append(bs2)
+    #bs2 = BaseStation(2, Position(1.5, 0))
+    #nodes.append(bs2)
 
-    bs3 = BaseStation(3, Position(2.5, 0))
-    nodes.append(bs3)
+    #bs3 = BaseStation(3, Position(2.5, 0))
+    #nodes.append(bs3)
 
-    bs4 = BaseStation(4, Position(3.5, 0))
-    nodes.append(bs4)
+    #bs4 = BaseStation(4, Position(3.5, 0))
+    #nodes.append(bs4)
 
-    haps = HAPS(5, Position(2, 20))
-    nodes.append(haps)
+    #haps = HAPS(5, Position(2, 20))
+    #nodes.append(haps)
 
-    leo = LEO(6, Position(4, 500))
-    nodes.append(leo)
+    #leo = LEO(6, Position(4, 500))
+    #nodes.append(leo)
 
     simulation = Simulation()
+
+    simulation.matrix_k = req_generator.generate()
+
+    print(simulation.matrix_k)
 
     simulation.run()
