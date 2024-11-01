@@ -2,9 +2,7 @@ from optimisation_ntn.utils.earth import Earth
 from optimisation_ntn.utils.type import Position
 
 from .base_node import BaseNode
-
 from ..networks.antenna import Antenna
-
 
 class UserDevice(BaseNode):
 

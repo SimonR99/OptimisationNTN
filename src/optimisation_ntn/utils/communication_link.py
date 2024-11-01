@@ -3,10 +3,8 @@ from typing import List
 import numpy as np
 
 from optimisation_ntn.utils.earth import Earth
-
 from ..networks.request import Request
 from ..nodes.base_node import BaseNode
-
 
 class CommunicationLink:
     def __init__(
