@@ -1,7 +1,7 @@
 from optimisation_ntn.nodes.user_device import UserDevice
 from optimisation_ntn.utils.type import Position
 
-from ..antenna import Antenna
+from ..network.antenna import Antenna
 from .base_node import BaseNode
 
 

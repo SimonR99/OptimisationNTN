@@ -1,9 +1,10 @@
+import logging
 import unittest
 
+from optimisation_ntn.network.request import Request
 from optimisation_ntn.nodes.base_node import BaseNode
 from optimisation_ntn.nodes.haps import HAPS
 from optimisation_ntn.nodes.leo import LEO
-from optimisation_ntn.request import Request
 from optimisation_ntn.utils.communication_link import CommunicationLink
 from optimisation_ntn.utils.type import Position
 
@@ -69,7 +70,38 @@ class TestCommunicationLink(unittest.TestCase):
         link.add_to_queue(request)
 
         # Process request in the queue with sufficient time
-        link.tick(1)
-        self.assertEqual(
-            len(link.transmission_queue), 0
-        )  # Queue should be empty after processing
+        for _ in range(10):
+            link.tick(0.1)
+            print(link.request_progress)
+
+        self.assertEqual(len(link.transmission_queue), 0)
+
+    def test_multiple_requests(self):
+        # Set up a communication link with compatible antennas and multiple requests
+        link = CommunicationLink(
+            self.node_a,
+            self.node_b,
+            total_bandwidth=1,
+            signal_power=1,
+            carrier_frequency=1,
+        )
+
+        # Create and add multiple requests
+        request1 = Request(2, 1, 200)  # data_size=200 bits
+        request2 = Request(1, 1, 100)  # data_size=100 bits
+
+        link.add_to_queue(request1)
+        link.add_to_queue(request2)
+
+        self.assertEqual(len(link.transmission_queue), 2)
+
+        for _ in range(20):  # Take longer time to process since requests is larger
+            link.tick(0.1)
+
+        self.assertEqual(len(link.transmission_queue), 1)
+
+        for _ in range(10):
+            print(len(link.transmission_queue))
+            link.tick(0.1)
+
+        self.assertEqual(len(link.transmission_queue), 0)

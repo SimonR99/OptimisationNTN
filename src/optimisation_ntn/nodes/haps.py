@@ -1,4 +1,4 @@
-from optimisation_ntn.antenna import Antenna
+from optimisation_ntn.network.antenna import Antenna
 from optimisation_ntn.nodes.user_device import UserDevice
 from optimisation_ntn.utils.earth import Earth
 from optimisation_ntn.utils.type import Position

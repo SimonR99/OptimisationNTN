@@ -4,8 +4,8 @@ import numpy as np
 
 from optimisation_ntn.utils.earth import Earth
 
+from ..network.request import Request
 from ..nodes.base_node import BaseNode
-from ..request import Request
 
 
 class CommunicationLink:
@@ -22,7 +22,8 @@ class CommunicationLink:
         self.total_bandwidth = total_bandwidth
         self.signal_power = signal_power
         self.carrier_frequency = carrier_frequency
-        self.transmission_queue: list[Request] = []  # FIFO queue
+        self.transmission_queue: List[Request] = []  # FIFO queue
+        self.request_progress = 0  # Track bits transmitted for the current request
 
         # Identify compatible antennas for communication
         self.antenna_a, self.antenna_b = self.find_compatible_antennas()
@@ -82,23 +83,30 @@ class CommunicationLink:
         return self.adjusted_bandwidth * np.log2(1 + snr)
 
     def add_to_queue(self, request: Request):
-        """Adds a request to the transmission queue."""
+        """Adds a request to the transmission queue and resets progress tracking."""
         self.transmission_queue.append(request)
+        self.request_progress = 0  # Initialize progress for the new request
 
     def tick(self, time: float):
-        """Processes requests in the queue, simulating packet delivery."""
+        """Processes requests in the queue, advancing the simulation by the specified time increment."""
         if self.transmission_queue:
-            current_request = self.transmission_queue[
-                0
-            ]  # Get the first request in queue
-            # Process the request (data_size is in bits for time calculation)
+            # Get the current request in the queue
+            current_request = self.transmission_queue[0]
+
+            # Calculate the number of bits that can be transmitted in this tick
             capacity = self.calculate_capacity()
-            transmission_time = current_request.data_size / capacity
-            if time >= transmission_time:
+            bits_to_transmit = capacity * time
+
+            # Increment the request progress by the bits transmitted
+            self.request_progress += bits_to_transmit
+
+            # Check if the request has finished transmitting
+            if self.request_progress >= current_request.data_size:
                 print(
                     f"Delivered {current_request} from {self.node_a} to {self.node_b}"
                 )
                 self.transmission_queue.pop(0)  # Remove the request after completion
+                self.request_progress = 0  # Reset progress for the next request
                 if not self.transmission_queue:
                     self.node_b.remove_active_link(
                         type(self.node_a)

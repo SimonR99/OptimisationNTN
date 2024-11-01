@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, Tuple
 
 from optimisation_ntn.utils.earth import Earth
 
-from ..antenna import Antenna
+from ..network.antenna import Antenna
 from ..utils.type import Position
 
 
