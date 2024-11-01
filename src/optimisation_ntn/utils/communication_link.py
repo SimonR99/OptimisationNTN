@@ -4,7 +4,7 @@ import numpy as np
 
 from optimisation_ntn.utils.earth import Earth
 
-from ..network.request import Request
+from ..networks.request import Request
 from ..nodes.base_node import BaseNode
 
 
@@ -107,10 +107,6 @@ class CommunicationLink:
                 )
                 self.transmission_queue.pop(0)  # Remove the request after completion
                 self.request_progress = 0  # Reset progress for the next request
-                if not self.transmission_queue:
-                    self.node_b.remove_active_link(
-                        type(self.node_a)
-                    )  # Decrement active link count
             else:
                 print(
                     f"Processing {current_request} from {self.node_a} to {self.node_b}"

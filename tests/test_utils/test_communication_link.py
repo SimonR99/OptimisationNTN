@@ -1,7 +1,7 @@
 import logging
 import unittest
 
-from optimisation_ntn.network.request import Request
+from optimisation_ntn.networks.request import Request
 from optimisation_ntn.nodes.base_node import BaseNode
 from optimisation_ntn.nodes.haps import HAPS
 from optimisation_ntn.nodes.leo import LEO
