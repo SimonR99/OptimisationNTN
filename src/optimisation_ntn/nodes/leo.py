@@ -36,7 +36,7 @@ class LEO(BaseNode):
         super().__init__(node_id, Earth.global_coordinate_to_local(global_position))
         self.add_antenna("VHF", 1.5)
 
-        self.state = "off"
+        self.state = False
         self.battery_capacity = 100
         self.current_angle = start_angle
 
@@ -53,10 +53,10 @@ class LEO(BaseNode):
         return self.speed / self.leo_orbit_radius * 360 / (2 * np.pi)
 
     def turn_on(self):
-        self.state = "on"
+        self.state = True
 
     def turn_off(self):
-        self.state = "off"
+        self.state = False
 
     def __str__(self):
         return f"LEO {self.node_id}"

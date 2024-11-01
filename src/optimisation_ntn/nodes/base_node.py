@@ -13,7 +13,7 @@ class BaseNode(ABC):
     ):
         self.node_id = node_id
         self.position = initial_position
-        self.state = "on"
+        self.state = False
         self.antennas: List[Antenna] = []
         self.temperature = temperature
         self.active_links: Dict[Tuple[type, type], int] = (
@@ -55,10 +55,10 @@ class BaseNode(ABC):
         return Earth.bolztmann_constant * self.temperature
 
     def turn_on(self):
-        self.state = "on"
+        self.state = True
 
     def turn_off(self):
-        self.state = "off"
+        self.state = False
 
     def __str__(self):
         return f"Node {self.node_id}"

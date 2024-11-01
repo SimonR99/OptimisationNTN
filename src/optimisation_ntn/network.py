@@ -1,4 +1,4 @@
-from .nodes.haps import HAPS
+from .nodes.haps import Haps
 
 
 class Network:
