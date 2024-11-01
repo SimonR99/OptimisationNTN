@@ -1,13 +1,14 @@
 """ Simulation class that instantiates the Network class and runs the simulation. """
 
+import random
 from typing import Optional
+
 from .networks.network import Network
 from .nodes.base_station import BaseStation
 from .nodes.haps import HAPS
 from .nodes.leo import LEO
 from .nodes.user_device import UserDevice
 from .utils.type import Position
-import random
 
 
 class Simulation:
@@ -25,7 +26,7 @@ class Simulation:
         self.step_duration = 0.1  # Duration of each simulation step in seconds
         self.network = Network()
         self.is_paused = False
-        
+
         # Initialize with default values
         self.initialize_default_nodes()
 
@@ -44,10 +45,10 @@ class Simulation:
         """Initialize network with default nodes"""
         # Add default base stations
         self.set_base_stations(self.DEFAULT_BS_COUNT)
-        
+
         # Add default HAPS
         self.set_haps(self.DEFAULT_HAPS_COUNT)
-        
+
         # Add default LEO satellites
         for i in range(self.DEFAULT_LEO_COUNT):
             self.network.add_node(LEO(i))

@@ -153,7 +153,7 @@ class SimulationUI(QtWidgets.QMainWindow):
 
         # Create Parameters Panel (left side)
         param_box = QtWidgets.QGroupBox("Simulation Parameters")
-        param_layout = QtWidgets.QVBoxLayout()
+        param_layout = QtWidgets.QHBoxLayout()
 
         # Node controls
         node_controls = QtWidgets.QGridLayout()

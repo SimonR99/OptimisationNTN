@@ -19,12 +19,10 @@ class Network:
     def _update_communication_links(self):
         """Update all communication links in the network"""
         self.communication_links.clear()
-
         # Get nodes by type
         haps_nodes = [node for node in self.nodes if isinstance(node, HAPS)]
         user_nodes = [node for node in self.nodes if isinstance(node, UserDevice)]
         base_stations = [node for node in self.nodes if isinstance(node, BaseStation)]
-
         # Connect each user to all HAPS and closest base station
         for user in user_nodes:
             # Connect to all HAPS

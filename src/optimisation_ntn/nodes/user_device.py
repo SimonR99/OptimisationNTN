@@ -3,7 +3,7 @@ from optimisation_ntn.utils.type import Position
 
 from ..networks.antenna import Antenna
 from .base_node import BaseNode
-
+from ..networks.antenna import Antenna
 
 class UserDevice(BaseNode):
 

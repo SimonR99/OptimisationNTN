@@ -2,10 +2,9 @@ from typing import List
 
 import numpy as np
 
-from ..utils.earth import Earth
-
 from ..networks.request import Request
 from ..nodes.base_node import BaseNode
+from ..utils.earth import Earth
 
 
 class CommunicationLink:
