@@ -267,12 +267,21 @@ class SimulationUI(QtWidgets.QMainWindow):
         if self.simulation:
             # Add green floor
             floor = scene.addRect(
-                -200,
-                290,
-                400,
-                20,
+                -800,
+                270,
+                1600,
+                200,
                 QtGui.QPen(QtGui.QColor("darkgreen")),
                 QtGui.QBrush(QtGui.QColor("darkgreen")),
+            )
+
+            sky = scene.addRect(
+                -800,
+                0,
+                1600,
+                270,
+                QtGui.QPen(QtGui.QColor("skyblue")),
+                QtGui.QBrush(QtGui.QColor("skyblue")),
             )
 
             # Add HAPS
@@ -427,10 +436,19 @@ class SimulationUI(QtWidgets.QMainWindow):
             -view_width / 2, -view_height / 2, view_width, view_height
         )
 
+        night_sky = scene.addRect(
+            -view_width / 2,
+            -view_height / 2,
+            view_width,
+            view_height,
+            QtGui.QPen(QtGui.QColor("black")),
+            QtGui.QBrush(QtGui.QColor("black")),
+        )
+
         # Radius for Earth, HAPS, and LEO layers
         earth_radius = min(view_width, view_height) * 0.3
-        haps_radius = earth_radius + 40  # HAPS layer above the Earth
-        leo_radius = earth_radius + 80  # LEO layer further out
+        haps_radius = earth_radius + 3  # HAPS layer above the Earth
+        leo_radius = earth_radius + 75  # LEO layer further out
 
         # Add Earth at center
         earth = scene.addEllipse(
@@ -439,7 +457,7 @@ class SimulationUI(QtWidgets.QMainWindow):
             2 * earth_radius,
             2 * earth_radius,
             QtGui.QPen(QtGui.QColor("blue")),
-            QtGui.QBrush(QtGui.QColor(0, 0, 139, 100)),
+            QtGui.QBrush(QtGui.QColor("green")),
         )
 
         # Add HAPS layer as a circular orbit on top
@@ -494,8 +512,8 @@ class SimulationUI(QtWidgets.QMainWindow):
                     y - 5,
                     10,
                     10,
-                    QtGui.QPen(QtGui.QColor("green")),
-                    QtGui.QBrush(QtGui.QColor("green")),
+                    QtGui.QPen(QtGui.QColor("orange")),
+                    QtGui.QBrush(QtGui.QColor("orange")),
                 )
 
                 # Add label
