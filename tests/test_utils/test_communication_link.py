@@ -23,7 +23,7 @@ class TestCommunicationLink(unittest.TestCase):
         self.node_b.add_antenna("UHF", 1.2)  # Matching UHF antenna for communication
 
     def test_zero_capacity(self):
-        # Test with zero 0signal power
+        # Test with zero signal power
         link = CommunicationLink(
             self.node_a,
             self.node_b,

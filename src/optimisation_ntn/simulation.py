@@ -1,35 +1,56 @@
 """ Simulation class that instantiates the Network class and runs the simulation. """
 
-import argparse
+from typing import Optional
+from .networks.network import Network
+from .nodes.base_station import BaseStation
+from .nodes.haps import HAPS
+from .nodes.leo import LEO
+from .nodes.user_device import UserDevice
+from .utils.type import Position
 import random
-import string
-
-from optimisation_ntn.matrices.base_matrice import Matrice
-from optimisation_ntn.networks.network import Network
-from optimisation_ntn.nodes.base_station import BaseStation
-from optimisation_ntn.nodes.haps import HAPS
-from optimisation_ntn.nodes.leo import LEO
-from optimisation_ntn.nodes.user_device import UserDevice
-from optimisation_ntn.utils.type import Position
 
 
 class Simulation:
     """Class to run the simulation."""
 
-    max_time = 3000
+    DEFAULT_BS_COUNT = 4
+    DEFAULT_HAPS_COUNT = 1
+    DEFAULT_LEO_COUNT = 1
+    DEFAULT_USER_COUNT = 0
+    MAX_SIMULATION_TIME = 1000
 
-    def __init__(self, initial_dimension: int = 6):
+    def __init__(self):
+        self.current_time = 0.0
+        self.current_step = 0
+        self.step_duration = 0.1  # Duration of each simulation step in seconds
         self.network = Network()
-        self.matrix_a = Matrice(initial_dimension, initial_dimension, "matrice A")
-        self.matrix_b = Matrice(initial_dimension, initial_dimension, "matrice B")
-        self.matrix_k = Matrice(initial_dimension, initial_dimension, "matrice K")
-        self.matrix_s = Matrice(initial_dimension, initial_dimension, "matrice S")
-        self.matrix_x = Matrice(initial_dimension, initial_dimension, "matrice X")
-
+        self.is_paused = False
+        
         # Initialize with default values
-        self.set_base_stations(1)
-        self.set_haps(1)
-        self.set_users(0)
+        self.initialize_default_nodes()
+
+    def step(self):
+        """Execute one simulation step"""
+        if self.current_time < self.MAX_SIMULATION_TIME and not self.is_paused:
+            # Update network with step duration
+            self.network.tick(self.step_duration)
+            # Increment counters
+            self.current_time += self.step_duration
+            self.current_step += 1
+            return True
+        return False
+
+    def initialize_default_nodes(self):
+        """Initialize network with default nodes"""
+        # Add default base stations
+        self.set_base_stations(self.DEFAULT_BS_COUNT)
+        
+        # Add default HAPS
+        self.set_haps(self.DEFAULT_HAPS_COUNT)
+        
+        # Add default LEO satellites
+        for i in range(self.DEFAULT_LEO_COUNT):
+            self.network.add_node(LEO(i))
 
     def set_base_stations(self, num_base_stations: int):
         """Remove all existing base stations and create new ones."""
@@ -75,16 +96,9 @@ class Simulation:
             user = UserDevice(i, Position(x_pos, height))
             self.network.add_node(user)
 
-    def reset_network(self):
-        """Reset the network to its initial state."""
-        self.network = Network()
-        self.set_base_stations(1)
-        self.set_haps(1)
-        self.set_users(0)
-
-    def run(self):
-        for _ in range(self.max_time):
-            self.network.tick()
-
     def reset(self):
-        pass  # TODO
+        """Reset simulation to initial state"""
+        self.current_time = 0.0
+        self.current_step = 0
+        self.network = Network()
+        self.initialize_default_nodes()

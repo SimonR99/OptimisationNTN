@@ -41,6 +41,11 @@ class LEO(BaseNode):
         self.current_angle = start_angle
 
     @property
+    def is_visible(self) -> bool:
+        """Check if satellite is in visible range"""
+        return self.initial_angle <= self.current_angle <= self.final_angle
+
+    @property
     def speed(self):
         """return the speed of the LEO satellite in m/s"""
         return (
@@ -52,16 +57,7 @@ class LEO(BaseNode):
         """return the angular speed of the LEO satellite in rad/s"""
         return self.speed / self.leo_orbit_radius * 360 / (2 * np.pi)
 
-    def turn_on(self):
-        self.state = True
-
-    def turn_off(self):
-        self.state = False
-
-    def __str__(self):
-        return f"LEO {self.node_id}"
-
-    def tick(self, time):
+    def tick(self, time: float):
         # Update the position of the LEO satellite
         delta_angle = self.angular_speed * time
         self.current_angle += delta_angle
