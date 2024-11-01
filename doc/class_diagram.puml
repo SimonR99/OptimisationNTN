@@ -1,102 +1,115 @@
 @startuml
 
-class Node {
-  - id: int
-  - capacity: int
-  - energy_profile: str
-  - state: str
-  + power_on(): void
-  + power_off(): void
-  + is_active(): bool
+' Base classes and interfaces
+abstract class BaseNode {
+  - node_id: int
+  - position: Position
+  - state: bool
+  - antennas: List[Antenna]
+  - temperature: float
+  - active_links: Dict
+  + add_antenna(type: str, gain: float)
+  + get_compatible_antenna(antenna: Antenna)
+  + spectral_noise_density: float
+  + turn_on()
+  + turn_off()
+  + tick(time: float)
 }
 
-class Simulation {
-  - network: Network
-  + run(): void
+class Position {
+  + x: float
+  + y: float
 }
 
+class Antenna {
+  - antenna_type: str
+  - gain: float
+  + is_compatible_with(other: Antenna): bool
+}
+
+' Network nodes
 class BaseStation {
 }
 
 class HAPS {
   - battery_capacity: int
-  + consume_energy(amount: int): void
+  + {static} haps_altitude: float
+  + {static} sky_visibility_angle: float
 }
 
-class SatelliteLEO {
+class LEO {
   - battery_capacity: int
-  + consume_energy(amount: int): void
+  - current_angle: float
+  + {static} leo_altitude: float
+  + speed: float
+  + angular_speed: float
+  + tick(time: float)
 }
 
-class Position {
-  - x: float
-  - y: float
+class UserDevice {
 }
 
-class Request {
-  - user_id: int
-  - size: int
-  - qos_profile: str
-}
-
-class User {
-  - id: int
-  - location: Position
-  - request_size: int
-  - active_request: bool
-  + generate_request(): Request
+' Network and Communication
+class Network {
+  - nodes: List[BaseNode]
+  - communication_links: List[CommunicationLink]
+  + add_node(node: BaseNode)
+  - _update_communication_links()
+  + tick()
 }
 
 class CommunicationLink {
-  - node_a: Node
-  - node_b: Node
-  - bandwidth: float
+  - node_a: BaseNode
+  - node_b: BaseNode
+  - total_bandwidth: float
   - signal_power: float
-  - noise_power: float
+  - carrier_frequency: float
+  - transmission_queue: List[Request]
+  - request_progress: float
+  + link_length: float
+  + noise_power: float
   + calculate_capacity(): float
+  + tick(time: float)
 }
 
-class Network {
-  - nodes: list
-  - users: list
-  - links: list
-  - strategy: OptimizationStrategy
-  + add_node(node: Node): void
-  + add_user(user: User): void
-  + add_link(link: CommunicationLink): void
-  + assign_requests(): void
-  + set_strategy(strategy: OptimizationStrategy): void
-  + optimize(): void
+class Request {
+  - data_size: int
 }
 
-interface OptimizationStrategy {
-  + execute(network: Network): void
+' Simulation
+class Simulation {
+  - network: Network
+  + set_base_stations(num: int)
+  + set_haps(num: int)
+  + set_users(num: int)
+  + run()
+  + reset()
 }
 
-class GeneticAlgorithm {
-  + execute(network: Network): void
+' Earth utilities
+class Earth {
+  + {static} radius: float
+  + {static} mass: float
+  + {static} gravitational_constant: float
+  + {static} calculate_position_from_angle()
+  + {static} global_coordinate_to_local()
 }
 
-class QLearningAlgorithm {
-  + execute(network: Network): void
-}
+' Relationships
+BaseNode <|-- BaseStation
+BaseNode <|-- HAPS
+BaseNode <|-- LEO
+BaseNode <|-- UserDevice
 
-Node <|-- BaseStation
-Node <|-- HAPS
-Node <|-- SatelliteLEO
+BaseNode o-- Position
+BaseNode o-- "0..*" Antenna
 
-User *-- Request
+Network o-- "0..*" BaseNode
+Network o-- "0..*" CommunicationLink
+
+CommunicationLink o-- "2" BaseNode
+CommunicationLink o-- "0..*" Request
 
 Simulation *-- Network
-
-Network *-- Node
-Network *-- User
-Network *-- CommunicationLink
-Network o-- OptimizationStrategy
-
-OptimizationStrategy <|.. GeneticAlgorithm
-OptimizationStrategy <|.. QLearningAlgorithm
-
-CommunicationLink o-- Node
 
 @enduml
