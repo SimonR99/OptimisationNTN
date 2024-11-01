@@ -1,8 +1,8 @@
 """ Simulation class that instantiates the Network class and runs the simulation. """
 
 import argparse
-import string
 import random
+import string
 
 from optimisation_ntn.matrices.base_matrice import Matrice
 from optimisation_ntn.networks.network import Network
@@ -25,7 +25,7 @@ class Simulation:
         self.matrix_k = Matrice(initial_dimension, initial_dimension, "matrice K")
         self.matrix_s = Matrice(initial_dimension, initial_dimension, "matrice S")
         self.matrix_x = Matrice(initial_dimension, initial_dimension, "matrice X")
-        
+
         # Initialize with default values
         self.set_base_stations(1)
         self.set_haps(1)
@@ -34,9 +34,10 @@ class Simulation:
     def set_base_stations(self, num_base_stations: int):
         """Remove all existing base stations and create new ones."""
         # Remove all existing base stations
-        self.network.nodes = [node for node in self.network.nodes 
-                            if not isinstance(node, BaseStation)]
-        
+        self.network.nodes = [
+            node for node in self.network.nodes if not isinstance(node, BaseStation)
+        ]
+
         # Add new base stations
         start_x = -(num_base_stations - 1) * 1.5 / 2
         for i in range(num_base_stations):
@@ -47,9 +48,10 @@ class Simulation:
     def set_haps(self, num_haps: int):
         """Remove all existing HAPS and create new ones."""
         # Remove all existing HAPS
-        self.network.nodes = [node for node in self.network.nodes 
-                            if not isinstance(node, HAPS)]
-        
+        self.network.nodes = [
+            node for node in self.network.nodes if not isinstance(node, HAPS)
+        ]
+
         # Add new HAPS
         start_x = -(num_haps - 1) * 2 / 2
         height = 20  # Height for HAPS layer
@@ -61,9 +63,10 @@ class Simulation:
     def set_users(self, num_users: int):
         """Remove all existing users and create new ones with random positions."""
         # Remove all existing users
-        self.network.nodes = [node for node in self.network.nodes 
-                            if not isinstance(node, UserDevice)]
-        
+        self.network.nodes = [
+            node for node in self.network.nodes if not isinstance(node, UserDevice)
+        ]
+
         # Add new users with random positions
         for i in range(num_users):
             # Random position between -4 and 4 on x-axis
@@ -85,11 +88,3 @@ class Simulation:
 
     def reset(self):
         pass  # TODO
-
-    def set_num_haps(self, num):
-        """Called from GUI when HAPS number changes"""
-        self.set_haps(num)  # Use the existing set_haps method
-
-    def set_num_users(self, num):
-        """Called from GUI when user number changes"""
-        self.set_users(num)  # Use the existing set_users method
