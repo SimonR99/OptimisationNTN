@@ -1,5 +1,6 @@
 import ctypes
 import math
+import platform
 import random
 import sys
 
@@ -14,8 +15,9 @@ from .nodes.user_device import UserDevice
 from .simulation import Simulation
 from .utils.type import Position
 
-# Task bar Icon on Windows 11
-ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("optimisation_ntn")
+# Task bar Icon on Windows
+if platform.system() == "Windows":
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("optimisation_ntn")
 
 
 class SimulationUI(QtWidgets.QMainWindow):
