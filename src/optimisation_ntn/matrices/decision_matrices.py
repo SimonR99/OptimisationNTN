@@ -6,14 +6,22 @@ from ..nodes.haps import HAPS
 from ..nodes.leo import LEO
 from ..nodes.user_device import UserDevice
 from .matrix import Matrix
+from enum import Enum
+
+class MatrixType(Enum):
+    COVERAGE_ZONE = 'A'
+    POWER_STATE = 'B'
+    REQUEST = 'K'
+    ASSIGNMENT = 'X'
 
 class DecisionMatrices:
     def __init__(self, dimension: int):
-        self.matrices: Dict[str, Matrix] = {
-            'A': Matrix(dimension, dimension, "Coverage Zone Matrix"),  # Pre-computed coverage zones
-            'B': Matrix(dimension, dimension, "Power State Matrix"),    # Power state decisions (to optimize)
-            'K': Matrix(dimension, dimension, "Request Matrix"),        # Request generation (Poisson)
-            'X': Matrix(dimension, dimension, "Assignment Matrix")      # Real-time request assignment
+        """Initialize matrices used in network decision processes."""
+        self.matrices: Dict[MatrixType, Matrix] = {
+            MatrixType.COVERAGE_ZONE: Matrix(dimension, dimension, "Coverage Zone Matrix"),
+            MatrixType.POWER_STATE: Matrix(dimension, dimension, "Power State Matrix"),
+            MatrixType.REQUEST: Matrix(dimension, dimension, "Request Matrix"),
+            MatrixType.ASSIGNMENT: Matrix(dimension, dimension, "Assignment Matrix")
         }
         
     def compute_coverage_zones(self, network):
@@ -59,7 +67,10 @@ class DecisionMatrices:
         self.matrices['X'].update(assignment_matrix)
     
     def get_matrix(self, name: str) -> Matrix:
-        return self.matrices[name]
+        try:
+            return self.matrices[name]
+        except KeyError:
+            raise ValueError(f"Matrix '{name}' does not exist.")
     
     def set_matrix(self, name: str, matrix: Matrix):
         if name in self.matrices:

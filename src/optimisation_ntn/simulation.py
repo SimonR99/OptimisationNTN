@@ -41,16 +41,16 @@ class Simulation:
             return True
         return False
 
-    def initialize_default_nodes(self):
-        """Initialize network with default nodes"""
+    def initialize_default_nodes(self, nb_base_station:int = self.DEFAULT_BS_COUNT, nb_haps:int = self.DEFAULT_HAPS_COUNT, nb_leo:int = self.DEFAULT_LEO_COUNT):
+        """Initialize network with default nodes or a desired amount"""
         # Add default base stations
-        self.set_base_stations(self.DEFAULT_BS_COUNT)
+        self.set_base_stations(nb_base_station)
 
         # Add default HAPS
-        self.set_haps(self.DEFAULT_HAPS_COUNT)
+        self.set_haps(nb_haps)
 
         # Add default LEO satellites
-        for i in range(self.DEFAULT_LEO_COUNT):
+        for i in range(nb_leo):
             self.network.add_node(LEO(i))
 
     def set_base_stations(self, num_base_stations: int):

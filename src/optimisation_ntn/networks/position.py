@@ -8,3 +8,8 @@ class Position:
 
     def __str__(self):
         return f"Position(x={self.x}, y={self.y})"
+
+    @staticmethod
+    def distance(p1: "Position", p2: "Position") -> float:
+        """Calculate the Euclidean distance between two Position instances."""
+        return ((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2) ** 0.5

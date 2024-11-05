@@ -19,7 +19,8 @@ class Matrix:
         self.data[i, j] = value
 
     def apply_mask(self, mask: np.ndarray):
-        if mask.shape == self.data.shape:
-            self.data = self.data * mask
-        else:
-            raise ValueError(f"Mask shape mismatch: expected {self.data.shape}, got {mask.shape}") 
+        """Apply a mask to the matrix with element-wise multiplication."""
+        if mask.shape != self.data.shape:
+            raise ValueError(f"Mask shape mismatch: expected {self.data.shape}, got {mask.shape}")
+
+        np.multiply(self.data, mask, out=self.data)
