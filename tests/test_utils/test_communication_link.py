@@ -6,7 +6,7 @@ from optimisation_ntn.nodes.base_node import BaseNode
 from optimisation_ntn.nodes.haps import HAPS
 from optimisation_ntn.nodes.leo import LEO
 from optimisation_ntn.utils.communication_link import CommunicationLink
-from optimisation_ntn.utils.type import Position
+from optimisation_ntn.utils.position import Position
 
 
 class TestCommunicationLink(unittest.TestCase):
