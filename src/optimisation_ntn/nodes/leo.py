@@ -3,7 +3,7 @@ import numpy as np
 from optimisation_ntn.nodes.haps import HAPS
 from optimisation_ntn.utils.earth import Earth
 
-from ..utils.type import Position
+from ..utils.position import Position
 from .base_node import BaseNode
 
 

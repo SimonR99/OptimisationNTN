@@ -13,7 +13,7 @@ from .nodes.haps import HAPS
 from .nodes.leo import LEO
 from .nodes.user_device import UserDevice
 from .simulation import Simulation
-from .utils.type import Position
+from .utils.position import Position
 
 # Task bar Icon on Windows
 if platform.system() == "Windows":
