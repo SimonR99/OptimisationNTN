@@ -1,12 +1,12 @@
 import logging
 import unittest
 
-from optimisation_ntn.network.request import Request
+from optimisation_ntn.networks.request import Request
 from optimisation_ntn.nodes.base_node import BaseNode
 from optimisation_ntn.nodes.haps import HAPS
 from optimisation_ntn.nodes.leo import LEO
 from optimisation_ntn.utils.communication_link import CommunicationLink
-from optimisation_ntn.utils.type import Position
+from optimisation_ntn.utils.position import Position
 
 
 class TestCommunicationLink(unittest.TestCase):
@@ -23,7 +23,7 @@ class TestCommunicationLink(unittest.TestCase):
         self.node_b.add_antenna("UHF", 1.2)  # Matching UHF antenna for communication
 
     def test_zero_capacity(self):
-        # Test with zero 0signal power
+        # Test with zero signal power
         link = CommunicationLink(
             self.node_a,
             self.node_b,

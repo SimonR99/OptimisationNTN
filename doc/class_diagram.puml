@@ -1,102 +1,138 @@
 @startuml
 
-class Node {
-  - id: int
-  - capacity: int
-  - energy_profile: str
-  - state: str
-  + power_on(): void
-  + power_off(): void
-  + is_active(): bool
-}
-
+' Core Components
 class Simulation {
+  - current_time: float
+  - time_step: float
   - network: Network
-  + run(): void
+  - matrices: DecisionMatrices
+  - optimizer: BaseOptimizer
+  + run(duration: float)
+  + pause()
+  + resume()
+  + reset()
+  + set_optimizer(optimizer: BaseOptimizer)
 }
 
-class BaseStation {
+class DecisionMatrices {
+  - matrix_a: Matrix  ' Coverage zones (pre-computed)
+  - matrix_b: Matrix  ' Power state decisions (to optimize)
+  - matrix_k: Matrix  ' Request generation (Poisson distribution)
+  - matrix_x: Matrix  ' Request assignment (real-time)
+  + compute_coverage_zones()
+  + generate_request_matrix()
+  + update_assignment_matrix()
+  + get_matrix(name: str): Matrix
+  + set_matrix(name: str, matrix: Matrix)
 }
 
-class HAPS {
-  - battery_capacity: int
-  + consume_energy(amount: int): void
+abstract class BaseOptimizer {
+  # matrices: DecisionMatrices
+  # network: Network
+  + {abstract} optimize_power_states()
+  + {abstract} initialize()
+  # evaluate_power_efficiency()
 }
 
-class SatelliteLEO {
-  - battery_capacity: int
-  + consume_energy(amount: int): void
+class GeneticOptimizer extends BaseOptimizer {
+  - population_size: int
+  - mutation_rate: float
+  - crossover_rate: float
+  + optimize_power_states()
+  - select_parents()
+  - crossover()
+  - mutate()
 }
 
-class Position {
-  - x: float
-  - y: float
-}
-
-class Request {
-  - user_id: int
-  - size: int
-  - qos_profile: str
-}
-
-class User {
-  - id: int
-  - location: Position
-  - request_size: int
-  - active_request: bool
-  + generate_request(): Request
-}
-
-class CommunicationLink {
-  - node_a: Node
-  - node_b: Node
-  - bandwidth: float
-  - signal_power: float
-  - noise_power: float
-  + calculate_capacity(): float
+class Matrix {
+  - data: ndarray
+  - name: str
+  + update(data: ndarray)
+  + get_value(i: int, j: int): float
+  + set_value(i: int, j: int, value: float)
+  + apply_mask(mask: ndarray)
 }
 
 class Network {
-  - nodes: list
-  - users: list
-  - links: list
-  - strategy: OptimizationStrategy
-  + add_node(node: Node): void
-  + add_user(user: User): void
-  + add_link(link: CommunicationLink): void
-  + assign_requests(): void
-  + set_strategy(strategy: OptimizationStrategy): void
-  + optimize(): void
+  - nodes: List<NetworkNode>
+  - communication_links: List<Link>
+  + update(time: float)
+  + add_node(node: NetworkNode)
+  + remove_node(node: NetworkNode)
+  + get_network_state(): Dict
 }
 
-interface OptimizationStrategy {
-  + execute(network: Network): void
+' Network Components
+abstract class NetworkNode {
+  # id: int
+  # position: Position
+  # power_state: bool
+  # power_consumption: float
+  # antennas: List<Antenna>
+  + turn_on()
+  + turn_off()
+  + is_active(): bool
+  + get_power_consumption(): float
 }
 
-class GeneticAlgorithm {
-  + execute(network: Network): void
+class Position {
+  + x: float
+  + y: float
+  + distance_to(other: Position): float
 }
 
-class QLearningAlgorithm {
-  + execute(network: Network): void
+class Antenna {
+  - type: str
+  - gain: float
+  + is_compatible_with(other: Antenna): bool
 }
 
-Node <|-- BaseStation
-Node <|-- HAPS
-Node <|-- SatelliteLEO
+' Network Nodes
+class BaseStation extends NetworkNode {
+  - coverage_radius: float
+  + calculate_coverage(): List[Position]
+}
 
-User *-- Request
+class HAPS extends NetworkNode {
+  - altitude: float
+  - coverage_area: float
+  + update_solar_charging()
+}
 
+class LEO extends NetworkNode {
+  - current_angle: float
+  - angular_speed: float
+  + update_position(time: float)
+}
+
+class UserDevice extends NetworkNode {
+  - request_probability: float
+  + generate_request(): bool
+}
+
+' Communication
+class Link {
+  - source: NetworkNode
+  - target: NetworkNode
+  - bandwidth: float
+  - signal_power: float
+  + calculate_capacity(): float
+}
+
+' Relationships
 Simulation *-- Network
+Simulation *-- DecisionMatrices
+Simulation o-- BaseOptimizer
 
-Network *-- Node
-Network *-- User
-Network *-- CommunicationLink
-Network o-- OptimizationStrategy
+DecisionMatrices *-- "4" Matrix
 
-OptimizationStrategy <|.. GeneticAlgorithm
-OptimizationStrategy <|.. QLearningAlgorithm
+BaseOptimizer --> DecisionMatrices
+BaseOptimizer --> Network
 
-CommunicationLink o-- Node
+Network o-- "1..*" NetworkNode
+Network o-- "0..*" Link
+
+NetworkNode *-- Position
+NetworkNode o-- "1..*" Antenna
 
 @enduml

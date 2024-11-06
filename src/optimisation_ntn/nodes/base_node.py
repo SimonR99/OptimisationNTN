@@ -3,8 +3,8 @@ from typing import Dict, List, Optional, Tuple
 
 from optimisation_ntn.utils.earth import Earth
 
-from ..network.antenna import Antenna
-from ..utils.type import Position
+from ..networks.antenna import Antenna
+from ..utils.position import Position
 
 
 class BaseNode(ABC):
