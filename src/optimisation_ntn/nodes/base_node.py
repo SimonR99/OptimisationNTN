@@ -8,9 +8,7 @@ from ..utils.position import Position
 
 
 class BaseNode(ABC):
-    def __init__(
-        self, node_id: int, initial_position: Position | None = None, temperature=300
-    ):
+    def __init__(self, node_id: int, initial_position: Position, temperature=300):
         self.node_id = node_id
         self.position = initial_position
         self.state = False
