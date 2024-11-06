@@ -2,7 +2,7 @@ from abc import ABC
 
 import numpy as np
 
-from optimisation_ntn.utils.type import Position
+from optimisation_ntn.utils.position import Position
 
 
 class Earth(ABC):

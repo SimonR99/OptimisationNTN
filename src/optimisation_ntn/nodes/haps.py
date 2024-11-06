@@ -1,9 +1,9 @@
 from optimisation_ntn.networks.antenna import Antenna
 from optimisation_ntn.nodes.user_device import UserDevice
 from optimisation_ntn.utils.earth import Earth
-from optimisation_ntn.utils.type import Position
+from optimisation_ntn.utils.position import Position
 
-from ..utils.type import Position
+from ..utils.position import Position
 from .base_node import BaseNode
 
 
@@ -20,8 +20,6 @@ class HAPS(BaseNode):
         self.add_antenna("VHF", 1.0)
         self.state = False
         self.battery_capacity = 1000
-        haps_leo_antenna = Antenna([type], 10)
-        user_device_haps_antenna = Antenna([UserDevice], 10)
 
     def turn_on(self):
         self.state = True
