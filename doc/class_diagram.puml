@@ -1,115 +1,138 @@
 @startuml
 
-' Base classes and interfaces
-abstract class BaseNode {
-  - node_id: int
-  - position: Position
-  - state: bool
-  - antennas: List[Antenna]
-  - temperature: float
-  - active_links: Dict
-  + add_antenna(type: str, gain: float)
-  + get_compatible_antenna(antenna: Antenna)
-  + spectral_noise_density: float
+' Core Components
+class Simulation {
+  - current_time: float
+  - time_step: float
+  - network: Network
+  - matrices: DecisionMatrices
+  - optimizer: BaseOptimizer
+  + run(duration: float)
+  + pause()
+  + resume()
+  + reset()
+  + set_optimizer(optimizer: BaseOptimizer)
+}
+
+class DecisionMatrices {
+  - matrix_a: Matrix  ' Coverage zones (pre-computed)
+  - matrix_b: Matrix  ' Power state decisions (to optimize)
+  - matrix_k: Matrix  ' Request generation (Poisson distribution)
+  - matrix_x: Matrix  ' Request assignment (real-time)
+  + compute_coverage_zones()
+  + generate_request_matrix()
+  + update_assignment_matrix()
+  + get_matrix(name: str): Matrix
+  + set_matrix(name: str, matrix: Matrix)
+}
+
+abstract class BaseOptimizer {
+  # matrices: DecisionMatrices
+  # network: Network
+  + {abstract} optimize_power_states()
+  + {abstract} initialize()
+  # evaluate_power_efficiency()
+}
+
+class GeneticOptimizer extends BaseOptimizer {
+  - population_size: int
+  - mutation_rate: float
+  - crossover_rate: float
+  + optimize_power_states()
+  - select_parents()
+  - crossover()
+  - mutate()
+}
+
+class Matrix {
+  - data: ndarray
+  - name: str
+  + update(data: ndarray)
+  + get_value(i: int, j: int): float
+  + set_value(i: int, j: int, value: float)
+  + apply_mask(mask: ndarray)
+}
+
+class Network {
+  - nodes: List<NetworkNode>
+  - communication_links: List<Link>
+  + update(time: float)
+  + add_node(node: NetworkNode)
+  + remove_node(node: NetworkNode)
+  + get_network_state(): Dict
+}
+
+' Network Components
+abstract class NetworkNode {
+  # id: int
+  # position: Position
+  # power_state: bool
+  # power_consumption: float
+  # antennas: List<Antenna>
   + turn_on()
   + turn_off()
-  + tick(time: float)
+  + is_active(): bool
+  + get_power_consumption(): float
 }
 
 class Position {
   + x: float
   + y: float
+  + distance_to(other: Position): float
 }
 
 class Antenna {
-  - antenna_type: str
+  - type: str
   - gain: float
   + is_compatible_with(other: Antenna): bool
 }
 
-' Network nodes
-class BaseStation {
+' Network Nodes
+class BaseStation extends NetworkNode {
+  - coverage_radius: float
+  + calculate_coverage(): List[Position]
 }
 
-class HAPS {
-  - battery_capacity: int
-  + {static} haps_altitude: float
-  + {static} sky_visibility_angle: float
+class HAPS extends NetworkNode {
+  - altitude: float
+  - coverage_area: float
+  + update_solar_charging()
 }
 
-class LEO {
-  - battery_capacity: int
+class LEO extends NetworkNode {
   - current_angle: float
-  + {static} leo_altitude: float
-  + speed: float
-  + angular_speed: float
-  + tick(time: float)
+  - angular_speed: float
+  + update_position(time: float)
 }
 
-class UserDevice {
+class UserDevice extends NetworkNode {
+  - request_probability: float
+  + generate_request(): bool
 }
 
-' Network and Communication
-class Network {
-  - nodes: List[BaseNode]
-  - communication_links: List[CommunicationLink]
-  + add_node(node: BaseNode)
-  - _update_communication_links()
-  + tick()
-}
-
-class CommunicationLink {
-  - node_a: BaseNode
-  - node_b: BaseNode
-  - total_bandwidth: float
+' Communication
+class Link {
+  - source: NetworkNode
+  - target: NetworkNode
+  - bandwidth: float
   - signal_power: float
-  - carrier_frequency: float
-  - transmission_queue: List[Request]
-  - request_progress: float
-  + link_length: float
-  + noise_power: float
   + calculate_capacity(): float
-  + tick(time: float)
-}
-
-class Request {
-  - data_size: int
-}
-
-' Simulation
-class Simulation {
-  - network: Network
-  + set_base_stations(num: int)
-  + set_haps(num: int)
-  + set_users(num: int)
-  + run()
-  + reset()
-}
-
-' Earth utilities
-class Earth {
-  + {static} radius: float
-  + {static} mass: float
-  + {static} gravitational_constant: float
-  + {static} calculate_position_from_angle()
-  + {static} global_coordinate_to_local()
 }
 
 ' Relationships
-BaseNode <|-- BaseStation
-BaseNode <|-- HAPS
-BaseNode <|-- LEO
-BaseNode <|-- UserDevice
-
-BaseNode o-- Position
-BaseNode o-- "0..*" Antenna
-
-Network o-- "0..*" BaseNode
-Network o-- "0..*" CommunicationLink
-
-CommunicationLink o-- "2" BaseNode
-CommunicationLink o-- "0..*" Request
-
 Simulation *-- Network
+Simulation *-- DecisionMatrices
+Simulation o-- BaseOptimizer
+
+DecisionMatrices *-- "4" Matrix
+
+BaseOptimizer --> DecisionMatrices
+BaseOptimizer --> Network
+
+Network o-- "1..*" NetworkNode
+Network o-- "0..*" Link
+
+NetworkNode *-- Position
+NetworkNode o-- "1..*" Antenna
 
 @enduml
