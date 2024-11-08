@@ -8,6 +8,7 @@ from optimisation_ntn.algorithms.optimization_strategy import (
 )
 from optimisation_ntn.matrices.decision_matrices import DecisionMatrices, MatrixType
 from optimisation_ntn.networks.network import Network
+from optimisation_ntn.networks.request import Request
 from optimisation_ntn.nodes.base_station import BaseStation
 from optimisation_ntn.nodes.user_device import UserDevice
 from optimisation_ntn.utils.position import Position
@@ -20,8 +21,8 @@ class TestPowerMatrix(unittest.TestCase):
         self.matrices = DecisionMatrices(dimension=3)
 
         # Create test nodes
-        self.user1 = UserDevice(node_id=0, initial_position=Position(0, 0))
-        self.user2 = UserDevice(node_id=1, initial_position=Position(1000, 0))
+        self.user1 = UserDevice(node_id=0, initial_position=Position(0, 0), request=Request(np.random.randint(1,100)))
+        self.user2 = UserDevice(node_id=1, initial_position=Position(1000, 0), request=Request(np.random.randint(1,100)))
         self.bs1 = BaseStation(node_id=2, initial_position=Position(100, 0))
 
         # Add nodes to network
