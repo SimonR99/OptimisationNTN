@@ -1,4 +1,4 @@
-import numpy as np
+import pprint
 
 class Matrice:
     def __init__(self, rows: int, cols: int, name: str = ""):
@@ -7,6 +7,11 @@ class Matrice:
         self.cols = cols
         self.name = name
         self.dimensions = f"{rows}x{cols}"
+
+    def zeros_matrix(self):
+        for i in range(self.rows):
+            for j in range(self.cols):
+                self.data[i][j] = 0
 
     """
     This method will return the number of rows.
@@ -42,7 +47,7 @@ class Matrice:
     This method will set an element of a matrix.
     """
     def set_element(self, row, col, value):
-        self.data[row][col].append(value)  # Append value to the list at specified location
+        self.data[row][col] = value
 
     """
     This method will do a mathematical addition between the current matrix and another matrix.
@@ -94,6 +99,9 @@ class Matrice:
         self.rows = rows
         self.cols = cols
         self.dimensions = f"{rows}x{cols}"
+
+    def print_matrix(self):
+        pprint.pprint(self.data)
 
     """
     This method will print out the current matrix.
