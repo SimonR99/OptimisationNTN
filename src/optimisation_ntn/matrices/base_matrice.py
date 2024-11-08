@@ -1,104 +1,110 @@
-import string
-
-import numpy as np
+import pprint
 
 class Matrice:
-    def __init__(self, rows : int, cols: int, name: string = ""):
-        self.data = np.zeros((rows, cols))
+    def __init__(self, rows: int, cols: int, name: str = ""):
+        self.data = [[[] for _ in range(cols)] for _ in range(rows)]
         self.rows = rows
         self.cols = cols
         self.name = name
         self.dimensions = f"{rows}x{cols}"
 
+    def zeros_matrix(self):
+        for i in range(self.rows):
+            for j in range(self.cols):
+                self.data[i][j] = 0
+
     """
-    This method will return the rows length
+    This method will return the number of rows.
     """
     def get_rows(self):
-        return len(self.data)
+        return self.rows
 
     """
-    This method will return the cols length
+    This method will return the number of columns.
     """
     def get_cols(self):
-        return len(self.data[1])
+        return self.cols
 
     """
-    This method will return the name of the matrix
+    This method will return the name of the matrix.
     """
     def get_name(self):
         return self.name
 
     """
-    This method will return one value of the matrix
+    This method will return one value of the matrix.
     """
     def get_element(self, row, col):
-        return self.data[row, col]
+        return self.data[row][col]  # Access the element using list indexing
 
     """
-    This method will return the dimensions of the matrix
+    This method will return the dimensions of the matrix.
     """
     def get_dimensions(self):
         return self.dimensions
 
     """
-    This method will set an element of a matrix
+    This method will set an element of a matrix.
     """
     def set_element(self, row, col, value):
-        self.data[row, col] = value
+        self.data[row][col] = value
 
     """
-    This method will do a mathematical addition between the current matrix and the other
+    This method will do a mathematical addition between the current matrix and another matrix.
     """
     def add(self, other):
-        if self.data.shape != other.data.shape:
+        if self.rows != other.get_rows() or self.cols != other.get_cols():
             raise ValueError("Matrices must have the same dimensions to add.")
-        result = Matrice(self.data.shape[0], self.data.shape[1], self.name + "'")
-        result.data = self.data + other.data
+
+        result = Matrice(self.rows, self.cols, self.name + "'")
+        for i in range(self.rows):
+            for j in range(self.cols):
+                result.set_element(i, j, self.get_element(i, j))  # Copy existing requests
+
         return result
 
     """
-    This method will perform a mathematical subtraction between the current matrix and the other.
+    This method will perform a mathematical subtraction between the current matrix and another matrix.
     """
     def subtraction(self, other):
-        if self.data.shape != other.data.shape:
-            raise ValueError("Matrices must have the same dimensions to subtract.")
-        result = Matrice(self.data.shape[0], self.data.shape[1], self.name + "'")
-        result.data = self.data - other.data
-        return result
+        raise NotImplementedError("Subtraction is not defined for this matrix implementation.")
 
     """
-    This method will transpose the current matrix and will return a new matrix
+    This method will transpose the current matrix and return a new matrix.
     """
     def transpose(self):
-        result = Matrice(self.data.shape[1], self.data.shape[0], self.name + "_Transposed")
-        result.data = self.data.T
+        result = Matrice(self.cols, self.rows, self.name + "_Transposed")
+        for i in range(self.rows):
+            for j in range(self.cols):
+                result.set_element(j, i, self.get_element(i, j))  # Switch rows and columns
         return result
 
     """
-    This method will multiply the current matrix with a scalar or another matrix.
+    This method will multiply the current matrix with a scalar.
     """
-    def multiply(self, other=None, scalar=None):
-        # Scalar multiplication if 'scalar' is provided
-        if scalar is not None:
-            result = Matrice(self.data.shape[0], self.data.shape[1], self.name + "'")
-            result.data = self.data * scalar
-            return result
-        else:
-            if self.data.shape[1] != other.data.shape[0]:
-                raise ValueError("Number of columns of the first matrix must equal the number of rows of the second.")
-            result = Matrice(self.data.shape[0], other.data.shape[1], self.name + "'")
-            result.data = np.dot(self.data, other.data)
-            return result
+    def multiply(self, scalar):
+        result = Matrice(self.rows, self.cols, self.name + "'")
+        for i in range(self.rows):
+            for j in range(self.cols):
+                for req in self.get_element(i, j):
+                    result.set_element(i, j, req * scalar)  # Modify request according to your requirements
+
+        return result
 
     """
-    This method will modify the current matrix dimensions and will return a new matrix with values set to 0
+    This method will modify the current matrix dimensions and return a new matrix with values set to 0.
     """
     def modify_dimensions(self, rows, cols):
-        self.data = np.zeros((rows, cols))
-        return self
+        self.data = [[[] for _ in range(cols)] for _ in range(rows)]
+        self.rows = rows
+        self.cols = cols
+        self.dimensions = f"{rows}x{cols}"
+
+    def print_matrix(self):
+        pprint.pprint(self.data)
 
     """
-    This method will print out the current matrix
+    This method will print out the current matrix.
     """
     def __repr__(self):
         return f"{self.name}:\n{self.data}"

@@ -100,7 +100,7 @@ class CommunicationLink:
             self.request_progress += bits_to_transmit
 
             # Check if the request has finished transmitting
-            if self.request_progress >= current_request.data_size:
+            if self.request_progress >= current_request.size:
                 print(
                     f"Delivered {current_request} from {self.node_a} to {self.node_b}"
                 )
