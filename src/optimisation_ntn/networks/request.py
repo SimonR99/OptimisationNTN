@@ -19,6 +19,9 @@ class Request:
     def get_id(self):
         return self.id
 
+    def set_size(self, size:int):
+        self.size = size
+
     def set_priority_type (self, priority):
         match priority:
             case 1:
