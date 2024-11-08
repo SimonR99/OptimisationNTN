@@ -9,6 +9,8 @@ from .nodes.haps import HAPS
 from .nodes.leo import LEO
 from .nodes.user_device import UserDevice
 from .utils.position import Position
+from .algorithms.optimization_strategy import OptimizationStrategy
+from .matrices.decision_matrices import DecisionMatrices
 
 
 class Simulation:
@@ -20,26 +22,52 @@ class Simulation:
     DEFAULT_USER_COUNT = 0
     MAX_SIMULATION_TIME = 1000
 
-    def __init__(self):
+    def __init__(self, time_step: float = 1.0):
         self.current_time = 0.0
-        self.current_step = 0
-        self.step_duration = 0.1  # Duration of each simulation step in seconds
+        self.time_step = time_step
         self.network = Network()
-        self.is_paused = False
-
+        self.matrices = DecisionMatrices(dimension=0)
+        self.strategy: OptimizationStrategy | None = None
+        self.is_running = False
+        self.matrix_history = []  # Store historical matrices
+        
         # Initialize with default values
         self.initialize_default_nodes()
 
-    def step(self):
-        """Execute one simulation step"""
-        if self.current_time < self.MAX_SIMULATION_TIME and not self.is_paused:
-            # Update network with step duration
-            self.network.tick(self.step_duration)
-            # Increment counters
-            self.current_time += self.step_duration
-            self.current_step += 1
-            return True
-        return False
+    def set_strategy(self, strategy: OptimizationStrategy):
+        """Set the optimization strategy to use"""
+        self.strategy = strategy
+
+    def run(self, duration: float):
+        """Run simulation for specified duration"""
+        self.is_running = True
+        end_time = self.current_time + duration
+
+        while self.current_time < end_time and self.is_running:
+            # Store current matrices state in history
+            self.matrix_history.append(self.matrices.get_snapshot())
+            
+            # Update network state
+            self.network.update(self.current_time)
+            
+            # Optimize power states if strategy is set
+            if self.strategy:
+                self.strategy.optimize(self.matrix_history)
+                
+            self.current_time += self.time_step
+
+    def pause(self):
+        self.is_running = False
+
+    def resume(self):
+        self.is_running = True
+
+    def reset(self):
+        self.current_time = 0.0
+        self.is_running = False
+        self.network = Network()
+        self.matrix_history.clear()
+        self.initialize_default_nodes()
 
     def initialize_default_nodes(
         self,
@@ -101,10 +129,3 @@ class Simulation:
             height = -2  # Height for users (below base stations)
             user = UserDevice(i, Position(x_pos, height))
             self.network.add_node(user)
-
-    def reset(self):
-        """Reset simulation to initial state"""
-        self.current_time = 0.0
-        self.current_step = 0
-        self.network = Network()
-        self.initialize_default_nodes()

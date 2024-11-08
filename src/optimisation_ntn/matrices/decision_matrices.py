@@ -93,13 +93,13 @@ class DecisionMatrices:
 
     def get_matrix(self, name: str | MatrixType) -> Matrix:
         """Get matrix by name or enum value.
-        
+
         Args:
             name: Matrix name as string or MatrixType enum
-            
+
         Returns:
             The requested matrix
-            
+
         Raises:
             ValueError: If matrix doesn't exist
         """
@@ -114,11 +114,11 @@ class DecisionMatrices:
 
     def set_matrix(self, name: str | MatrixType, matrix: Matrix):
         """Set matrix by name or enum value.
-        
+
         Args:
             name: Matrix name as string or MatrixType enum
             matrix: Matrix to set
-            
+
         Raises:
             ValueError: If matrix name is invalid
         """
@@ -130,3 +130,10 @@ class DecisionMatrices:
                 self.matrices[name] = matrix
         except StopIteration:
             raise ValueError(f"Unknown matrix name: {name}")
+
+    def get_snapshot(self) -> Dict[MatrixType, np.ndarray]:
+        """Create a snapshot of current matrices state"""
+        return {
+            matrix_type: matrix.data.copy()
+            for matrix_type, matrix in self.matrices.items()
+        }
