@@ -8,10 +8,17 @@ class ReqGenerator:
     def __init__(self, time_span: int):
         self.time_span = time_span
 
-    def matrix_k_populate(self, req_amount: int, requests_array, lambda_rate: float):
+    def matrix_k_populate(self, req_amount: int, requests_array, lambda_rate: float = 0):
         """This function will generate requests and populate a matrix with rows as requests and columns as time ticks."""
         matrice = Matrice(req_amount, self.time_span)
         matrice.zeros_matrix()
+
+        """
+        If the lambda_rate is not specified, we calculate lambda_rate depending on the population to distribute 
+        among the ticks.
+        """
+        if lambda_rate == 0:
+            lambda_rate = req_amount/self.time_span
 
         poisson_array = np.random.poisson(lambda_rate, self.time_span)
         total_requests = poisson_array.sum()

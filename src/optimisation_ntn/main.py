@@ -54,4 +54,4 @@ class Main:
 
     simulation = Simulation()
 
-    simulation.matrix_k = matrix_k_generator.matrix_k_populate(1000, requests, 6)
+    simulation.matrix_k = matrix_k_generator.matrix_k_populate(1000, requests)
