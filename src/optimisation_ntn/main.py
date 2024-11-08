@@ -1,15 +1,14 @@
 import argparse
 
-from optimisation_ntn.simulation import Simulation
+from optimisation_ntn.algorithms.req_generator import ReqGenerator
 from optimisation_ntn.nodes.base_station import BaseStation
 from optimisation_ntn.nodes.haps import HAPS
 from optimisation_ntn.nodes.leo import LEO
+from optimisation_ntn.simulation import Simulation
 from optimisation_ntn.utils.position import Position
-from optimisation_ntn.algorithms.req_generator import ReqGenerator
 
 
-class Main:
-    # Set up argument parsing
+def create_parser():
     parser = argparse.ArgumentParser(
         description="Run the NTN network simulation with custom parameters."
     )
@@ -17,12 +16,16 @@ class Main:
     parser.add_argument(
         "--max_time",
         type=int,
-        default=3000,
-        help="The maximum simulation time in ticks",
+        default=300,
+        help="The maximum simulation time in seconds",
     )
 
     parser.add_argument(
-        "--num_leo", type=int, default=2, help="Number of LEO satellites"
+        "--tick_time", type=int, default=0.001, help="Number of seconds per tick"
+    )
+
+    parser.add_argument(
+        "--num_leo", type=int, default=1, help="Number of LEO satellites"
     )
 
     parser.add_argument(
@@ -30,28 +33,26 @@ class Main:
     )
 
     parser.add_argument(
-        "--initial_sat_position",
-        type=int,
-        default=0,
-        help="Initial position of the satellite",
-    )
-
-    parser.add_argument(
         "--algorithm",
         type=str,
-        choices=["GeneticAlgorithm", "QLearning"],
-        default="GeneticAlgorithm",
-        help="Algorithm used for optimization (GeneticAlgorithm or QLearning)",
+        choices=["Random", "AllOn"],
+        default="AllOn",
+        help="Algorithm used for optimizating or running the simulation",
     )
 
-    args = parser.parse_args()
+    return parser
 
-    #This is a matrix_k generation usage example
-    matrix_k_generator = ReqGenerator(100)
 
-    #Contains all the request but the value is null
-    requests = []
-
+def main(args):
     simulation = Simulation()
 
-    simulation.matrix_k = matrix_k_generator.matrix_k_populate(1000, requests)
+    # Run the simulation with the provided parameters (example usage)
+    print(
+        f"Running simulation with {args.num_base_stations} base stations, and a maximum time of {args.max_time} seconds."
+    )
+
+
+if __name__ == "__main__":
+    parser = create_parser()
+    args = parser.parse_args()
+    main(args)

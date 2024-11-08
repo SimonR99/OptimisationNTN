@@ -29,7 +29,7 @@ class Simulation:
         self.matrices = DecisionMatrices(dimension=0)
         self.strategy: OptimizationStrategy | None = None
         self.is_running = False
-        self.matrix_history = []  # Store historical matrices
+        self.matrix_history: list[DecisionMatrices] = []  # Store historical matrices
         
         # Initialize with default values
         self.initialize_default_nodes()
