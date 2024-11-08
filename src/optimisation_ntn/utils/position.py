@@ -1,9 +1,12 @@
 class Position:
+    """A simple class to represent a 2D position."""
+
     def __init__(self, x: float, y: float):
         self.x = x
         self.y = y
 
     def distance_to(self, other: "Position") -> float:
+        """Calculate the Euclidean distance between two Position instances."""
         return ((self.x - other.x) ** 2 + (self.y - other.y) ** 2) ** 0.5
 
     def __str__(self):
