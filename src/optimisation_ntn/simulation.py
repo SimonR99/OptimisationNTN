@@ -55,10 +55,7 @@ class Simulation:
         print("\nStarting simulation with parameters:")
         print(f"Time step: {self.time_step}s")
         print(f"Max simulation time: {self.max_time}s")
-        print(f"Number of base stations: {len([n for n in self.network.nodes if isinstance(n, BaseStation)])}")
-        print(f"Number of HAPS: {len([n for n in self.network.nodes if isinstance(n, HAPS)])}")
-        print(f"Number of LEO satellites: {len([n for n in self.network.nodes if isinstance(n, LEO)])}")
-        print(f"Number of users: {len([n for n in self.network.nodes if isinstance(n, UserDevice)])}")
+        print(f"{self.network}")  # Use Network's string representation
         print("\nSimulation running...\n")
 
         while self.current_time < self.max_time:
@@ -169,10 +166,7 @@ class Simulation:
         print("Initial parameters:")
         print(f"Time step: {self.time_step}s")
         print(f"Max simulation time: {self.max_time}s")
-        print(f"Number of base stations: {len([n for n in self.network.nodes if isinstance(n, BaseStation)])}")
-        print(f"Number of HAPS: {len([n for n in self.network.nodes if isinstance(n, HAPS)])}")
-        print(f"Number of LEO satellites: {len([n for n in self.network.nodes if isinstance(n, LEO)])}")
-        print(f"Number of users: {len([n for n in self.network.nodes if isinstance(n, UserDevice)])}")
+        print(f"{self.network}")  # Use Network's string representation
         print("\nOptimization running...\n")
         
         best_energy = float('inf')

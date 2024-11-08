@@ -3,6 +3,7 @@ import random
 
 from ..nodes.base_station import BaseStation
 from ..nodes.haps import HAPS
+from ..nodes.leo import LEO
 from ..nodes.user_device import UserDevice
 from .communication_link import CommunicationLink
 
@@ -11,6 +12,32 @@ class Network:
     def __init__(self):
         self.nodes = []
         self.communication_links = []
+
+    def __str__(self) -> str:
+        """String representation of the network showing node counts."""
+        return (
+            f"Network Configuration:\n"
+            f"  HAPS: {self.count_haps()}\n"
+            f"  Users: {self.count_users()}\n"
+            f"  Total nodes: {len(self.nodes)}\n"
+            f"  Communication links: {len(self.communication_links)}"
+        )
+
+    def count_base_stations(self) -> int:
+        """Count number of base stations in network."""
+        return len([n for n in self.nodes if isinstance(n, BaseStation)])
+
+    def count_haps(self) -> int:
+        """Count number of HAPS in network."""
+        return len([n for n in self.nodes if isinstance(n, HAPS)])
+
+    def count_leos(self) -> int:
+        """Count number of LEO satellites in network."""
+        return len([n for n in self.nodes if isinstance(n, LEO)])
+
+    def count_users(self) -> int:
+        """Count number of user devices in network."""
+        return len([n for n in self.nodes if isinstance(n, UserDevice)])
 
     def add_node(self, node):
         self.nodes.append(node)
