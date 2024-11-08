@@ -4,7 +4,7 @@ import random
 from ..nodes.base_station import BaseStation
 from ..nodes.haps import HAPS
 from ..nodes.user_device import UserDevice
-from ..utils.communication_link import CommunicationLink
+from .communication_link import CommunicationLink
 
 
 class Network:
