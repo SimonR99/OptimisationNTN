@@ -2,7 +2,7 @@ from typing import List
 
 import numpy as np
 
-from ..networks.request import Request
+from .request import Request
 from ..nodes.base_node import BaseNode
 from ..utils.earth import Earth
 
