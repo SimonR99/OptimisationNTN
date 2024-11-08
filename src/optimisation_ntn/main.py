@@ -4,7 +4,8 @@ from optimisation_ntn.simulation import Simulation
 from optimisation_ntn.nodes.base_station import BaseStation
 from optimisation_ntn.nodes.haps import HAPS
 from optimisation_ntn.nodes.leo import LEO
-from optimisation_ntn.utils.type import Position
+from optimisation_ntn.utils.position import Position
+from optimisation_ntn.algorithms.req_generator import ReqGenerator
 
 
 class Main:
@@ -45,26 +46,12 @@ class Main:
 
     args = parser.parse_args()
 
-    nodes = []
+    #This is a matrix_k generation usage example
+    matrix_k_generator = ReqGenerator(100)
 
-    bs1 = BaseStation(1, Position(0.5, 0))
-    nodes.append(bs1)
-
-    bs2 = BaseStation(2, Position(1.5, 0))
-    nodes.append(bs2)
-
-    bs3 = BaseStation(3, Position(2.5, 0))
-    nodes.append(bs3)
-
-    bs4 = BaseStation(4, Position(3.5, 0))
-    nodes.append(bs4)
-
-    haps = HAPS(5, Position(2, 20))
-    nodes.append(haps)
-
-    leo = LEO(6, Position(4, 500))
-    nodes.append(leo)
+    #Contains all the request but the value is null
+    requests = []
 
     simulation = Simulation()
 
-    simulation.run()
+    simulation.matrix_k = matrix_k_generator.matrix_k_populate(1000, requests)
