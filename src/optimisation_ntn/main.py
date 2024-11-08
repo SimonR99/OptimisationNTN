@@ -44,15 +44,26 @@ def create_parser():
 
 
 def main(args):
-    simulation = Simulation()
-
-    # Run the simulation with the provided parameters (example usage)
-    print(
-        f"Running simulation with {args.num_base_stations} base stations, and a maximum time of {args.max_time} seconds."
-    )
+    simulation = Simulation(time_step=args.tick_time)
+    
+    if args.algorithm not in ["Random", "AllOn"]:
+        # Run optimization mode
+        best_energy, energy_history = simulation.optimize(num_iterations=10)
+        print(f"Best energy consumption: {best_energy}")
+        print(f"Energy history: {energy_history}")
+    else:
+        # Run normal simulation mode
+        total_energy = simulation.run()
+        print(f"Total energy consumed: {total_energy}")
 
 
 if __name__ == "__main__":
     parser = create_parser()
+    parser.add_argument(
+        "--mode",
+        choices=["run", "optimize"],
+        default="run",
+        help="Simulation mode: run a single simulation or optimize over multiple runs"
+    )
     args = parser.parse_args()
     main(args)

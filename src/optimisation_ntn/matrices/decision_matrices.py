@@ -29,9 +29,6 @@ class DecisionMatrices:
             MatrixType.ASSIGNMENT: Matrix(dimension, dimension, "Assignment Matrix"),
         }
 
-        print("Matrices initialized")
-        print(self.matrices)
-
     def compute_coverage_zones(self, network, coverage_radius: float = 5000):
         """Pre-compute coverage zones for base stations.
         For each user, marks only the closest base station(s) within coverage range.

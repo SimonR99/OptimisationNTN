@@ -198,17 +198,18 @@ class SimulationUI(QtWidgets.QMainWindow):
         # Step Duration
         info_layout.addWidget(QtWidgets.QLabel("Step Duration (s):"), 0, 0)
         self.step_duration_input = QtWidgets.QDoubleSpinBox()
-        self.step_duration_input.setRange(0.001, 10.0)
-        self.step_duration_input.setValue(0.1)
-        self.step_duration_input.setSingleStep(0.1)
+        self.step_duration_input.setRange(0.00001, 10.0)
+        self.step_duration_input.setDecimals(5)
+        self.step_duration_input.setSingleStep(0.0001)
+        self.step_duration_input.setValue(0.001)
         self.step_duration_input.valueChanged.connect(self.update_step_duration)
         info_layout.addWidget(self.step_duration_input, 0, 1)
 
         # Time per step (UI update interval)
         info_layout.addWidget(QtWidgets.QLabel("UI Update Interval (ms):"), 1, 0)
         self.time_step_input = QtWidgets.QSpinBox()
-        self.time_step_input.setRange(0, 1000)
-        self.time_step_input.setValue(100)
+        self.time_step_input.setRange(1, 1000)
+        self.time_step_input.setValue(10)
         self.time_step_input.valueChanged.connect(self.update_time_step)
         info_layout.addWidget(self.time_step_input, 1, 1)
 
@@ -562,12 +563,7 @@ class SimulationUI(QtWidgets.QMainWindow):
     def start_simulation(self):
         if self.simulation:
             self.simulation.is_paused = False
-            update_interval = (
-                self.time_step_input.value()
-            )  # Get UI update interval in ms
-
-            # Update simulation step duration
-            self.simulation.step_duration = self.step_duration_input.value()
+            update_interval = self.time_step_input.value()  # Get UI update interval in ms
 
             # Create timer for UI updates
             self.timer = QtCore.QTimer()
@@ -578,10 +574,11 @@ class SimulationUI(QtWidgets.QMainWindow):
     def simulation_step(self):
         """Handle one simulation step with UI update"""
         if self.simulation and not self.simulation.is_paused:
-            if self.simulation.step():  # Returns True if simulation should continue
-                # Update simulation display (e.g., satellite positions)
+            can_continue = self.simulation.step()
+            
+            # Update UI
+            if can_continue:
                 self.update_simulation_display()
-                # Reload the current view to update LEO positions
                 self.update_view()
             else:
                 self.timer.stop()
@@ -650,6 +647,7 @@ class SimulationUI(QtWidgets.QMainWindow):
             self.num_bs_input.blockSignals(True)
             self.num_haps_input.blockSignals(True)
             self.num_users_input.blockSignals(True)
+            self.step_duration_input.blockSignals(True)
 
             # Count nodes of each type
             bs_count = len(
@@ -666,11 +664,13 @@ class SimulationUI(QtWidgets.QMainWindow):
             self.num_bs_input.setValue(bs_count)
             self.num_haps_input.setValue(haps_count)
             self.num_users_input.setValue(users_count)
+            self.step_duration_input.setValue(self.simulation.time_step)
 
             # Re-enable signals
             self.num_bs_input.blockSignals(False)
             self.num_haps_input.blockSignals(False)
             self.num_users_input.blockSignals(False)
+            self.step_duration_input.blockSignals(False)
 
     def update_base_stations(self):
         """Update the number of base stations in the simulation and view"""
@@ -776,9 +776,9 @@ class SimulationUI(QtWidgets.QMainWindow):
                 current_item.setText(new_name)
 
     def update_step_duration(self):
-        """Update simulation step duration"""
+        """Update simulation time step when UI value changes"""
         if self.simulation:
-            self.simulation.step_duration = self.step_duration_input.value()
+            self.simulation.time_step = self.step_duration_input.value()
 
 
 app = QtWidgets.QApplication(sys.argv)
