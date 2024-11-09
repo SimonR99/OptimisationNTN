@@ -7,10 +7,7 @@ class Matrix:
         self.name = name
 
     def update(self, data: np.ndarray):
-        if data.shape == self.data.shape:
-            self.data = data.copy()
-        else:
-            raise ValueError(f"Shape mismatch: expected {self.data.shape}, got {data.shape}")
+        self.data = data
 
     def get_value(self, i: int, j: int) -> float:
         return self.data[i, j]
@@ -24,3 +21,11 @@ class Matrix:
             raise ValueError(f"Mask shape mismatch: expected {self.data.shape}, got {mask.shape}")
 
         np.multiply(self.data, mask, out=self.data)
+
+    def get_rows(self) -> int:
+        """Get number of rows in matrix."""
+        return self.data.shape[0]
+
+    def get_cols(self) -> int:
+        """Get number of columns in matrix."""
+        return self.data.shape[1]

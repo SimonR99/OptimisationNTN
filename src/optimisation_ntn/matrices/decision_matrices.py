@@ -18,7 +18,7 @@ class MatrixType(Enum):
 
 
 class DecisionMatrices:
-    def __init__(self, dimension: int):
+    def __init__(self, dimension: int = 0):
         """Initialize matrices used in network decision processes."""
         self.matrices: Dict[MatrixType, Matrix] = {
             MatrixType.COVERAGE_ZONE: Matrix(
@@ -60,17 +60,35 @@ class DecisionMatrices:
         self.matrices[MatrixType.COVERAGE_ZONE].update(coverage_matrix)
 
     def generate_request_matrix(
-        self, num_users: int, simulation_time: float, mean_arrival_rate: float = 0.1
+        self, num_requests: int, num_steps: int
     ):
-        """Generate request matrix using Poisson distribution"""
-        request_matrix = np.zeros((num_users, int(simulation_time)))
-
-        for user in range(num_users):
-            # Generate Poisson process for request arrivals
-            arrivals = np.random.poisson(mean_arrival_rate, int(simulation_time))
-            request_matrix[user, :] = arrivals
-
-        self.matrices["K"].update(request_matrix)
+        """Generate request matrix where each user generates exactly one request.
+        
+        Args:
+            num_requests: Number of users (each will generate one request)
+            num_steps: Number of time steps to distribute requests over
+        
+        Raises:
+            ValueError: If num_requests or num_steps is less than or equal to 0
+        """
+        if num_requests <= 0:
+            raise ValueError("Number of requests must be positive")
+        if num_steps <= 0:
+            raise ValueError("Number of time steps must be positive")
+        
+        count = 0
+        while True:
+            ps = np.random.poisson(num_requests / num_steps, num_steps)
+            count += 1
+            if np.sum(ps) == num_requests:
+                matrix = np.zeros((num_requests, num_steps), dtype=int)
+                row_index = 0
+                for tick, count in enumerate(ps):
+                    for _ in range(count):
+                        matrix[row_index, tick] = 1
+                        row_index += 1
+                self.matrices[MatrixType.REQUEST].update(matrix)
+                break
 
     def update_assignment_matrix(self, network):
         """Update real-time request assignment matrix"""
@@ -88,7 +106,7 @@ class DecisionMatrices:
 
         self.matrices["X"].update(assignment_matrix)
 
-    def get_matrix(self, name: str | MatrixType) -> Matrix:
+    def get_matrix(self, name: MatrixType | str) -> Matrix:
         """Get matrix by name or enum value.
 
         Args:
@@ -101,32 +119,26 @@ class DecisionMatrices:
             ValueError: If matrix doesn't exist
         """
         try:
-            if isinstance(name, str):
-                # Try to find matching enum by value
-                matrix_type = next(t for t in MatrixType if t.value == name)
-                return self.matrices[matrix_type]
-            return self.matrices[name]
-        except (KeyError, StopIteration):
+            # If it's already a MatrixType, use it directly
+            if isinstance(name, MatrixType):
+                return self.matrices[name]
+            # If it's a string, convert to MatrixType
+            return self.matrices[MatrixType(name)]
+        except (KeyError, ValueError):
             raise ValueError(f"Matrix '{name}' does not exist.")
 
-    def set_matrix(self, name: str | MatrixType, matrix: Matrix):
+    def set_matrix(self, name: MatrixType, matrix: Matrix) -> None:
         """Set matrix by name or enum value.
 
         Args:
             name: Matrix name as string or MatrixType enum
-            matrix: Matrix to set
+            matrix: Matrix to store
 
         Raises:
-            ValueError: If matrix name is invalid
+            ValueError: If matrix name type is invalid
         """
-        try:
-            if isinstance(name, str):
-                matrix_type = next(t for t in MatrixType if t.value == name)
-                self.matrices[matrix_type] = matrix
-            else:
-                self.matrices[name] = matrix
-        except StopIteration:
-            raise ValueError(f"Unknown matrix name: {name}")
+        matrix_type = name if isinstance(name, MatrixType) else MatrixType(name)
+        self.matrices[matrix_type] = matrix
 
     def get_snapshot(self) -> Dict[MatrixType, np.ndarray]:
         """Create a snapshot of current matrices state"""
