@@ -24,7 +24,7 @@ class Simulation:
     DEFAULT_BS_COUNT = 4
     DEFAULT_HAPS_COUNT = 1
     DEFAULT_LEO_COUNT = 1
-    DEFAULT_USER_COUNT = 1
+    DEFAULT_USER_COUNT = 5
     MAX_SIMULATION_TIME = 2
 
     def __init__(self, time_step: float = 0.1, max_time: float = MAX_SIMULATION_TIME):
@@ -91,11 +91,10 @@ class Simulation:
 
     def step(self) -> bool:
         """Run simulation for a single step."""
-        current_tick = int(self.current_time / self.time_step)
 
         # Get new requests from request matrix for this tick
         new_requests = self.matrices.get_matrix(MatrixType.REQUEST).data[
-            :, current_tick
+            :, self.current_step
         ]
 
         # Get user devices and compute nodes
@@ -103,6 +102,7 @@ class Simulation:
         compute_nodes = self.network.get_compute_nodes()
 
         # Create new requests for users
+        print(new_requests)
         for i, request_flag in enumerate(new_requests):
             if request_flag == 1 and i < len(user_devices):
                 user = user_devices[i]
@@ -120,7 +120,7 @@ class Simulation:
 
                 # Create request to closest compute node if found
                 if closest_compute:
-                    request = user.spawn_request(current_tick, closest_compute)
+                    request = user.spawn_request(self.current_step, closest_compute)
                     print(
                         f"Created request from {user} to {closest_compute} (distance: {min_distance:.2f})"
                     )
@@ -302,24 +302,3 @@ class Simulation:
             num_steps=self.max_tick_time,
             strategy=AllOnStrategy(),
         )
-
-    def generate_request_matrix(self, num_requests: int, num_steps: int):
-        """Generate request matrix with more frequent requests"""
-        if num_requests <= 0 or num_steps <= 0:
-            raise ValueError("Number of requests and steps must be positive")
-
-        # Create matrix with more frequent requests
-        matrix = np.zeros((num_requests, num_steps), dtype=int)
-        requests_per_step = num_requests / (
-            num_steps / 4
-        )  # Generate requests 4x faster
-
-        for step in range(num_steps):
-            if step % 1000 == 0:  # Generate requests periodically
-                for i in range(
-                    min(2, num_requests)
-                ):  # Generate up to 2 requests at once
-                    if random.random() < 0.3:  # 30% chance to generate request
-                        matrix[i, step] = 1
-
-        self.matrices[MatrixType.REQUEST].update(matrix)
