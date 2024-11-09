@@ -25,9 +25,15 @@ class Simulation:
     DEFAULT_HAPS_COUNT = 1
     DEFAULT_LEO_COUNT = 1
     DEFAULT_USER_COUNT = 5
-    MAX_SIMULATION_TIME = 2
 
-    def __init__(self, time_step: float = 0.1, max_time: float = MAX_SIMULATION_TIME):
+    DEFAULT_TICK_TIME = 0.1
+    DEFAULT_MAX_SIMULATION_TIME = 300
+
+    def __init__(
+        self,
+        time_step: float = DEFAULT_TICK_TIME,
+        max_time: float = DEFAULT_MAX_SIMULATION_TIME,
+    ):
         self.current_step = 0
         self.current_time = 0.0
         self.time_step = time_step
@@ -49,14 +55,14 @@ class Simulation:
     @property
     def max_tick_time(self) -> int:
         """Calculate the maximum number of simulation steps."""
-        return int(self.MAX_SIMULATION_TIME / self.time_step)
+        return int(self.max_time / self.time_step)
 
     def set_strategy(self, strategy: PowerStateStrategy):
         """Set the optimization strategy to use"""
         self.strategy = strategy
 
     def run(self) -> float:
-        """Run simulation until MAX_SIMULATION_TIME.
+        """Run simulation until self.max_time.
         Returns:
             float: Total energy consumed during simulation
         """
@@ -102,7 +108,6 @@ class Simulation:
         compute_nodes = self.network.get_compute_nodes()
 
         # Create new requests for users
-        print(new_requests)
         for i, request_flag in enumerate(new_requests):
             if request_flag == 1 and i < len(user_devices):
                 user = user_devices[i]
@@ -283,9 +288,12 @@ class Simulation:
 
     def initialize_matrices(self):
         """Initialize all matrices needed for simulation"""
+        # Calculate required matrix size based on simulation parameters
+        matrix_size = self.max_tick_time + 1  # Add 1 to include the final step
+
         # Generate request matrix
         self.matrices.generate_request_matrix(
-            num_requests=self.network.count_users(), num_steps=self.max_tick_time
+            num_requests=self.network.count_users(), num_steps=matrix_size
         )
 
         # Generate coverage matrix
@@ -299,6 +307,6 @@ class Simulation:
         )
         self.matrices.generate_power_matrix(
             num_devices=num_devices,
-            num_steps=self.max_tick_time,
+            num_steps=matrix_size,
             strategy=AllOnStrategy(),
         )

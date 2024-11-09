@@ -11,20 +11,29 @@ def create_parser():
     parser.add_argument(
         "--max_time",
         type=int,
-        default=300,
+        default=Simulation.DEFAULT_MAX_SIMULATION_TIME,
         help="The maximum simulation time in seconds",
     )
 
     parser.add_argument(
-        "--tick_time", type=int, default=0.1, help="Number of seconds per tick"
+        "--tick_time",
+        type=int,
+        default=Simulation.DEFAULT_TICK_TIME,
+        help="Number of seconds per tick",
     )
 
     parser.add_argument(
-        "--num_leo", type=int, default=1, help="Number of LEO satellites"
+        "--num_leo",
+        type=int,
+        default=Simulation.DEFAULT_LEO_COUNT,
+        help="Number of LEO satellites",
     )
 
     parser.add_argument(
-        "--num_base_stations", type=int, default=4, help="Number of base stations"
+        "--num_base_stations",
+        type=int,
+        default=Simulation.DEFAULT_BS_COUNT,
+        help="Number of base stations",
     )
 
     parser.add_argument(
@@ -39,7 +48,7 @@ def create_parser():
 
 
 def main(args):
-    simulation = Simulation(time_step=args.tick_time)
+    simulation = Simulation(time_step=args.tick_time, max_time=args.max_time)
 
     if args.algorithm not in ["Random", "AllOn"]:
         # Run optimization mode

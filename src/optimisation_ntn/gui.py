@@ -129,7 +129,9 @@ class SimulationUI(QtWidgets.QMainWindow):
         # Add max simulation time display
         max_time_layout = QtWidgets.QHBoxLayout()
         max_time_layout.addWidget(QtWidgets.QLabel("Max Time:"))
-        self.max_time_label = QtWidgets.QLabel(f"{Simulation.MAX_SIMULATION_TIME}s")
+        self.max_time_label = QtWidgets.QLabel(
+            f"{Simulation.DEFAULT_MAX_SIMULATION_TIME}s"
+        )
         max_time_layout.addWidget(self.max_time_label)
         control_layout.addLayout(max_time_layout)
 
