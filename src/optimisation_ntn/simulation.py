@@ -20,7 +20,7 @@ class Simulation:
     DEFAULT_BS_COUNT = 4
     DEFAULT_HAPS_COUNT = 1
     DEFAULT_LEO_COUNT = 1
-    DEFAULT_USER_COUNT = 0
+    DEFAULT_USER_COUNT = 5
     MAX_SIMULATION_TIME = 300
 
     def __init__(self, time_step: float = 0.001, max_time: float = MAX_SIMULATION_TIME):

@@ -5,7 +5,7 @@ from optimisation_ntn.utils.earth import Earth
 
 from ..networks.antenna import Antenna
 from ..utils.position import Position
-
+from ..networks.request import Request
 
 class BaseNode(ABC):
     def __init__(self, node_id: int, initial_position: Position, temperature=300):
@@ -17,6 +17,12 @@ class BaseNode(ABC):
         self.active_links: Dict[Tuple[type, type], int] = (
             {}
         )  # Track active links by node type pair
+        self.current_load = 0
+        self.processing_power = 0
+        self.processing_queue: List[Request] = []
+
+    def can_process(self, request : Request) -> bool:
+        return self.processing_power > 0 and self.current_load + request.load <= self.processing_power
 
     def add_antenna(self, antenna_type: str, gain: float):
         """Adds an antenna with a specified type and gain to the node."""
