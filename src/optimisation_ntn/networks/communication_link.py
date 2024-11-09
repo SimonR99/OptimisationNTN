@@ -79,8 +79,8 @@ class CommunicationLink:
     def calculate_capacity(self) -> float:
         """Calculates the link capacity based on Shannon's formula using adjusted bandwidth."""
         snr = self.calculate_snr()
-        # Increase base capacity to ensure requests can complete in reasonable time
-        return self.adjusted_bandwidth * np.log2(1 + snr) * 1000  # Multiply by 1000 to increase transmission speed
+        # Reduce multiplier to make transmission more visible
+        return self.adjusted_bandwidth * np.log2(1 + snr) * 100  # Reduced from 10000 to 100
 
     def add_to_queue(self, request: Request):
         """Adds a request to the transmission queue and resets progress tracking."""
@@ -108,10 +108,7 @@ class CommunicationLink:
                 # Update request's current node and status
                 current_request.current_node = self.node_b
                 if self.node_b == current_request.target_node:
-                    current_request.status = RequestStatus.IN_PROCESSING_QUEUE
-                    print(
-                        f"Request {current_request.id} status changed to {current_request.status.name}"
-                    )
+                    # Directly add to processing queue without intermediate state
                     self.node_b.add_request_to_process(current_request)
                 else:
                     # Move to next node in path

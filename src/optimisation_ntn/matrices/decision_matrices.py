@@ -61,32 +61,28 @@ class DecisionMatrices:
         self.matrices[MatrixType.COVERAGE_ZONE].update(coverage_matrix)
 
     def generate_request_matrix(self, num_requests: int, num_steps: int):
-        """Generate request matrix where each user generates exactly one request.
+        """Generate request matrix where each user generates exactly one request."""
+        if num_requests <= 0 or num_steps <= 0:
+            raise ValueError("Number of requests and steps must be positive")
 
-        Args:
-            num_requests: Number of users (each will generate one request)
-            num_steps: Number of time steps to distribute requests over
-
-        Raises:
-            ValueError: If num_requests or num_steps is less than or equal to 0
-        """
-        if num_requests <= 0:
-            raise ValueError("Number of requests must be positive")
-        if num_steps <= 0:
-            raise ValueError("Number of time steps must be positive")
-
+        # Create new matrix with correct dimensions
+        request_matrix = Matrix(num_requests, num_steps, "Request Matrix")
+        
+        # Generate Poisson distribution of requests
         count = 0
         while True:
             ps = np.random.poisson(num_requests / num_steps, num_steps)
             count += 1
-            if np.sum(ps) == num_requests:
+            if np.sum(ps) == num_requests or count > 1000:  # Add timeout
                 matrix = np.zeros((num_requests, num_steps), dtype=int)
                 row_index = 0
                 for tick, count in enumerate(ps):
                     for _ in range(count):
-                        matrix[row_index, tick] = 1
-                        row_index += 1
-                self.matrices[MatrixType.REQUEST].update(matrix)
+                        if row_index < num_requests:
+                            matrix[row_index, tick] = 1
+                            row_index += 1
+                request_matrix.data = matrix
+                self.matrices[MatrixType.REQUEST] = request_matrix
                 break
 
     def generate_power_matrix(

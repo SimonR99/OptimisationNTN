@@ -76,12 +76,15 @@ class BaseNode(ABC):
         """Add request to processing queue"""
         if self.can_process(request):
             self.processing_queue.append(request)
-            self.current_load += request.size
+            self.current_load += request.cycle_bits
             request.status = RequestStatus.PROCESSING
             request.current_node = self
+            request.processing_progress = 0
             print(
                 f"Request {request.id} status changed to {request.status.name} at {self}"
             )
+        else:
+            print(f"Node {self} cannot process request {request.id} (current load: {self.current_load}, power: {self.processing_power})")
 
     def process_requests(self, time: float):
         """Process requests in queue"""
@@ -91,18 +94,15 @@ class BaseNode(ABC):
         # Process each request in queue
         completed = []
         for request in self.processing_queue:
-            if not hasattr(request, "processing_progress"):
-                request.processing_progress = 0
-
             request.processing_progress += self.processing_power * time
             print(
                 f"Node {self}: Processing request {request.id} "
-                f"({request.processing_progress:.1f}/{request.size} units)"
+                f"({request.processing_progress:.1f}/{request.cycle_bits} units)"
             )
 
-            if request.processing_progress >= request.size:
+            if request.processing_progress >= request.cycle_bits:
                 completed.append(request)
-                self.current_load -= request.size
+                self.current_load -= request.cycle_bits
                 request.status = RequestStatus.COMPLETED
                 request.satisfaction = True
                 print(

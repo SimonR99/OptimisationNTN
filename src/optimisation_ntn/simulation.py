@@ -24,25 +24,29 @@ class Simulation:
     DEFAULT_BS_COUNT = 4
     DEFAULT_HAPS_COUNT = 1
     DEFAULT_LEO_COUNT = 1
-    DEFAULT_USER_COUNT = 50
-    MAX_SIMULATION_TIME = 200
+    DEFAULT_USER_COUNT = 20
+    MAX_SIMULATION_TIME = 100
 
-    def __init__(self, time_step: float = 0.001, max_time: float = MAX_SIMULATION_TIME):
+    def __init__(
+        self, time_step: float = 0.0001, max_time: float = MAX_SIMULATION_TIME
+    ):
         self.current_step = 0
         self.current_time = 0.0
         self.time_step = time_step
         self.max_time = max_time
         self.network = Network()
-        self.matrices = DecisionMatrices(dimension=0)
+        self.matrices = DecisionMatrices(dimension=self.DEFAULT_USER_COUNT)
         self.strategy: PowerStateStrategy | None = None
-        self.matrix_history: list[DecisionMatrices] = []  # Store historical matrices
-
+        self.matrix_history: list[DecisionMatrices] = []
         self.total_requests = 0
+        self.request_stats = {status: 0 for status in RequestStatus}
+        self.is_paused = False
 
         # Initialize with default values
         self.initialize_default_nodes()
 
-        self.request_stats = {status: 0 for status in RequestStatus}
+        # Initialize matrices after network is set up
+        self.initialize_matrices()
 
     @property
     def max_tick_time(self) -> int:
@@ -66,24 +70,6 @@ class Simulation:
         print(f"Max simulation time: {self.max_time}s")
         print(f"{self.network}")
         print("\nSimulation running...\n")
-
-        self.matrices.generate_request_matrix(
-            num_requests=self.network.count_users(), num_steps=self.max_tick_time
-        )
-
-        self.matrices.generate_coverage_matrix(self.network)
-
-        num_devices = (
-            self.network.count_haps()
-            + self.network.count_base_stations()
-            + self.network.count_leos()
-        )
-
-        self.matrices.generate_power_matrix(
-            num_devices=num_devices,
-            num_steps=self.max_tick_time,
-            strategy=AllOnStrategy(),
-        )
 
         while self.current_time < self.max_time:
             if not self.step():
@@ -149,10 +135,13 @@ class Simulation:
     def reset(self):
         """Reset the simulation to initial state."""
         self.current_time = 0.0
-        self.current_step = 0  # Reset step counter
+        self.current_step = 0
         self.network = Network()
         self.matrix_history.clear()
+        self.total_requests = 0
+        self.request_stats = {status: 0 for status in RequestStatus}
         self.initialize_default_nodes()
+        self.initialize_matrices()  # Re-initialize matrices after reset
 
     def initialize_default_nodes(
         self,
@@ -277,3 +266,46 @@ class Simulation:
         for user in [n for n in self.network.nodes if isinstance(n, UserDevice)]:
             for request in user.current_requests:
                 self.request_stats[request.status] += 1
+
+    def initialize_matrices(self):
+        """Initialize all matrices needed for simulation"""
+        # Generate request matrix
+        self.matrices.generate_request_matrix(
+            num_requests=self.network.count_users(), num_steps=self.max_tick_time
+        )
+
+        # Generate coverage matrix
+        self.matrices.generate_coverage_matrix(self.network)
+
+        # Generate power matrix
+        num_devices = (
+            self.network.count_haps()
+            + self.network.count_base_stations()
+            + self.network.count_leos()
+        )
+        self.matrices.generate_power_matrix(
+            num_devices=num_devices,
+            num_steps=self.max_tick_time,
+            strategy=AllOnStrategy(),
+        )
+
+    def generate_request_matrix(self, num_requests: int, num_steps: int):
+        """Generate request matrix with more frequent requests"""
+        if num_requests <= 0 or num_steps <= 0:
+            raise ValueError("Number of requests and steps must be positive")
+
+        # Create matrix with more frequent requests
+        matrix = np.zeros((num_requests, num_steps), dtype=int)
+        requests_per_step = num_requests / (
+            num_steps / 4
+        )  # Generate requests 4x faster
+
+        for step in range(num_steps):
+            if step % 1000 == 0:  # Generate requests periodically
+                for i in range(
+                    min(2, num_requests)
+                ):  # Generate up to 2 requests at once
+                    if random.random() < 0.3:  # 30% chance to generate request
+                        matrix[i, step] = 1
+
+        self.matrices[MatrixType.REQUEST].update(matrix)

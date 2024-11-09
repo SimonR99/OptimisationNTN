@@ -27,7 +27,7 @@ class SimulationUI(QtWidgets.QMainWindow):
         self.setGeometry(100, 100, 1200, 700)
         self.setStyleSheet("background-color: #2e2e2e; color: white;")
         self.current_view = "close"
-        self.show_links = False
+        self.show_links = True
         self.setWindowIcon(QtGui.QIcon("images/logo.png"))
         self.simulation = None
         self.simulations = {}
@@ -185,6 +185,7 @@ class SimulationUI(QtWidgets.QMainWindow):
 
         # Add toggle for communication links
         self.show_links_checkbox = QtWidgets.QCheckBox("Show Communication Links")
+        self.show_links_checkbox.setChecked(True)
         self.show_links_checkbox.stateChanged.connect(self.toggle_links)
         param_layout.addWidget(self.show_links_checkbox)
 
@@ -208,8 +209,8 @@ class SimulationUI(QtWidgets.QMainWindow):
         # Time per step (UI update interval)
         info_layout.addWidget(QtWidgets.QLabel("UI Update Interval (ms):"), 1, 0)
         self.time_step_input = QtWidgets.QSpinBox()
-        self.time_step_input.setRange(1, 1000)
-        self.time_step_input.setValue(10)
+        self.time_step_input.setRange(1, 100)
+        self.time_step_input.setValue(16)
         self.time_step_input.valueChanged.connect(self.update_time_step)
         info_layout.addWidget(self.time_step_input, 1, 1)
 
@@ -426,6 +427,64 @@ class SimulationUI(QtWidgets.QMainWindow):
                     angle_text.setDefaultTextColor(QtGui.QColor("white"))
                     angle_text.setPos(x_pos, y_pos - 40)
 
+            # Store node positions for request visualization
+            node_positions = {}
+
+            # After drawing each node, store its position and add its processing requests
+            for node in self.simulation.network.nodes:
+                if isinstance(node, BaseStation):
+                    x_pos = node.position.x * 50
+                    y_pos = 250
+                    node_positions[node] = (
+                        x_pos + 15,
+                        y_pos + 15,
+                    )  # Center of the node
+                    self.add_processing_requests(scene, node, x_pos + 15, y_pos + 15)
+
+                elif isinstance(node, HAPS):
+                    x_pos = node.position.x * 50
+                    y_pos = 100
+                    node_positions[node] = (x_pos + 15, y_pos + 15)
+                    self.add_processing_requests(scene, node, x_pos + 15, y_pos + 15)
+
+                elif isinstance(node, UserDevice):
+                    x_pos = node.position.x * 50
+                    y_pos = 270
+                    node_positions[node] = (x_pos + 10, y_pos + 10)
+                    self.add_processing_requests(scene, node, x_pos + 10, y_pos + 10)
+
+            # Draw communication links and requests in transit
+            if self.show_links:
+                for link in self.simulation.network.communication_links:
+                    source_pos = node_positions.get(link.node_a)
+                    target_pos = node_positions.get(link.node_b)
+
+                    if source_pos and target_pos:
+                        # Draw the link
+                        pen = QtGui.QPen(
+                            QtGui.QColor(
+                                "yellow"
+                                if isinstance(link.node_a, BaseStation)
+                                or isinstance(link.node_b, BaseStation)
+                                else "white"
+                            )
+                        )
+                        pen.setStyle(QtCore.Qt.SolidLine)
+                        pen.setWidth(1)
+                        line = scene.addLine(
+                            source_pos[0],
+                            source_pos[1],
+                            target_pos[0],
+                            target_pos[1],
+                            pen,
+                        )
+                        line.setOpacity(0.5)
+
+                        # Add requests in transit
+                        self.add_in_transit_requests(
+                            scene, link, source_pos, target_pos
+                        )
+
         self.schematic_view.setScene(scene)
         self.schematic_view.centerOn(0, 200)
 
@@ -563,7 +622,9 @@ class SimulationUI(QtWidgets.QMainWindow):
     def start_simulation(self):
         if self.simulation:
             self.simulation.is_paused = False
-            update_interval = self.time_step_input.value()  # Get UI update interval in ms
+            update_interval = (
+                self.time_step_input.value()
+            )  # Get UI update interval in ms
 
             # Create timer for UI updates
             self.timer = QtCore.QTimer()
@@ -575,11 +636,13 @@ class SimulationUI(QtWidgets.QMainWindow):
         """Handle one simulation step with UI update"""
         if self.simulation and not self.simulation.is_paused:
             can_continue = self.simulation.step()
-            
+
             # Update UI
             if can_continue:
                 self.update_simulation_display()
-                self.update_view()
+                # Force scene update
+                self.load_close_up_view()
+                self.schematic_view.viewport().update()
             else:
                 self.timer.stop()
                 self.run_pause_btn.setText("Run")
@@ -627,8 +690,9 @@ class SimulationUI(QtWidgets.QMainWindow):
         simulation_name = f"Simulation {self.sim_list.count() + 1}"
         self.sim_list.addItem(simulation_name)
 
-        # Create new simulation instance
+        # Create new simulation instance with proper initialization
         simulation = Simulation()
+        simulation.initialize_matrices()  # Ensure matrices are initialized
 
         # Store simulation
         self.simulations[simulation_name] = simulation
@@ -779,6 +843,84 @@ class SimulationUI(QtWidgets.QMainWindow):
         """Update simulation time step when UI value changes"""
         if self.simulation:
             self.simulation.time_step = self.step_duration_input.value()
+
+    def add_processing_requests(self, scene, node, node_x, node_y):
+        """Add visual representation of requests being processed by a node"""
+        if hasattr(node, "processing_queue") and node.processing_queue:
+            request_pixmap = QtGui.QPixmap("images/file.png")
+            if request_pixmap.isNull():
+                print("ERROR: Could not load file.png for processing requests")
+                return
+
+            request_pixmap = request_pixmap.scaled(15, 15)
+
+            # Position requests in a semi-circle above the node
+            num_requests = len(node.processing_queue)
+            radius = 25  # Radius of the circle
+            start_angle = -140  # Start angle in degrees
+            angle_span = 100  # Total angle span in degrees
+
+            for i, request in enumerate(node.processing_queue):
+                # Calculate angle for this request
+                angle = math.radians(
+                    start_angle
+                    + (angle_span * i / (num_requests - 1 if num_requests > 1 else 1))
+                )
+
+                # Calculate position
+                x = node_x + radius * math.cos(angle)
+                y = node_y + radius * math.sin(angle)
+
+                # Add request icon
+                request_item = QtWidgets.QGraphicsPixmapItem(request_pixmap)
+                request_item.setPos(
+                    x - request_pixmap.width() / 2, y - request_pixmap.height() / 2
+                )
+                scene.addItem(request_item)
+
+                # Add request ID label
+                text = scene.addText(f"R{request.id}")
+                text.setDefaultTextColor(QtGui.QColor("white"))
+                text.setPos(
+                    x - text.boundingRect().width() / 2,
+                    y - request_pixmap.height() - 15,
+                )
+
+    def add_in_transit_requests(self, scene, link, source_pos, target_pos):
+        """Add visual representation of requests in transit on a link"""
+        if link.transmission_queue:
+            request_pixmap = QtGui.QPixmap("images/file.png")
+            if request_pixmap.isNull():
+                print("ERROR: Could not load file.png for in-transit requests")
+                return
+
+            request_pixmap = request_pixmap.scaled(15, 15)
+
+            for i, request in enumerate(link.transmission_queue):
+                # Calculate position along the link
+                if i == 0:  # First request - show actual progress
+                    progress = min(1.0, max(0.0, link.request_progress / request.size))
+                else:  # Queue other requests behind the first one
+                    progress = max(0.0, (i * -0.1))  # Space them out behind the source
+
+                # Calculate position along the line
+                x = source_pos[0] + (target_pos[0] - source_pos[0]) * progress
+                y = source_pos[1] + (target_pos[1] - source_pos[1]) * progress
+
+                # Add request icon
+                request_item = QtWidgets.QGraphicsPixmapItem(request_pixmap)
+                request_item.setPos(
+                    x - request_pixmap.width() / 2, y - request_pixmap.height() / 2
+                )
+                scene.addItem(request_item)
+
+                # Add request ID label
+                text = scene.addText(f"R{request.id}")
+                text.setDefaultTextColor(QtGui.QColor("white"))
+                text.setPos(
+                    x - text.boundingRect().width() / 2,
+                    y - request_pixmap.height() - 15,
+                )
 
 
 app = QtWidgets.QApplication(sys.argv)

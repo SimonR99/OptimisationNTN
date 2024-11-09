@@ -35,11 +35,10 @@ class LEO(BaseNode):
         )
         super().__init__(node_id, Earth.global_coordinate_to_local(global_position))
         self.add_antenna("VHF", 1.5)
-
-        self.state = False
+        self.state = True
         self.battery_capacity = 100
         self.current_angle = start_angle
-        self.processing_power = 5000
+        self.processing_power = 30.0
 
     @property
     def is_visible(self) -> bool:

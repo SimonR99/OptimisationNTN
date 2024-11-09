@@ -1,6 +1,6 @@
 import random
-from enum import Enum
 import time
+from enum import Enum
 
 
 class RequestStatus(Enum):
@@ -19,8 +19,6 @@ class Priority(Enum):
 
 class Request:
     lamda = 0
-    size = 0
-    cycle_bits = 0
     id_counter = 0
 
     def __init__(self, tick: int, initial_node: "BaseNode", target_node: "BaseNode"):
@@ -34,7 +32,9 @@ class Request:
         self.satisfaction = False
         self.processing_progress = 0
         self.qos_limit = 0.0
-        self.priority = random.randint(1, 3)
+        self.size = 0.0
+        self.cycle_bits = 0.0
+        self.priority = random.choice(list(Priority))
         self.set_priority_type(self.priority)
         self.creation_time = tick
         self.last_status_change = tick
@@ -57,18 +57,19 @@ class Request:
             case Priority.HIGH:
                 self.lamda = 0.2
                 self.qos_limit = 0.1  # 100 ms
-                self.size = random.randint(1, 3)
-                self.cycle_bits = random.randint(100, 130)
+                self.size = random.randint(10, 30) * 1000
+                self.cycle_bits = random.randint(10, 30)
             case Priority.MEDIUM:
                 self.lamda = 0.5
                 self.qos_limit = 0.3  # 300 ms
-                self.size = random.randint(4, 6)
-                self.cycle_bits = random.randint(131, 160)
+                self.size = random.randint(20, 40) * 1000
+                self.cycle_bits = random.randint(20, 40)
             case Priority.LOW:
                 self.lamda = 1
                 self.qos_limit = 0.5  # 500 ms
-                self.size = random.randint(7, 10)
-                self.cycle_bits = random.randint(161, 200)
+                self.size = random.randint(30, 50) * 1000
+                self.cycle_bits = random.randint(30, 50)
+        print(f"Request {self.id} created with size {self.size} bits")
 
     def is_satisfied(self):
         return self.satisfaction
@@ -88,7 +89,9 @@ class Request:
         """Update request status and track timing"""
         current_time = time.time()
         self.status_history.append((new_status, current_time))
-        print(f"Request {self.id} status changed: {self.status} -> {new_status} "
-              f"(time in previous status: {current_time - self.last_status_change:.2f}s)")
+        print(
+            f"Request {self.id} status changed: {self.status} -> {new_status} "
+            f"(time in previous status: {current_time - self.last_status_change:.2f}s)"
+        )
         self.status = new_status
         self.last_status_change = current_time
