@@ -31,7 +31,7 @@ class TestDecisionMatrices(unittest.TestCase):
 
     def test_large_coverage_radius(self):
         """Test coverage zones with 5000m radius - all users should connect"""
-        self.decision_matrices.compute_coverage_zones(
+        self.decision_matrices.generate_coverage_matrix(
             self.network, coverage_radius=5000
         )
         coverage_matrix = self.decision_matrices.get_matrix(
@@ -54,7 +54,7 @@ class TestDecisionMatrices(unittest.TestCase):
 
     def test_small_coverage_radius(self):
         """Test coverage zones with 1500m radius - only nearby users should connect"""
-        self.decision_matrices.compute_coverage_zones(
+        self.decision_matrices.generate_coverage_matrix(
             self.network, coverage_radius=1500
         )
         coverage_matrix = self.decision_matrices.get_matrix(
@@ -77,7 +77,7 @@ class TestDecisionMatrices(unittest.TestCase):
 
     def test_zero_coverage_radius(self):
         """Test coverage zones with 0m radius - no connections should be made"""
-        self.decision_matrices.compute_coverage_zones(self.network, coverage_radius=0)
+        self.decision_matrices.generate_coverage_matrix(self.network, coverage_radius=0)
         coverage_matrix = self.decision_matrices.get_matrix(
             MatrixType.COVERAGE_ZONE
         ).data

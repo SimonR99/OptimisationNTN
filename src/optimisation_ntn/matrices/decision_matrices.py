@@ -29,7 +29,7 @@ class DecisionMatrices:
             MatrixType.ASSIGNMENT: Matrix(dimension, dimension, "Assignment Matrix"),
         }
 
-    def compute_coverage_zones(self, network, coverage_radius: float = 5000):
+    def generate_coverage_matrix(self, network, coverage_radius: float = 5000):
         """Pre-compute coverage zones for base stations.
         For each user, marks only the closest base station(s) within coverage range.
 
@@ -106,11 +106,11 @@ class DecisionMatrices:
 
         self.matrices["X"].update(assignment_matrix)
 
-    def get_matrix(self, name: MatrixType | str) -> Matrix:
-        """Get matrix by name or enum value.
+    def get_matrix(self, name: MatrixType) -> Matrix:
+        """Get matrix by enum value.
 
         Args:
-            name: Matrix name as string or MatrixType enum
+            name: MatrixType enum
 
         Returns:
             The requested matrix
@@ -119,19 +119,15 @@ class DecisionMatrices:
             ValueError: If matrix doesn't exist
         """
         try:
-            # If it's already a MatrixType, use it directly
-            if isinstance(name, MatrixType):
-                return self.matrices[name]
-            # If it's a string, convert to MatrixType
-            return self.matrices[MatrixType(name)]
+            return self.matrices[name]
         except (KeyError, ValueError):
             raise ValueError(f"Matrix '{name}' does not exist.")
 
     def set_matrix(self, name: MatrixType, matrix: Matrix) -> None:
-        """Set matrix by name or enum value.
+        """Set matrix by enum value.
 
         Args:
-            name: Matrix name as string or MatrixType enum
+            name: Matrix name as MatrixType enum
             matrix: Matrix to store
 
         Raises:

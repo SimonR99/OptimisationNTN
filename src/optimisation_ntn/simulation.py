@@ -4,7 +4,7 @@ import random
 from typing import Optional
 import time
 
-from .algorithms.optimization_strategy import OptimizationStrategy
+from .algorithms.power_strategy import PowerStateStrategy
 from .matrices.decision_matrices import DecisionMatrices
 from .networks.network import Network
 from .nodes.base_station import BaseStation
@@ -30,7 +30,7 @@ class Simulation:
         self.max_time = max_time
         self.network = Network()
         self.matrices = DecisionMatrices(dimension=0)
-        self.strategy: OptimizationStrategy | None = None
+        self.strategy: PowerStateStrategy | None = None
         self.matrix_history: list[DecisionMatrices] = []  # Store historical matrices
 
         # Initialize with default values
@@ -40,7 +40,7 @@ class Simulation:
     def max_tick_time(self) -> int:
         return self.MAX_SIMULATION_TIME / self.time_step
 
-    def set_strategy(self, strategy: OptimizationStrategy):
+    def set_strategy(self, strategy: PowerStateStrategy):
         """Set the optimization strategy to use"""
         self.strategy = strategy
 
