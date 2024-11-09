@@ -59,15 +59,13 @@ class DecisionMatrices:
 
         self.matrices[MatrixType.COVERAGE_ZONE].update(coverage_matrix)
 
-    def generate_request_matrix(
-        self, num_requests: int, num_steps: int
-    ):
+    def generate_request_matrix(self, num_requests: int, num_steps: int):
         """Generate request matrix where each user generates exactly one request.
-        
+
         Args:
             num_requests: Number of users (each will generate one request)
             num_steps: Number of time steps to distribute requests over
-        
+
         Raises:
             ValueError: If num_requests or num_steps is less than or equal to 0
         """
@@ -75,7 +73,7 @@ class DecisionMatrices:
             raise ValueError("Number of requests must be positive")
         if num_steps <= 0:
             raise ValueError("Number of time steps must be positive")
-        
+
         count = 0
         while True:
             ps = np.random.poisson(num_requests / num_steps, num_steps)
@@ -89,6 +87,22 @@ class DecisionMatrices:
                         row_index += 1
                 self.matrices[MatrixType.REQUEST].update(matrix)
                 break
+
+    def generate_power_matrix(
+        self, num_devices: int, num_steps: int, strategy: "PowerStateStrategy"
+    ):
+        """Generate power state matrix based on a given strategy.
+
+        Args:
+            num_devices: Number of devices
+            num_steps: Number of time steps
+            strategy: PowerStateStrategy object
+
+        Returns:
+            np.ndarray: Power state matrix
+        """
+        power_matrix = strategy.generate_power_matrix(num_devices, num_steps)
+        self.matrices[MatrixType.POWER_STATE].update(power_matrix)
 
     def update_assignment_matrix(self, network):
         """Update real-time request assignment matrix"""

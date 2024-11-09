@@ -23,11 +23,10 @@ class Request:
     id = 0
     priority = random.randint(1, 3)
 
-    def __init__(self, tick: int, target_node: "BaseNode"):
+    def __init__(self, tick: int, initial_node: "BaseNode", target_node: "BaseNode"):
         self.id = 0
         self.tick = tick  # time of appearance
-
-        self.current_node = None
+        self.current_node = initial_node
         self.target_node = target_node
         self.status = RequestStatus.CREATED
         self.satisfaction = False
