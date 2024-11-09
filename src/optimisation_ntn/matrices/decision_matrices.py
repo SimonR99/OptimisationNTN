@@ -3,6 +3,7 @@ from typing import Dict
 
 import numpy as np
 
+from ..networks.request import RequestStatus
 from ..nodes.base_station import BaseStation
 from ..nodes.haps import HAPS
 from ..nodes.leo import LEO
@@ -107,18 +108,21 @@ class DecisionMatrices:
     def update_assignment_matrix(self, network):
         """Update real-time request assignment matrix"""
         users = [n for n in network.nodes if isinstance(n, UserDevice)]
-        servers = [n for n in network.nodes if isinstance(n, (BaseStation, HAPS, LEO))]
+        compute_nodes = network.get_compute_nodes()
 
-        assignment_matrix = np.zeros((len(users), len(servers)))
+        assignment_matrix = np.zeros((len(users), len(compute_nodes)))
 
-        # Assign requests based on current network state and active links
+        # Check each user's active requests
         for i, user in enumerate(users):
-            for j, server in enumerate(servers):
-                for link in network.communication_links:
-                    if link.node_a == user and link.node_b == server:
-                        assignment_matrix[i, j] = 1 if link.transmission_queue else 0
+            for request in user.current_requests:
+                if request.status == RequestStatus.PROCESSING:
+                    # Find index of compute node processing this request
+                    for j, node in enumerate(compute_nodes):
+                        if node == request.current_node:
+                            assignment_matrix[i, j] = 1
+                            break
 
-        self.matrices["X"].update(assignment_matrix)
+        self.matrices[MatrixType.ASSIGNMENT].update(assignment_matrix)
 
     def get_matrix(self, name: MatrixType) -> Matrix:
         """Get matrix by enum value.

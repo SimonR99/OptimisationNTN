@@ -1,6 +1,6 @@
 from multiprocessing import set_forkserver_preload
 
-from optimisation_ntn.networks.request import Request
+from optimisation_ntn.networks.request import Request, RequestStatus
 from optimisation_ntn.utils.earth import Earth
 from optimisation_ntn.utils.position import Position
 
@@ -20,8 +20,11 @@ class UserDevice(BaseNode):
     def spawn_request(self, tick: int, target_node: BaseNode) -> Request:
         """Spawn a new request from this user device"""
         request = Request(tick, self, target_node)
+        request.status = RequestStatus.CREATED
         self.current_requests.append(request)
-        print(f"User {self.node_id} spawned request: {request}")
+        print(
+            f"User {self.node_id} spawned request {request.id} with status {request.status.name}"
+        )
         return request
 
     def __str__(self):

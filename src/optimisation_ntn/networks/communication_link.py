@@ -2,9 +2,9 @@ from typing import List
 
 import numpy as np
 
-from .request import Request
 from ..nodes.base_node import BaseNode
 from ..utils.earth import Earth
+from .request import Request, RequestStatus
 
 
 class CommunicationLink:
@@ -79,7 +79,8 @@ class CommunicationLink:
     def calculate_capacity(self) -> float:
         """Calculates the link capacity based on Shannon's formula using adjusted bandwidth."""
         snr = self.calculate_snr()
-        return self.adjusted_bandwidth * np.log2(1 + snr)
+        # Increase base capacity to ensure requests can complete in reasonable time
+        return self.adjusted_bandwidth * np.log2(1 + snr) * 1000  # Multiply by 1000 to increase transmission speed
 
     def add_to_queue(self, request: Request):
         """Adds a request to the transmission queue and resets progress tracking."""
@@ -94,12 +95,28 @@ class CommunicationLink:
             bits_transmitted = capacity * time
             self.request_progress += bits_transmitted
 
+            print(
+                f"Link {self.node_a} -> {self.node_b}: Transmitting request {current_request.id} "
+                f"({self.request_progress:.1f}/{current_request.size} bits)"
+            )
+
             if self.request_progress >= current_request.size:
-                print(f"Request {current_request.get_id()} completed transmission from {self.node_a} to {self.node_b}")
-                
+                print(
+                    f"Request {current_request.id} completed transmission from {self.node_a} to {self.node_b}"
+                )
+
+                # Update request's current node and status
+                current_request.current_node = self.node_b
                 if self.node_b == current_request.target_node:
+                    current_request.status = RequestStatus.IN_PROCESSING_QUEUE
+                    print(
+                        f"Request {current_request.id} status changed to {current_request.status.name}"
+                    )
                     self.node_b.add_request_to_process(current_request)
-                    print(f"Request {current_request.get_id()} added to processing queue at {self.node_b}")
-                
+                else:
+                    # Move to next node in path
+                    current_request.path_index += 1
+                    print(f"Request {current_request.id} moving to next node in path (index: {current_request.path_index})")
+
                 self.transmission_queue.pop(0)
                 self.request_progress = 0

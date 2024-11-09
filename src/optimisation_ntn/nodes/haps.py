@@ -17,10 +17,10 @@ class HAPS(BaseNode):
     ):
         super().__init__(node_id, initial_position)
         self.add_antenna("UHF", 2.0)
-        self.add_antenna("VHF", 1.0)
-        self.state = False
+        self.add_antenna("VHF", 2.0)
+        self.state = True
         self.battery_capacity = 1000
-        self.processing_power = 2000
+        self.processing_power = 1.5
 
     def turn_on(self):
         self.state = True

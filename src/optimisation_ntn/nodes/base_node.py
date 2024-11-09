@@ -4,8 +4,9 @@ from typing import Dict, List, Optional, Tuple
 from optimisation_ntn.utils.earth import Earth
 
 from ..networks.antenna import Antenna
-from ..utils.position import Position
 from ..networks.request import Request, RequestStatus
+from ..utils.position import Position
+
 
 class BaseNode(ABC):
     def __init__(self, node_id: int, initial_position: Position, temperature=300):
@@ -63,17 +64,24 @@ class BaseNode(ABC):
 
     def __str__(self):
         return f"Node {self.node_id}"
-    
-    def can_process(self, request : Request) -> bool:
-        return self.state and self.processing_power > 0 and self.current_load + request.load <= self.processing_power
+
+    def can_process(self, request: Request) -> bool:
+        return (
+            self.state
+            and self.processing_power > 0
+            and self.current_load + request.cycle_bits <= self.processing_power
+        )
 
     def add_request_to_process(self, request: Request):
         """Add request to processing queue"""
         if self.can_process(request):
             self.processing_queue.append(request)
             self.current_load += request.size
-            request.status = RequestStatus.IN_PROCESSING_QUEUE
+            request.status = RequestStatus.PROCESSING
             request.current_node = self
+            print(
+                f"Request {request.id} status changed to {request.status.name} at {self}"
+            )
 
     def process_requests(self, time: float):
         """Process requests in queue"""
@@ -83,13 +91,23 @@ class BaseNode(ABC):
         # Process each request in queue
         completed = []
         for request in self.processing_queue:
+            if not hasattr(request, "processing_progress"):
+                request.processing_progress = 0
+
             request.processing_progress += self.processing_power * time
+            print(
+                f"Node {self}: Processing request {request.id} "
+                f"({request.processing_progress:.1f}/{request.size} units)"
+            )
+
             if request.processing_progress >= request.size:
                 completed.append(request)
                 self.current_load -= request.size
                 request.status = RequestStatus.COMPLETED
-                request.set_satisfied()  # Mark request as satisfied when completed
-                print(f"Request {request.id} completed processing at {self}")
+                request.satisfaction = True
+                print(
+                    f"Request {request.id} status changed to {request.status.name} at {self}"
+                )
 
         # Remove completed requests
         for request in completed:

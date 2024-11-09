@@ -8,7 +8,8 @@ from .base_node import BaseNode
 class BaseStation(BaseNode):
     def __init__(self, node_id: int, initial_position: Position):
         super().__init__(node_id, initial_position)
-        self.state = False
+        self.state = True
+        self.processing_power = 2.0
         self.add_antenna("VHF", 1.5)
 
     def turn_on(self):
