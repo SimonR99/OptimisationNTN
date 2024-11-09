@@ -5,7 +5,7 @@ from optimisation_ntn.utils.earth import Earth
 
 from ..networks.antenna import Antenna
 from ..utils.position import Position
-from ..networks.request import Request
+from ..networks.request import Request, RequestStatus
 
 class BaseNode(ABC):
     def __init__(self, node_id: int, initial_position: Position, temperature=300):
@@ -20,9 +20,6 @@ class BaseNode(ABC):
         self.current_load = 0
         self.processing_power = 0
         self.processing_queue: List[Request] = []
-
-    def can_process(self, request : Request) -> bool:
-        return self.processing_power > 0 and self.current_load + request.load <= self.processing_power
 
     def add_antenna(self, antenna_type: str, gain: float):
         """Adds an antenna with a specified type and gain to the node."""
@@ -66,6 +63,38 @@ class BaseNode(ABC):
 
     def __str__(self):
         return f"Node {self.node_id}"
+    
+    def can_process(self, request : Request) -> bool:
+        return self.state and self.processing_power > 0 and self.current_load + request.load <= self.processing_power
 
-    def tick(self, time):
-        pass
+    def add_request_to_process(self, request: Request):
+        """Add request to processing queue"""
+        if self.can_process(request):
+            self.processing_queue.append(request)
+            self.current_load += request.size
+            request.status = RequestStatus.IN_PROCESSING_QUEUE
+            request.current_node = self
+
+    def process_requests(self, time: float):
+        """Process requests in queue"""
+        if not self.processing_queue:
+            return
+
+        # Process each request in queue
+        completed = []
+        for request in self.processing_queue:
+            request.processing_progress += self.processing_power * time
+            if request.processing_progress >= request.size:
+                completed.append(request)
+                self.current_load -= request.size
+                request.status = RequestStatus.COMPLETED
+                request.set_satisfied()  # Mark request as satisfied when completed
+                print(f"Request {request.id} completed processing at {self}")
+
+        # Remove completed requests
+        for request in completed:
+            self.processing_queue.remove(request)
+
+    def tick(self, time: float):
+        """Update node state including request processing"""
+        self.process_requests(time)

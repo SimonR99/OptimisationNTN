@@ -68,7 +68,7 @@ class TestCommunicationLink(unittest.TestCase):
         )
 
         # Create and add a request
-        request = Request(np.random.randint(0,100))
+        request = Request(np.random.randint(0,100), self.node_b)
         request.set_size(100) # data_size=100 bits
         link.add_to_queue(request)
 
@@ -90,9 +90,9 @@ class TestCommunicationLink(unittest.TestCase):
         )
 
         # Create and add multiple requests
-        request1 = Request(np.random.randint(0,100))
+        request1 = Request(np.random.randint(0,100), self.node_b)
         request1.set_size(200) # data size=200 bits
-        request2 = Request(np.random.randint(0,100))
+        request2 = Request(np.random.randint(0,100), self.node_a)
         request2.set_size(100) # data size=100 bits
 
         link.add_to_queue(request1)

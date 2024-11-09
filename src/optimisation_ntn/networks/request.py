@@ -1,4 +1,11 @@
+from enum import Enum
 import random
+
+class RequestStatus(Enum):
+    IN_TRANSIT = 0
+    IN_PROCESSING_QUEUE = 1
+    PROCESSING = 2
+    COMPLETED = 3
 
 class Request:
 
@@ -8,9 +15,10 @@ class Request:
     id = 0
     priority = random.randint(1,3)
 
-    def __init__(self, tick: int):
-        self.tick = tick #A quelle tick cette requête est apparu
+    def __init__(self, tick: int, target_node : "BaseNode"):
+        self.tick = tick # time of appearance
         self.satisfaction = False
+        self.target_node = target_node
         self.set_priority_type(self.priority)
 
     def set_id(self, row:int, col:int):
