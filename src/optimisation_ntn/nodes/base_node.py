@@ -18,8 +18,8 @@ class BaseNode(ABC):
         self.active_links: Dict[Tuple[type, type], int] = (
             {}
         )  # Track active links by node type pair
-        self.current_load = 0
-        self.processing_power = 0
+        self.current_load = 0.0
+        self.processing_power = 0.0
         self.processing_queue: List[Request] = []
 
     def add_antenna(self, antenna_type: str, gain: float):
@@ -84,7 +84,9 @@ class BaseNode(ABC):
                 f"Request {request.id} status changed to {request.status.name} at {self}"
             )
         else:
-            print(f"Node {self} cannot process request {request.id} (current load: {self.current_load}, power: {self.processing_power})")
+            print(
+                f"Node {self} cannot process request {request.id} (current load: {self.current_load}, power: {self.processing_power})"
+            )
 
     def process_requests(self, time: float):
         """Process requests in queue"""

@@ -57,17 +57,17 @@ class Request:
             case Priority.HIGH:
                 self.lamda = 0.2
                 self.qos_limit = 0.1  # 100 ms
-                self.size = random.randint(10, 30) * 1000
+                self.size = random.randint(10, 30) * 500
                 self.cycle_bits = random.randint(10, 30)
             case Priority.MEDIUM:
                 self.lamda = 0.5
                 self.qos_limit = 0.3  # 300 ms
-                self.size = random.randint(20, 40) * 1000
+                self.size = random.randint(20, 40) * 500
                 self.cycle_bits = random.randint(20, 40)
             case Priority.LOW:
                 self.lamda = 1
                 self.qos_limit = 0.5  # 500 ms
-                self.size = random.randint(30, 50) * 1000
+                self.size = random.randint(30, 50) * 500
                 self.cycle_bits = random.randint(30, 50)
         print(f"Request {self.id} created with size {self.size} bits")
 

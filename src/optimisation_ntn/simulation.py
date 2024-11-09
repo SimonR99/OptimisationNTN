@@ -24,12 +24,10 @@ class Simulation:
     DEFAULT_BS_COUNT = 4
     DEFAULT_HAPS_COUNT = 1
     DEFAULT_LEO_COUNT = 1
-    DEFAULT_USER_COUNT = 20
-    MAX_SIMULATION_TIME = 100
+    DEFAULT_USER_COUNT = 1
+    MAX_SIMULATION_TIME = 2
 
-    def __init__(
-        self, time_step: float = 0.0001, max_time: float = MAX_SIMULATION_TIME
-    ):
+    def __init__(self, time_step: float = 0.1, max_time: float = MAX_SIMULATION_TIME):
         self.current_step = 0
         self.current_time = 0.0
         self.time_step = time_step
@@ -108,17 +106,33 @@ class Simulation:
         for i, request_flag in enumerate(new_requests):
             if request_flag == 1 and i < len(user_devices):
                 user = user_devices[i]
-                # Try to find a compute node (prioritize closest)
+
+                # Find closest available compute node
+                closest_compute = None
+                min_distance = float("inf")
+
                 for compute_node in compute_nodes:
                     if compute_node.state and compute_node.processing_power > 0:
-                        request = user.spawn_request(current_tick, compute_node)
-                        # Try to route the request through the network
-                        if self.network.route_request(request):
-                            print(f"Request {request.id} routed successfully")
-                            self.total_requests += 1
-                        else:
-                            print(f"Failed to route request {request.id}")
-                        break
+                        distance = user.position.distance_to(compute_node.position)
+                        if distance < min_distance:
+                            min_distance = distance
+                            closest_compute = compute_node
+
+                # Create request to closest compute node if found
+                if closest_compute:
+                    request = user.spawn_request(current_tick, closest_compute)
+                    print(
+                        f"Created request from {user} to {closest_compute} (distance: {min_distance:.2f})"
+                    )
+
+                    # Try to route the request through the network
+                    if self.network.route_request(request):
+                        print(f"Request {request.id} routed successfully")
+                        self.total_requests += 1
+                    else:
+                        print(f"Failed to route request {request.id}")
+                else:
+                    print(f"No available compute nodes found for {user}")
 
         # Update network state (transfer + processing)
         self.network.tick(self.time_step)

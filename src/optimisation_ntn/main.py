@@ -1,6 +1,5 @@
 import argparse
 
-
 from optimisation_ntn.simulation import Simulation
 
 
@@ -17,7 +16,7 @@ def create_parser():
     )
 
     parser.add_argument(
-        "--tick_time", type=int, default=0.001, help="Number of seconds per tick"
+        "--tick_time", type=int, default=0.1, help="Number of seconds per tick"
     )
 
     parser.add_argument(
@@ -41,7 +40,7 @@ def create_parser():
 
 def main(args):
     simulation = Simulation(time_step=args.tick_time)
-    
+
     if args.algorithm not in ["Random", "AllOn"]:
         # Run optimization mode
         best_energy, energy_history = simulation.optimize(num_iterations=10)
@@ -59,7 +58,7 @@ if __name__ == "__main__":
         "--mode",
         choices=["run", "optimize"],
         default="run",
-        help="Simulation mode: run a single simulation or optimize over multiple runs"
+        help="Simulation mode: run a single simulation or optimize over multiple runs",
     )
     args = parser.parse_args()
     main(args)
