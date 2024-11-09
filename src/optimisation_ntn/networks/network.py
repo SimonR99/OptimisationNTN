@@ -1,5 +1,10 @@
 import math
 import random
+from typing import List
+
+from optimisation_ntn.networks.request import RequestStatus
+from optimisation_ntn.nodes.base_node import BaseNode
+from optimisation_ntn.networks.request import Request
 
 from ..nodes.base_station import BaseStation
 from ..nodes.haps import HAPS
@@ -95,9 +100,59 @@ class Network:
                 )
                 self.communication_links.append(link)
 
+    def find_path(self, source: BaseNode, target: BaseNode) -> List[CommunicationLink]:
+        """Find communication path from source to target"""
+        paths = []
+        visited = set()
+        
+        def dfs(current: BaseNode, path: List[CommunicationLink]):
+            if current == target:
+                paths.append(path.copy())
+                return
+                
+            visited.add(current)
+            for link in self.communication_links:
+                if link.node_a == current and link.node_b not in visited:
+                    path.append(link)
+                    dfs(link.node_b, path)
+                    path.pop()
+            visited.remove(current)
+        
+        dfs(source, [])
+        return min(paths, key=lambda p: len(p)) if paths else []
+
+    def get_compute_nodes(self) -> List[BaseNode]:
+        """Get all nodes with processing capability"""
+        return [node for node in self.nodes 
+                if not isinstance(node, UserDevice) and node.processing_power > 0]
+
+    def route_request(self, request: Request) -> bool:
+        """Route request to nearest available compute node"""
+        source = request.current_node
+        compute_nodes = self.get_compute_nodes()
+        
+        # Find closest compute node that can process request
+        for target in sorted(compute_nodes, 
+                            key=lambda n: source.position.distance_to(n.position)):
+            if target.state and target.can_process(request):  # Check if node is on
+                path = self.find_path(source, target)
+                if path:
+                    print(f"Routing request from {source} to {target}")
+                    # Start forwarding through path
+                    first_link = path[0]
+                    first_link.add_to_queue(request)
+                    request.status = RequestStatus.PENDING
+                    request.target_node = target
+                    return True
+                    
+        return False
+
     def tick(self, time: float = 0.1):
-        """Update network state"""
+        """Update network state including request routing"""
+        # Update all nodes
         for node in self.nodes:
             node.tick(time)
+        
+        # Update all communication links
         for link in self.communication_links:
             link.tick(time)
