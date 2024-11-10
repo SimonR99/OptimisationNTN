@@ -144,11 +144,7 @@ class Network:
 
     def get_compute_nodes(self) -> List[BaseNode]:
         """Get all nodes with processing capability"""
-        return [
-            node
-            for node in self.nodes
-            if not isinstance(node, UserDevice) and node.processing_power > 0
-        ]
+        return [node for node in self.nodes if node.processing_power > 0]
 
     def route_request(self, request: Request) -> bool:
         """Route request to target compute node through available paths."""
