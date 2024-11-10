@@ -67,21 +67,19 @@ class DecisionMatrices:
 
         # Create new matrix with correct dimensions
         request_matrix = Matrix(num_requests, num_steps, "Request Matrix")
-        
+
         # Generate Poisson distribution of requests
         count = 0
         while True:
             ps = np.random.poisson(num_requests / num_steps, num_steps)
             count += 1
             if np.sum(ps) == num_requests or count > 1000:  # Add timeout
-                matrix = np.zeros((num_requests, num_steps), dtype=int)
                 row_index = 0
                 for tick, count in enumerate(ps):
                     for _ in range(count):
                         if row_index < num_requests:
-                            matrix[row_index, tick] = 1
+                            request_matrix.set_value(row_index, tick, 1)
                             row_index += 1
-                request_matrix.data = matrix
                 self.matrices[MatrixType.REQUEST] = request_matrix
                 break
 
