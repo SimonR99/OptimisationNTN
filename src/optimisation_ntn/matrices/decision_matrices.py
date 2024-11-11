@@ -58,7 +58,7 @@ class DecisionMatrices:
                     if distances[j] == min_distance:
                         coverage_matrix[i, j] = 1
 
-        self.matrices[MatrixType.COVERAGE_ZONE].update(coverage_matrix)
+        self.matrices[MatrixType.COVERAGE_ZONE].data = coverage_matrix
 
     def generate_request_matrix(self, num_requests: int, num_steps: int):
         """Generate request matrix where each user generates exactly one request."""
@@ -97,7 +97,7 @@ class DecisionMatrices:
             np.ndarray: Power state matrix
         """
         power_matrix = strategy.generate_power_matrix(num_devices, num_steps)
-        self.matrices[MatrixType.POWER_STATE].update(power_matrix)
+        self.matrices[MatrixType.POWER_STATE] = power_matrix
 
     def update_assignment_matrix(self, network):
         """Update real-time request assignment matrix"""
@@ -116,7 +116,7 @@ class DecisionMatrices:
                             assignment_matrix[i, j] = 1
                             break
 
-        self.matrices[MatrixType.ASSIGNMENT].update(assignment_matrix)
+        self.matrices[MatrixType.ASSIGNMENT].data = assignment_matrix
 
     def get_matrix(self, name: MatrixType) -> Matrix:
         """Get matrix by enum value.
