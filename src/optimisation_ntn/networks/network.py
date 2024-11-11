@@ -147,7 +147,15 @@ class Network:
         return [node for node in self.nodes if node.processing_power > 0]
 
     def route_request(self, request: Request) -> bool:
-        """Route request to target compute node through available paths."""
+        """
+        Route request to target compute node through available paths.
+
+        Args:
+            request (Request): The request to be routed
+
+        Returns:
+            is_routed (bool): True if request was successfully routed
+        """
         source = request.current_node
         target = request.target_node
 
@@ -159,9 +167,9 @@ class Network:
             )
             return False
 
-        # Calculate path costs (heavily penalize hops)
+        # Calculate path costs
         path_costs = []
-        print("Path costs:")  # Debug print
+        print("Path costs:")
         for path in paths:
             cost = 0.0
             for i in range(len(path) - 1):
@@ -199,7 +207,6 @@ class Network:
         next_node = request.path[request.path_index + 1]
 
         # Find link between current and next node
-        link_found = False
         for link in self.communication_links:  # For all available links
             # If the link connects the current node to the next node
             if link.node_a == current_node and link.node_b == next_node:
@@ -209,10 +216,7 @@ class Network:
                 print(
                     f"Added request {request.id} to transmission queue: {current_node} -> {next_node}"
                 )
-                link_found = True
-
-        if not link_found:
-            raise ValueError("No link found between {current_node} and {next_node}")
+                return True
 
     def _find_paths(
         self, start: BaseNode, end: BaseNode, path=None, visited=None
