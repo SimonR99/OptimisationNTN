@@ -199,26 +199,20 @@ class Network:
         next_node = request.path[request.path_index + 1]
 
         # Find link between current and next node
-        link = next(
-            (
-                l
-                for l in self.communication_links
-                if l.node_a == current_node and l.node_b == next_node
-            ),
-            None,
-        )
+        link_found = False
+        for link in self.communication_links:  # For all available links
+            # If the link connects the current node to the next node
+            if link.node_a == current_node and link.node_b == next_node:
+                link.add_to_queue(request)
+                request.status = RequestStatus.IN_TRANSIT
+                request.next_node = next_node
+                print(
+                    f"Added request {request.id} to transmission queue: {current_node} -> {next_node}"
+                )
+                link_found = True
 
-        if link:
-            link.add_to_queue(request)
-            request.status = RequestStatus.IN_TRANSIT
-            request.next_node = next_node
-            print(
-                f"Added request {request.id} to transmission queue: {current_node} -> {next_node}"
-            )
-            return True
-        else:
-            print(f"WARNING: No link found between {current_node} and {next_node}")
-            return False
+        if not link_found:
+            raise ValueError("No link found between {current_node} and {next_node}")
 
     def _find_paths(
         self, start: BaseNode, end: BaseNode, path=None, visited=None
