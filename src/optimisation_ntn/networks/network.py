@@ -160,7 +160,7 @@ class Network:
         target = request.target_node
 
         # Find all possible paths to target
-        paths = self._find_paths(source, target)
+        paths = self._find_paths_depth_first_search(source, target)
         if not paths:
             print(
                 f"WARNING: No path found for request {request.id} from {source} to {target}"
@@ -218,10 +218,10 @@ class Network:
                 )
                 return True
 
-    def _find_paths(
+    def _find_paths_depth_first_search(
         self, start: BaseNode, end: BaseNode, path=None, visited=None
     ) -> list[list[BaseNode]]:
-        """Find all possible paths between start and end nodes"""
+        """Find all possible paths between start and end nodes using depth-first search."""
         if path is None:
             path = []
         if visited is None:
@@ -249,7 +249,9 @@ class Network:
             if neighbor not in visited:
                 # Create a new visited set for each neighbor to allow multiple paths
                 new_visited = visited.copy()
-                new_paths = self._find_paths(neighbor, end, path, new_visited)
+                new_paths = self._find_paths_depth_first_search(
+                    neighbor, end, path, new_visited
+                )
                 if new_paths:
                     paths.extend(new_paths)
 
