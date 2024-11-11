@@ -27,7 +27,7 @@ class SimulationUI(QtWidgets.QMainWindow):
         self.setGeometry(100, 100, 1200, 700)
         self.setStyleSheet("background-color: #2e2e2e; color: white;")
         self.current_view = "close"
-        self.show_links = False
+        self.show_links = True
         self.setWindowIcon(QtGui.QIcon("images/logo.png"))
         self.simulation = None
         self.simulations = {}
@@ -129,7 +129,9 @@ class SimulationUI(QtWidgets.QMainWindow):
         # Add max simulation time display
         max_time_layout = QtWidgets.QHBoxLayout()
         max_time_layout.addWidget(QtWidgets.QLabel("Max Time:"))
-        self.max_time_label = QtWidgets.QLabel(f"{Simulation.MAX_SIMULATION_TIME}s")
+        self.max_time_label = QtWidgets.QLabel(
+            f"{Simulation.DEFAULT_MAX_SIMULATION_TIME}s"
+        )
         max_time_layout.addWidget(self.max_time_label)
         control_layout.addLayout(max_time_layout)
 
@@ -185,6 +187,7 @@ class SimulationUI(QtWidgets.QMainWindow):
 
         # Add toggle for communication links
         self.show_links_checkbox = QtWidgets.QCheckBox("Show Communication Links")
+        self.show_links_checkbox.setChecked(True)
         self.show_links_checkbox.stateChanged.connect(self.toggle_links)
         param_layout.addWidget(self.show_links_checkbox)
 
@@ -198,17 +201,18 @@ class SimulationUI(QtWidgets.QMainWindow):
         # Step Duration
         info_layout.addWidget(QtWidgets.QLabel("Step Duration (s):"), 0, 0)
         self.step_duration_input = QtWidgets.QDoubleSpinBox()
-        self.step_duration_input.setRange(0.001, 10.0)
-        self.step_duration_input.setValue(0.1)
-        self.step_duration_input.setSingleStep(0.1)
+        self.step_duration_input.setRange(0.00001, 10.0)
+        self.step_duration_input.setDecimals(5)
+        self.step_duration_input.setSingleStep(0.0001)
+        self.step_duration_input.setValue(0.001)
         self.step_duration_input.valueChanged.connect(self.update_step_duration)
         info_layout.addWidget(self.step_duration_input, 0, 1)
 
         # Time per step (UI update interval)
         info_layout.addWidget(QtWidgets.QLabel("UI Update Interval (ms):"), 1, 0)
         self.time_step_input = QtWidgets.QSpinBox()
-        self.time_step_input.setRange(0, 1000)
-        self.time_step_input.setValue(100)
+        self.time_step_input.setRange(1, 100)
+        self.time_step_input.setValue(16)
         self.time_step_input.valueChanged.connect(self.update_time_step)
         info_layout.addWidget(self.time_step_input, 1, 1)
 
@@ -425,6 +429,64 @@ class SimulationUI(QtWidgets.QMainWindow):
                     angle_text.setDefaultTextColor(QtGui.QColor("white"))
                     angle_text.setPos(x_pos, y_pos - 40)
 
+            # Store node positions for request visualization
+            node_positions = {}
+
+            # After drawing each node, store its position and add its processing requests
+            for node in self.simulation.network.nodes:
+                if isinstance(node, BaseStation):
+                    x_pos = node.position.x * 50
+                    y_pos = 250
+                    node_positions[node] = (
+                        x_pos + 15,
+                        y_pos + 15,
+                    )  # Center of the node
+                    self.add_processing_requests(scene, node, x_pos + 15, y_pos + 15)
+
+                elif isinstance(node, HAPS):
+                    x_pos = node.position.x * 50
+                    y_pos = 100
+                    node_positions[node] = (x_pos + 15, y_pos + 15)
+                    self.add_processing_requests(scene, node, x_pos + 15, y_pos + 15)
+
+                elif isinstance(node, UserDevice):
+                    x_pos = node.position.x * 50
+                    y_pos = 270
+                    node_positions[node] = (x_pos + 10, y_pos + 10)
+                    self.add_processing_requests(scene, node, x_pos + 10, y_pos + 10)
+
+            # Draw communication links and requests in transit
+            if self.show_links:
+                for link in self.simulation.network.communication_links:
+                    source_pos = node_positions.get(link.node_a)
+                    target_pos = node_positions.get(link.node_b)
+
+                    if source_pos and target_pos:
+                        # Draw the link
+                        pen = QtGui.QPen(
+                            QtGui.QColor(
+                                "yellow"
+                                if isinstance(link.node_a, BaseStation)
+                                or isinstance(link.node_b, BaseStation)
+                                else "white"
+                            )
+                        )
+                        pen.setStyle(QtCore.Qt.SolidLine)
+                        pen.setWidth(1)
+                        line = scene.addLine(
+                            source_pos[0],
+                            source_pos[1],
+                            target_pos[0],
+                            target_pos[1],
+                            pen,
+                        )
+                        line.setOpacity(0.5)
+
+                        # Add requests in transit
+                        self.add_in_transit_requests(
+                            scene, link, source_pos, target_pos
+                        )
+
         self.schematic_view.setScene(scene)
         self.schematic_view.centerOn(0, 200)
 
@@ -566,9 +628,6 @@ class SimulationUI(QtWidgets.QMainWindow):
                 self.time_step_input.value()
             )  # Get UI update interval in ms
 
-            # Update simulation step duration
-            self.simulation.step_duration = self.step_duration_input.value()
-
             # Create timer for UI updates
             self.timer = QtCore.QTimer()
             self.timer.timeout.connect(self.simulation_step)
@@ -578,11 +637,14 @@ class SimulationUI(QtWidgets.QMainWindow):
     def simulation_step(self):
         """Handle one simulation step with UI update"""
         if self.simulation and not self.simulation.is_paused:
-            if self.simulation.step():  # Returns True if simulation should continue
-                # Update simulation display (e.g., satellite positions)
+            can_continue = self.simulation.step()
+
+            # Update UI
+            if can_continue:
                 self.update_simulation_display()
-                # Reload the current view to update LEO positions
-                self.update_view()
+                # Force scene update
+                self.load_close_up_view()
+                self.schematic_view.viewport().update()
             else:
                 self.timer.stop()
                 self.run_pause_btn.setText("Run")
@@ -630,8 +692,9 @@ class SimulationUI(QtWidgets.QMainWindow):
         simulation_name = f"Simulation {self.sim_list.count() + 1}"
         self.sim_list.addItem(simulation_name)
 
-        # Create new simulation instance
+        # Create new simulation instance with proper initialization
         simulation = Simulation()
+        simulation.initialize_matrices()  # Ensure matrices are initialized
 
         # Store simulation
         self.simulations[simulation_name] = simulation
@@ -650,6 +713,7 @@ class SimulationUI(QtWidgets.QMainWindow):
             self.num_bs_input.blockSignals(True)
             self.num_haps_input.blockSignals(True)
             self.num_users_input.blockSignals(True)
+            self.step_duration_input.blockSignals(True)
 
             # Count nodes of each type
             bs_count = len(
@@ -666,11 +730,13 @@ class SimulationUI(QtWidgets.QMainWindow):
             self.num_bs_input.setValue(bs_count)
             self.num_haps_input.setValue(haps_count)
             self.num_users_input.setValue(users_count)
+            self.step_duration_input.setValue(self.simulation.time_step)
 
             # Re-enable signals
             self.num_bs_input.blockSignals(False)
             self.num_haps_input.blockSignals(False)
             self.num_users_input.blockSignals(False)
+            self.step_duration_input.blockSignals(False)
 
     def update_base_stations(self):
         """Update the number of base stations in the simulation and view"""
@@ -776,9 +842,87 @@ class SimulationUI(QtWidgets.QMainWindow):
                 current_item.setText(new_name)
 
     def update_step_duration(self):
-        """Update simulation step duration"""
+        """Update simulation time step when UI value changes"""
         if self.simulation:
-            self.simulation.step_duration = self.step_duration_input.value()
+            self.simulation.time_step = self.step_duration_input.value()
+
+    def add_processing_requests(self, scene, node, node_x, node_y):
+        """Add visual representation of requests being processed by a node"""
+        if hasattr(node, "processing_queue") and node.processing_queue:
+            request_pixmap = QtGui.QPixmap("images/file.png")
+            if request_pixmap.isNull():
+                print("ERROR: Could not load file.png for processing requests")
+                return
+
+            request_pixmap = request_pixmap.scaled(15, 15)
+
+            # Position requests in a semi-circle above the node
+            num_requests = len(node.processing_queue)
+            radius = 25  # Radius of the circle
+            start_angle = -140  # Start angle in degrees
+            angle_span = 100  # Total angle span in degrees
+
+            for i, request in enumerate(node.processing_queue):
+                # Calculate angle for this request
+                angle = math.radians(
+                    start_angle
+                    + (angle_span * i / (num_requests - 1 if num_requests > 1 else 1))
+                )
+
+                # Calculate position
+                x = node_x + radius * math.cos(angle)
+                y = node_y + radius * math.sin(angle)
+
+                # Add request icon
+                request_item = QtWidgets.QGraphicsPixmapItem(request_pixmap)
+                request_item.setPos(
+                    x - request_pixmap.width() / 2, y - request_pixmap.height() / 2
+                )
+                scene.addItem(request_item)
+
+                # Add request ID label
+                text = scene.addText(f"R{request.id}")
+                text.setDefaultTextColor(QtGui.QColor("white"))
+                text.setPos(
+                    x - text.boundingRect().width() / 2,
+                    y - request_pixmap.height() - 15,
+                )
+
+    def add_in_transit_requests(self, scene, link, source_pos, target_pos):
+        """Add visual representation of requests in transit on a link"""
+        if link.transmission_queue:
+            request_pixmap = QtGui.QPixmap("images/file.png")
+            if request_pixmap.isNull():
+                print("ERROR: Could not load file.png for in-transit requests")
+                return
+
+            request_pixmap = request_pixmap.scaled(15, 15)
+
+            for i, request in enumerate(link.transmission_queue):
+                # Calculate position along the link
+                if i == 0:  # First request - show actual progress
+                    progress = min(1.0, max(0.0, link.request_progress / request.size))
+                else:  # Queue other requests behind the first one
+                    progress = max(0.0, (i * -0.1))  # Space them out behind the source
+
+                # Calculate position along the line
+                x = source_pos[0] + (target_pos[0] - source_pos[0]) * progress
+                y = source_pos[1] + (target_pos[1] - source_pos[1]) * progress
+
+                # Add request icon
+                request_item = QtWidgets.QGraphicsPixmapItem(request_pixmap)
+                request_item.setPos(
+                    x - request_pixmap.width() / 2, y - request_pixmap.height() / 2
+                )
+                scene.addItem(request_item)
+
+                # Add request ID label
+                text = scene.addText(f"R{request.id}")
+                text.setDefaultTextColor(QtGui.QColor("white"))
+                text.setPos(
+                    x - text.boundingRect().width() / 2,
+                    y - request_pixmap.height() - 15,
+                )
 
 
 app = QtWidgets.QApplication(sys.argv)

@@ -3,6 +3,7 @@ from typing import Dict
 
 import numpy as np
 
+from ..networks.request import RequestStatus
 from ..nodes.base_station import BaseStation
 from ..nodes.haps import HAPS
 from ..nodes.leo import LEO
@@ -18,7 +19,7 @@ class MatrixType(Enum):
 
 
 class DecisionMatrices:
-    def __init__(self, dimension: int):
+    def __init__(self, dimension: int = 0):
         """Initialize matrices used in network decision processes."""
         self.matrices: Dict[MatrixType, Matrix] = {
             MatrixType.COVERAGE_ZONE: Matrix(
@@ -29,10 +30,7 @@ class DecisionMatrices:
             MatrixType.ASSIGNMENT: Matrix(dimension, dimension, "Assignment Matrix"),
         }
 
-        print("Matrices initialized")
-        print(self.matrices)
-
-    def compute_coverage_zones(self, network, coverage_radius: float = 5000):
+    def generate_coverage_matrix(self, network, coverage_radius: float = 5000):
         """Pre-compute coverage zones for base stations.
         For each user, marks only the closest base station(s) within coverage range.
 
@@ -60,42 +58,71 @@ class DecisionMatrices:
                     if distances[j] == min_distance:
                         coverage_matrix[i, j] = 1
 
-        self.matrices[MatrixType.COVERAGE_ZONE].update(coverage_matrix)
+        self.matrices[MatrixType.COVERAGE_ZONE].data = coverage_matrix
 
-    def generate_request_matrix(
-        self, num_users: int, simulation_time: float, mean_arrival_rate: float = 0.1
+    def generate_request_matrix(self, num_requests: int, num_steps: int):
+        """Generate request matrix where each user generates exactly one request."""
+        if num_requests <= 0 or num_steps <= 0:
+            raise ValueError("Number of requests and steps must be positive")
+
+        # Create new matrix with correct dimensions
+        request_matrix = Matrix(num_requests, num_steps, "Request Matrix")
+
+        # Generate Poisson distribution of requests
+        count = 0
+        while True:
+            ps = np.random.poisson(num_requests / num_steps, num_steps)
+            count += 1
+            if np.sum(ps) == num_requests or count > 1000:  # Add timeout
+                row_index = 0
+                for tick, count in enumerate(ps):
+                    for _ in range(count):
+                        if row_index < num_requests:
+                            request_matrix.set_value(row_index, tick, 1)
+                            row_index += 1
+                self.matrices[MatrixType.REQUEST] = request_matrix
+                break
+
+    def generate_power_matrix(
+        self, num_devices: int, num_steps: int, strategy: "PowerStateStrategy"
     ):
-        """Generate request matrix using Poisson distribution"""
-        request_matrix = np.zeros((num_users, int(simulation_time)))
+        """Generate power state matrix based on a given strategy.
 
-        for user in range(num_users):
-            # Generate Poisson process for request arrivals
-            arrivals = np.random.poisson(mean_arrival_rate, int(simulation_time))
-            request_matrix[user, :] = arrivals
+        Args:
+            num_devices: Number of devices
+            num_steps: Number of time steps
+            strategy: PowerStateStrategy object
 
-        self.matrices["K"].update(request_matrix)
+        Returns:
+            np.ndarray: Power state matrix
+        """
+        power_matrix = strategy.generate_power_matrix(num_devices, num_steps)
+        self.matrices[MatrixType.POWER_STATE] = power_matrix
 
     def update_assignment_matrix(self, network):
         """Update real-time request assignment matrix"""
         users = [n for n in network.nodes if isinstance(n, UserDevice)]
-        servers = [n for n in network.nodes if isinstance(n, (BaseStation, HAPS, LEO))]
+        compute_nodes = network.get_compute_nodes()
 
-        assignment_matrix = np.zeros((len(users), len(servers)))
+        assignment_matrix = np.zeros((len(users), len(compute_nodes)))
 
-        # Assign requests based on current network state and active links
+        # Check each user's active requests
         for i, user in enumerate(users):
-            for j, server in enumerate(servers):
-                for link in network.communication_links:
-                    if link.node_a == user and link.node_b == server:
-                        assignment_matrix[i, j] = 1 if link.transmission_queue else 0
+            for request in user.current_requests:
+                if request.status == RequestStatus.PROCESSING:
+                    # Find index of compute node processing this request
+                    for j, node in enumerate(compute_nodes):
+                        if node == request.current_node:
+                            assignment_matrix[i, j] = 1
+                            break
 
-        self.matrices["X"].update(assignment_matrix)
+        self.matrices[MatrixType.ASSIGNMENT].data = assignment_matrix
 
-    def get_matrix(self, name: str | MatrixType) -> Matrix:
-        """Get matrix by name or enum value.
+    def get_matrix(self, name: MatrixType) -> Matrix:
+        """Get matrix by enum value.
 
         Args:
-            name: Matrix name as string or MatrixType enum
+            name: MatrixType enum
 
         Returns:
             The requested matrix
@@ -104,32 +131,22 @@ class DecisionMatrices:
             ValueError: If matrix doesn't exist
         """
         try:
-            if isinstance(name, str):
-                # Try to find matching enum by value
-                matrix_type = next(t for t in MatrixType if t.value == name)
-                return self.matrices[matrix_type]
             return self.matrices[name]
-        except (KeyError, StopIteration):
+        except (KeyError, ValueError):
             raise ValueError(f"Matrix '{name}' does not exist.")
 
-    def set_matrix(self, name: str | MatrixType, matrix: Matrix):
-        """Set matrix by name or enum value.
+    def set_matrix(self, name: MatrixType, matrix: Matrix) -> None:
+        """Set matrix by enum value.
 
         Args:
-            name: Matrix name as string or MatrixType enum
-            matrix: Matrix to set
+            name: Matrix name as MatrixType enum
+            matrix: Matrix to store
 
         Raises:
-            ValueError: If matrix name is invalid
+            ValueError: If matrix name type is invalid
         """
-        try:
-            if isinstance(name, str):
-                matrix_type = next(t for t in MatrixType if t.value == name)
-                self.matrices[matrix_type] = matrix
-            else:
-                self.matrices[name] = matrix
-        except StopIteration:
-            raise ValueError(f"Unknown matrix name: {name}")
+        matrix_type = name if isinstance(name, MatrixType) else MatrixType(name)
+        self.matrices[matrix_type] = matrix
 
     def get_snapshot(self) -> Dict[MatrixType, np.ndarray]:
         """Create a snapshot of current matrices state"""
