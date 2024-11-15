@@ -6,42 +6,56 @@ class Simulation {
   - time_step: float
   - network: Network
   - matrices: DecisionMatrices
-  - optimizer: BaseOptimizer
+  - strategy: OptimizationStrategy
+  - matrix_history: List
+  - is_running: bool
   + run(duration: float)
   + pause()
   + resume()
   + reset()
-  + set_optimizer(optimizer: BaseOptimizer)
+  + set_strategy(strategy: OptimizationStrategy)
+  + initialize_default_nodes()
+  + set_base_stations(num: int)
+  + set_haps(num: int)
+  + set_users(num: int)
 }
 
 class DecisionMatrices {
-  - matrix_a: Matrix  ' Coverage zones (pre-computed)
-  - matrix_b: Matrix  ' Power state decisions (to optimize)
-  - matrix_k: Matrix  ' Request generation (Poisson distribution)
-  - matrix_x: Matrix  ' Request assignment (real-time)
+  - matrices: Dict[MatrixType, Matrix]
   + compute_coverage_zones()
   + generate_request_matrix()
   + update_assignment_matrix()
-  + get_matrix(name: str): Matrix
-  + set_matrix(name: str, matrix: Matrix)
+  + get_matrix(name: str|MatrixType): Matrix
+  + set_matrix(name: str|MatrixType, matrix: Matrix)
+  + get_snapshot(): Dict[MatrixType, ndarray]
 }
 
-abstract class BaseOptimizer {
+abstract class OptimizationStrategy {
   # matrices: DecisionMatrices
   # network: Network
-  + {abstract} optimize_power_states()
-  + {abstract} initialize()
-  # evaluate_power_efficiency()
+  + {abstract} optimize(matrix_history: List): Matrix
+  + {abstract} get_name(): str
 }
 
-class GeneticOptimizer extends BaseOptimizer {
-  - population_size: int
-  - mutation_rate: float
-  - crossover_rate: float
-  + optimize_power_states()
-  - select_parents()
-  - crossover()
-  - mutate()
+class AllOnStrategy extends OptimizationStrategy {
+  + optimize(matrix_history: List): Matrix
+  + get_name(): str
+}
+
+class RandomStrategy extends OptimizationStrategy {
+  - probability: float
+  + optimize(matrix_history: List): Matrix
+  + get_name(): str
+}
+
+' Future strategies
+class GeneticStrategy extends OptimizationStrategy {
+}
+
+class PSOStrategy extends OptimizationStrategy {
+}
+
+class QLearningStrategy extends OptimizationStrategy {
 }
 
 class Matrix {
@@ -119,15 +133,23 @@ class Link {
   + calculate_capacity(): float
 }
 
+enum MatrixType {
+  COVERAGE_ZONE = "A"
+  POWER_STATE = "B"
+  REQUEST = "K"
+  ASSIGNMENT = "X"
+}
+
 ' Relationships
 Simulation *-- Network
 Simulation *-- DecisionMatrices
-Simulation o-- BaseOptimizer
+Simulation o-- OptimizationStrategy
 
 DecisionMatrices *-- "4" Matrix
+DecisionMatrices *-- MatrixType
 
-BaseOptimizer --> DecisionMatrices
-BaseOptimizer --> Network
+OptimizationStrategy --> DecisionMatrices
+OptimizationStrategy --> Network
 
 Network o-- "1..*" NetworkNode
 Network o-- "0..*" Link

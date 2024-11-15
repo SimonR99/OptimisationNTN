@@ -1,11 +1,13 @@
 import logging
 import unittest
 
+import numpy as np
+
+from optimisation_ntn.networks.communication_link import CommunicationLink
 from optimisation_ntn.networks.request import Request
 from optimisation_ntn.nodes.base_node import BaseNode
 from optimisation_ntn.nodes.haps import HAPS
 from optimisation_ntn.nodes.leo import LEO
-from optimisation_ntn.networks.communication_link import CommunicationLink
 from optimisation_ntn.utils.position import Position
 
 
@@ -66,7 +68,8 @@ class TestCommunicationLink(unittest.TestCase):
         )
 
         # Create and add a request
-        request = Request(1, 1, 100)  # data_size=100 bits
+        request = Request(np.random.randint(0, 100), self.node_a, self.node_b)
+        request.set_size(100)  # data_size=100 bits
         link.add_to_queue(request)
 
         # Process request in the queue with sufficient time
@@ -81,26 +84,33 @@ class TestCommunicationLink(unittest.TestCase):
         link = CommunicationLink(
             self.node_a,
             self.node_b,
-            total_bandwidth=1,
+            total_bandwidth=2,
             signal_power=1,
             carrier_frequency=1,
         )
 
         # Create and add multiple requests
-        request1 = Request(2, 1, 200)  # data_size=200 bits
-        request2 = Request(1, 1, 100)  # data_size=100 bits
+        request1 = Request(0, self.node_a, self.node_b)
+        request1.set_size(20000)  # data size=20 Mbits
+        request2 = Request(0, self.node_a, self.node_b)
+        request2.set_size(10000)  # data size=10 Mbits
 
         link.add_to_queue(request1)
         link.add_to_queue(request2)
 
         self.assertEqual(len(link.transmission_queue), 2)
 
-        for _ in range(20):  # Take longer time to process since requests is larger
+        for _ in range(5):  # Take longer time to process since requests is larger
+            link.tick(0.1)
+
+        self.assertEqual(len(link.transmission_queue), 2)
+
+        for _ in range(5):  # Take longer time to process since requests is larger
             link.tick(0.1)
 
         self.assertEqual(len(link.transmission_queue), 1)
 
-        for _ in range(10):
+        for _ in range(5):
             print(len(link.transmission_queue))
             link.tick(0.1)
 

@@ -2,9 +2,9 @@ from typing import List
 
 import numpy as np
 
-from .request import Request
 from ..nodes.base_node import BaseNode
 from ..utils.earth import Earth
+from .request import Request, RequestStatus
 
 
 class CommunicationLink:
@@ -79,7 +79,8 @@ class CommunicationLink:
     def calculate_capacity(self) -> float:
         """Calculates the link capacity based on Shannon's formula using adjusted bandwidth."""
         snr = self.calculate_snr()
-        return self.adjusted_bandwidth * np.log2(1 + snr)
+        # Reduce multiplier to make transmission more visible
+        return self.adjusted_bandwidth * np.log2(1 + snr) * 100  # Reduced from 10000 to 100
 
     def add_to_queue(self, request: Request):
         """Adds a request to the transmission queue and resets progress tracking."""
@@ -87,26 +88,32 @@ class CommunicationLink:
         self.request_progress = 0  # Initialize progress for the new request
 
     def tick(self, time: float):
-        """Processes requests in the queue, advancing the simulation by the specified time increment."""
+        """Processes requests in the queue."""
         if self.transmission_queue:
-            # Get the current request in the queue
             current_request = self.transmission_queue[0]
-
-            # Calculate the number of bits that can be transmitted in this tick
             capacity = self.calculate_capacity()
-            bits_to_transmit = capacity * time
+            bits_transmitted = capacity * time
+            self.request_progress += bits_transmitted
 
-            # Increment the request progress by the bits transmitted
-            self.request_progress += bits_to_transmit
+            print(
+                f"Link {self.node_a} -> {self.node_b}: Transmitting request {current_request.id} "
+                f"({self.request_progress:.1f}/{current_request.size} bits)"
+            )
 
-            # Check if the request has finished transmitting
-            if self.request_progress >= current_request.data_size:
+            if self.request_progress >= current_request.size:
                 print(
-                    f"Delivered {current_request} from {self.node_a} to {self.node_b}"
+                    f"Request {current_request.id} completed transmission from {self.node_a} to {self.node_b}"
                 )
-                self.transmission_queue.pop(0)  # Remove the request after completion
-                self.request_progress = 0  # Reset progress for the next request
-            else:
-                print(
-                    f"Processing {current_request} from {self.node_a} to {self.node_b}"
-                )
+
+                # Update request's current node and status
+                current_request.current_node = self.node_b
+                if self.node_b == current_request.target_node:
+                    # Directly add to processing queue without intermediate state
+                    self.node_b.add_request_to_process(current_request)
+                else:
+                    # Move to next node in path
+                    current_request.path_index += 1
+                    print(f"Request {current_request.id} moving to next node in path (index: {current_request.path_index})")
+
+                self.transmission_queue.pop(0)
+                self.request_progress = 0

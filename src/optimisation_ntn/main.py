@@ -1,14 +1,9 @@
 import argparse
 
 from optimisation_ntn.simulation import Simulation
-from optimisation_ntn.nodes.base_station import BaseStation
-from optimisation_ntn.nodes.haps import HAPS
-from optimisation_ntn.nodes.leo import LEO
-from optimisation_ntn.utils.type import Position
 
 
-class Main:
-    # Set up argument parsing
+def create_parser():
     parser = argparse.ArgumentParser(
         description="Run the NTN network simulation with custom parameters."
     )
@@ -16,55 +11,63 @@ class Main:
     parser.add_argument(
         "--max_time",
         type=int,
-        default=3000,
-        help="The maximum simulation time in ticks",
+        default=Simulation.DEFAULT_MAX_SIMULATION_TIME,
+        help="The maximum simulation time in seconds",
     )
 
     parser.add_argument(
-        "--num_leo", type=int, default=2, help="Number of LEO satellites"
-    )
-
-    parser.add_argument(
-        "--num_base_stations", type=int, default=4, help="Number of base stations"
-    )
-
-    parser.add_argument(
-        "--initial_sat_position",
+        "--tick_time",
         type=int,
-        default=0,
-        help="Initial position of the satellite",
+        default=Simulation.DEFAULT_TICK_TIME,
+        help="Number of seconds per tick",
+    )
+
+    parser.add_argument(
+        "--num_leo",
+        type=int,
+        default=Simulation.DEFAULT_LEO_COUNT,
+        help="Number of LEO satellites",
+    )
+
+    parser.add_argument(
+        "--num_base_stations",
+        type=int,
+        default=Simulation.DEFAULT_BS_COUNT,
+        help="Number of base stations",
     )
 
     parser.add_argument(
         "--algorithm",
         type=str,
-        choices=["GeneticAlgorithm", "QLearning"],
-        default="GeneticAlgorithm",
-        help="Algorithm used for optimization (GeneticAlgorithm or QLearning)",
+        choices=["Random", "AllOn"],
+        default="AllOn",
+        help="Algorithm used for optimizating or running the simulation",
     )
 
+    return parser
+
+
+def main(args):
+    simulation = Simulation(time_step=args.tick_time, max_time=args.max_time)
+
+    if args.algorithm not in ["Random", "AllOn"]:
+        # Run optimization mode
+        best_energy, energy_history = simulation.optimize(num_iterations=10)
+        print(f"Best energy consumption: {best_energy}")
+        print(f"Energy history: {energy_history}")
+    else:
+        # Run normal simulation mode
+        total_energy = simulation.run()
+        print(f"Total energy consumed: {total_energy}")
+
+
+if __name__ == "__main__":
+    parser = create_parser()
+    parser.add_argument(
+        "--mode",
+        choices=["run", "optimize"],
+        default="run",
+        help="Simulation mode: run a single simulation or optimize over multiple runs",
+    )
     args = parser.parse_args()
-
-    nodes = []
-
-    bs1 = BaseStation(1, Position(0.5, 0))
-    nodes.append(bs1)
-
-    bs2 = BaseStation(2, Position(1.5, 0))
-    nodes.append(bs2)
-
-    bs3 = BaseStation(3, Position(2.5, 0))
-    nodes.append(bs3)
-
-    bs4 = BaseStation(4, Position(3.5, 0))
-    nodes.append(bs4)
-
-    haps = HAPS(5, Position(2, 20))
-    nodes.append(haps)
-
-    leo = LEO(6, Position(4, 500))
-    nodes.append(leo)
-
-    simulation = Simulation()
-
-    simulation.run()
+    main(args)
