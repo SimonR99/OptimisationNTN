@@ -4,7 +4,7 @@ from enum import Enum
 
 
 class RequestStatus(Enum):
-    CREATED = 0 
+    CREATED = 0
     IN_TRANSIT = 1
     IN_PROCESSING_QUEUE = 2
     PROCESSING = 3
