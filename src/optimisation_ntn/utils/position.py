@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class Position:
     """A position class using numpy arrays."""
 

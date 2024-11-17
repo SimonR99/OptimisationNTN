@@ -5,8 +5,6 @@ import numpy as np
 
 from ..networks.request import RequestStatus
 from ..nodes.base_station import BaseStation
-from ..nodes.haps import HAPS
-from ..nodes.leo import LEO
 from ..nodes.user_device import UserDevice
 
 
@@ -147,6 +145,5 @@ class DecisionMatrices:
     def get_snapshot(self) -> Dict[MatrixType, np.ndarray]:
         """Create a snapshot of current matrices state"""
         return {
-            matrix_type: matrix.copy()
-            for matrix_type, matrix in self.matrices.items()
+            matrix_type: matrix.copy() for matrix_type, matrix in self.matrices.items()
         }

@@ -1,5 +1,4 @@
 import math
-import random
 from typing import List
 
 from optimisation_ntn.networks.request import Request, RequestStatus
