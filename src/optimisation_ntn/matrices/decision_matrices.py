@@ -8,7 +8,6 @@ from ..nodes.base_station import BaseStation
 from ..nodes.haps import HAPS
 from ..nodes.leo import LEO
 from ..nodes.user_device import UserDevice
-from .matrix import Matrix
 
 
 class MatrixType(Enum):
@@ -21,13 +20,11 @@ class MatrixType(Enum):
 class DecisionMatrices:
     def __init__(self, dimension: int = 0):
         """Initialize matrices used in network decision processes."""
-        self.matrices: Dict[MatrixType, Matrix] = {
-            MatrixType.COVERAGE_ZONE: Matrix(
-                dimension, dimension, "Coverage Zone Matrix"
-            ),
-            MatrixType.POWER_STATE: Matrix(dimension, dimension, "Power State Matrix"),
-            MatrixType.REQUEST: Matrix(dimension, dimension, "Request Matrix"),
-            MatrixType.ASSIGNMENT: Matrix(dimension, dimension, "Assignment Matrix"),
+        self.matrices: Dict[MatrixType, np.ndarray] = {
+            MatrixType.COVERAGE_ZONE: np.zeros((dimension, dimension)),
+            MatrixType.POWER_STATE: np.zeros((dimension, dimension)),
+            MatrixType.REQUEST: np.zeros((dimension, dimension)),
+            MatrixType.ASSIGNMENT: np.zeros((dimension, dimension)),
         }
 
     def generate_coverage_matrix(self, network, coverage_radius: float = 5000):
@@ -58,15 +55,14 @@ class DecisionMatrices:
                     if distances[j] == min_distance:
                         coverage_matrix[i, j] = 1
 
-        self.matrices[MatrixType.COVERAGE_ZONE].data = coverage_matrix
+        self.matrices[MatrixType.COVERAGE_ZONE] = coverage_matrix
 
     def generate_request_matrix(self, num_requests: int, num_steps: int):
         """Generate request matrix where each user generates exactly one request."""
         if num_requests <= 0 or num_steps <= 0:
             raise ValueError("Number of requests and steps must be positive")
 
-        # Create new matrix with correct dimensions
-        request_matrix = Matrix(num_requests, num_steps, "Request Matrix")
+        request_matrix = np.zeros((num_requests, num_steps))
 
         # Generate Poisson distribution of requests
         count = 0
@@ -78,7 +74,7 @@ class DecisionMatrices:
                 for tick, count in enumerate(ps):
                     for _ in range(count):
                         if row_index < num_requests:
-                            request_matrix.set_value(row_index, tick, 1)
+                            request_matrix[row_index, tick] = 1
                             row_index += 1
                 self.matrices[MatrixType.REQUEST] = request_matrix
                 break
@@ -116,9 +112,9 @@ class DecisionMatrices:
                             assignment_matrix[i, j] = 1
                             break
 
-        self.matrices[MatrixType.ASSIGNMENT].data = assignment_matrix
+        self.matrices[MatrixType.ASSIGNMENT] = assignment_matrix
 
-    def get_matrix(self, name: MatrixType) -> Matrix:
+    def get_matrix(self, name: MatrixType) -> np.ndarray:
         """Get matrix by enum value.
 
         Args:
@@ -135,7 +131,7 @@ class DecisionMatrices:
         except (KeyError, ValueError):
             raise ValueError(f"Matrix '{name}' does not exist.")
 
-    def set_matrix(self, name: MatrixType, matrix: Matrix) -> None:
+    def set_matrix(self, name: MatrixType, matrix: np.ndarray) -> None:
         """Set matrix by enum value.
 
         Args:
@@ -151,6 +147,6 @@ class DecisionMatrices:
     def get_snapshot(self) -> Dict[MatrixType, np.ndarray]:
         """Create a snapshot of current matrices state"""
         return {
-            matrix_type: matrix.data.copy()
+            matrix_type: matrix.copy()
             for matrix_type, matrix in self.matrices.items()
         }

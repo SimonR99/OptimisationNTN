@@ -24,7 +24,7 @@ class Simulation:
     DEFAULT_BS_COUNT = 4
     DEFAULT_HAPS_COUNT = 1
     DEFAULT_LEO_COUNT = 1
-    DEFAULT_USER_COUNT = 5
+    DEFAULT_USER_COUNT = 50
 
     DEFAULT_TICK_TIME = 0.1
     DEFAULT_MAX_SIMULATION_TIME = 300
@@ -99,7 +99,7 @@ class Simulation:
         """Run simulation for a single step."""
 
         # Get new requests from request matrix for this tick
-        new_requests = self.matrices.get_matrix(MatrixType.REQUEST).data[
+        new_requests = self.matrices.get_matrix(MatrixType.REQUEST)[
             :, self.current_step
         ]
 

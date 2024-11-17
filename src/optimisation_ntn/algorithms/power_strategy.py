@@ -4,7 +4,6 @@ from typing import Dict, List
 import numpy as np
 
 from ..matrices.decision_matrices import DecisionMatrices, MatrixType
-from ..matrices.matrix import Matrix
 from ..networks.network import Network
 
 
