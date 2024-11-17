@@ -1,18 +1,33 @@
+import numpy as np
+
 class Position:
-    """A simple class to represent a 2D position."""
+    """A position class using numpy arrays."""
 
     def __init__(self, x: float, y: float):
-        self.x = x
-        self.y = y
+        self.coords = np.array([x, y], dtype=float)
+
+    @property
+    def x(self) -> float:
+        return self.coords[0]
+
+    @property
+    def y(self) -> float:
+        return self.coords[1]
 
     def distance_to(self, other: "Position") -> float:
-        """Calculate the Euclidean distance between two Position instances."""
-        return ((self.x - other.x) ** 2 + (self.y - other.y) ** 2) ** 0.5
+        """Calculate distance using numpy operations."""
+        return np.sqrt(np.sum((self.coords - other.coords) ** 2))
 
     def __str__(self):
         return f"Position(x={self.x}, y={self.y})"
 
     @staticmethod
     def distance(p1: "Position", p2: "Position") -> float:
-        """Calculate the Euclidean distance between two Position instances."""
-        return ((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2) ** 0.5
+        """Calculate distance between two positions using numpy."""
+        return np.sqrt(np.sum((p1.coords - p2.coords) ** 2))
+
+    @staticmethod
+    def distances(positions: list["Position"]) -> np.ndarray:
+        """Calculate distances between all positions efficiently."""
+        coords = np.array([p.coords for p in positions])
+        return np.sqrt(np.sum((coords[:, np.newaxis] - coords) ** 2, axis=2))
