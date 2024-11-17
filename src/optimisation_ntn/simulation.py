@@ -33,18 +33,20 @@ class Simulation:
         self,
         time_step: float = DEFAULT_TICK_TIME,
         max_time: float = DEFAULT_MAX_SIMULATION_TIME,
+        debug: bool = False,
     ):
         self.current_step = 0
         self.current_time = 0.0
         self.time_step = time_step
         self.max_time = max_time
-        self.network = Network()
+        self.network = Network(debug=debug)
         self.matrices = DecisionMatrices(dimension=self.DEFAULT_USER_COUNT)
         self.strategy: PowerStateStrategy | None = None
         self.matrix_history: list[DecisionMatrices] = []
         self.total_requests = 0
         self.request_stats = {status: 0 for status in RequestStatus}
         self.is_paused = False
+        self.debug = debug
 
         # Initialize with default values
         self.initialize_default_nodes()
@@ -68,7 +70,7 @@ class Simulation:
         """
         start_time = time.time()
 
-        # Print simulation parameters
+        # Print simulation parameters (always show these)
         print("\nStarting simulation with parameters:")
         print(f"Time step: {self.time_step}s")
         print(f"Max simulation time: {self.max_time}s")
@@ -79,7 +81,7 @@ class Simulation:
             if not self.step():
                 break
 
-        # Calculate execution time and print results
+        # Calculate execution time and print results (always show these)
         execution_time = time.time() - start_time
         print("\nSimulation completed:")
         print(f"Total requests: {self.total_requests}")
@@ -88,7 +90,7 @@ class Simulation:
         print(f"Simulated time: {self.current_time:.2f} seconds")
         print(f"Average speed: {self.current_step/execution_time:.0f} steps/second\n")
 
-        # Print request statistics
+        # Print request statistics (always show these)
         print("\nRequest Statistics:")
         for status, count in self.request_stats.items():
             print(f"{status.name}: {count}")
@@ -97,7 +99,6 @@ class Simulation:
 
     def step(self) -> bool:
         """Run simulation for a single step."""
-
         # Get new requests from request matrix for this tick
         new_requests = self.matrices.get_matrix(MatrixType.REQUEST)[
             :, self.current_step
@@ -126,18 +127,18 @@ class Simulation:
                 # Create request to closest compute node if found
                 if closest_compute:
                     request = user.spawn_request(self.current_step, closest_compute)
-                    print(
+                    self.debug_print(
                         f"Created request from {user} to {closest_compute} (distance: {min_distance:.2f})"
                     )
 
                     # Try to route the request through the network
                     if self.network.route_request(request):
-                        print(f"Request {request.id} routed successfully")
+                        self.debug_print(f"Request {request.id} routed successfully")
                         self.total_requests += 1
                     else:
-                        print(f"Failed to route request {request.id}")
+                        self.debug_print(f"Failed to route request {request.id}")
                 else:
-                    print(f"No available compute nodes found for {user}")
+                    self.debug_print(f"No available compute nodes found for {user}")
 
         # Update network state (transfer + processing)
         self.network.tick(self.time_step)
@@ -193,7 +194,7 @@ class Simulation:
         start_x = -(num_base_stations - 1) * 1.5 / 2
         for i in range(num_base_stations):
             x_pos = start_x + (i * 1.5)
-            base_station = BaseStation(i, Position(x_pos, 0))
+            base_station = BaseStation(i, Position(x_pos, 0), debug=self.debug)
             self.network.add_node(base_station)
 
     def set_haps(self, num_haps: int):
@@ -310,3 +311,8 @@ class Simulation:
             num_steps=matrix_size,
             strategy=AllOnStrategy(),
         )
+
+    def debug_print(self, *args, **kwargs):
+        """Print only if debug mode is enabled"""
+        if self.debug:
+            print(*args, **kwargs)

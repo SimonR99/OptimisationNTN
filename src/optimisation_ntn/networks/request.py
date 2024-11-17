@@ -1,6 +1,7 @@
 import random
 import time
 from enum import Enum
+from typing import List, Optional, Tuple
 
 
 class RequestStatus(Enum):
@@ -21,7 +22,15 @@ class Request:
     lamda = 0
     id_counter = 0
 
-    def __init__(self, tick: int, initial_node: "BaseNode", target_node: "BaseNode"):
+    def __init__(
+        self,
+        tick: int,
+        initial_node: "BaseNode",
+        target_node: "BaseNode",
+        debug: bool = False,
+    ):
+        self.debug = debug
+
         self.id = Request.id_counter
         Request.id_counter += 1
         self.tick = tick
@@ -30,18 +39,25 @@ class Request:
         self.target_node = target_node
         self.status = RequestStatus.CREATED
         self.satisfaction = False
-        self.processing_progress = 0
+        self.processing_progress: float = 0.0
         self.qos_limit = 0.0
         self.size = 0.0
         self.cycle_bits = 0.0
         self.priority = random.choice(list(Priority))
-        self.set_priority_type(self.priority)
         self.creation_time = tick
         self.last_status_change = tick
-        self.status_history = [(RequestStatus.CREATED, tick)]
-        self.path = None  # Will store complete path
-        self.path_index = 0  # Current position in path
-        print(f"Created request {self.id} from {initial_node} to {target_node}")
+        self.status_history: List[Tuple[RequestStatus, float]] = [
+            (RequestStatus.CREATED, float(tick))
+        ]
+        self.path: Optional[List["BaseNode"]] = None
+        self.path_index = 0
+
+        self.set_priority_type(self.priority)
+
+    def debug_print(self, *args, **kwargs):
+        """Print only if debug mode is enabled"""
+        if self.debug:
+            print(*args, **kwargs)
 
     def set_id(self, row: int, col: int):
         self.id = int(f"{row}{col}")
@@ -69,7 +85,7 @@ class Request:
                 self.qos_limit = 0.5  # 500 ms
                 self.size = random.randint(30, 50) * 500
                 self.cycle_bits = random.randint(30, 50)
-        print(f"Request {self.id} created with size {self.size} bits")
+        self.debug_print(f"Request {self.id} created with size {self.size} bits")
 
     def is_satisfied(self):
         return self.satisfaction
@@ -89,7 +105,7 @@ class Request:
         """Update request status and track timing"""
         current_time = time.time()
         self.status_history.append((new_status, current_time))
-        print(
+        self.debug_print(
             f"Request {self.id} status changed: {self.status} -> {new_status} "
             f"(time in previous status: {current_time - self.last_status_change:.2f}s)"
         )

@@ -15,14 +15,16 @@ class CommunicationLink:
         total_bandwidth: float,
         signal_power: float,
         carrier_frequency: float,
+        debug: bool = False,
     ):
         self.node_a = node_a
         self.node_b = node_b
         self.total_bandwidth = total_bandwidth
         self.signal_power = signal_power
         self.carrier_frequency = carrier_frequency
-        self.transmission_queue: List[Request] = []  # FIFO queue
-        self.request_progress = 0  # Track bits transmitted for the current request
+        self.transmission_queue: List[Request] = []
+        self.request_progress = 0
+        self.debug = debug
 
         # Identify compatible antennas for communication
         self.antenna_a, self.antenna_b = self.find_compatible_antennas()
@@ -89,6 +91,11 @@ class CommunicationLink:
         self.transmission_queue.append(request)
         self.request_progress = 0  # Initialize progress for the new request
 
+    def debug_print(self, *args, **kwargs):
+        """Print only if debug mode is enabled"""
+        if self.debug:
+            print(*args, **kwargs)
+
     def tick(self, time: float):
         """Processes requests in the queue."""
         if self.transmission_queue:
@@ -97,25 +104,23 @@ class CommunicationLink:
             bits_transmitted = capacity * time
             self.request_progress += bits_transmitted
 
-            print(
+            self.debug_print(
                 f"Link {self.node_a} -> {self.node_b}: Transmitting request {current_request.id} "
                 f"({self.request_progress:.1f}/{current_request.size} bits)"
             )
 
             if self.request_progress >= current_request.size:
-                print(
+                self.debug_print(
                     f"Request {current_request.id} completed transmission from {self.node_a} to {self.node_b}"
                 )
 
                 # Update request's current node and status
                 current_request.current_node = self.node_b
                 if self.node_b == current_request.target_node:
-                    # Directly add to processing queue without intermediate state
                     self.node_b.add_request_to_process(current_request)
                 else:
-                    # Move to next node in path
                     current_request.path_index += 1
-                    print(
+                    self.debug_print(
                         f"Request {current_request.id} moving to next node in path (index: {current_request.path_index})"
                     )
 
