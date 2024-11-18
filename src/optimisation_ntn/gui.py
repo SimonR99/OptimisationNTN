@@ -695,28 +695,28 @@ class SimulationUI(QtWidgets.QMainWindow):
         """Create a new simulation and add it to the list"""
         try:
             simulation_name = f"Simulation {self.sim_list.count() + 1}"
-            
+
             # Create new simulation instance with debug mode
             simulation = Simulation(debug=False)
-            
+
             # Initialize network and matrices
             simulation.initialize_default_nodes()
             simulation.initialize_matrices()
-            
+
             # Store simulation
             self.simulations[simulation_name] = simulation
             self.simulation = simulation
-            
+
             # Add to list and select it
             self.sim_list.addItem(simulation_name)
             self.sim_list.setCurrentRow(self.sim_list.count() - 1)
-            
+
             # Update view
             self.load_close_up_view()
-            
+
             # Update UI with simulation parameters
             self.update_ui_parameters()
-            
+
         except Exception as e:
             print(f"Error creating simulation: {str(e)}")
 
