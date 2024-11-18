@@ -678,33 +678,47 @@ class SimulationUI(QtWidgets.QMainWindow):
         pass
 
     def update_simulation_selection(self):
-        if self.sim_list.currentItem():
-            simulation_name = self.sim_list.currentItem().text()
-            self.simulation = self.simulations[simulation_name]
-            self.update_ui_parameters()
-            self.load_close_up_view()
-        else:
-            self.simulation = None
-            self.schematic_view.setScene(QtWidgets.QGraphicsScene())
+        """Update the selected simulation"""
+        try:
+            if self.sim_list.currentItem():
+                simulation_name = self.sim_list.currentItem().text()
+                if simulation_name in self.simulations:
+                    self.simulation = self.simulations[simulation_name]
+                    self.update_ui_parameters()
+                    self.load_close_up_view()
+                else:
+                    print(f"Warning: Simulation '{simulation_name}' not found")
+        except Exception as e:
+            print(f"Error updating simulation selection: {str(e)}")
 
     def create_new_simulation(self):
         """Create a new simulation and add it to the list"""
-        simulation_name = f"Simulation {self.sim_list.count() + 1}"
-        self.sim_list.addItem(simulation_name)
-
-        # Create new simulation instance with proper initialization
-        simulation = Simulation()
-        simulation.initialize_matrices()  # Ensure matrices are initialized
-
-        # Store simulation
-        self.simulations[simulation_name] = simulation
-        self.simulation = simulation
-
-        self.sim_list.setCurrentRow(self.sim_list.count() - 1)
-        self.load_close_up_view()
-
-        # Update UI with simulation parameters
-        self.update_ui_parameters()
+        try:
+            simulation_name = f"Simulation {self.sim_list.count() + 1}"
+            
+            # Create new simulation instance with debug mode
+            simulation = Simulation(debug=False)
+            
+            # Initialize network and matrices
+            simulation.initialize_default_nodes()
+            simulation.initialize_matrices()
+            
+            # Store simulation
+            self.simulations[simulation_name] = simulation
+            self.simulation = simulation
+            
+            # Add to list and select it
+            self.sim_list.addItem(simulation_name)
+            self.sim_list.setCurrentRow(self.sim_list.count() - 1)
+            
+            # Update view
+            self.load_close_up_view()
+            
+            # Update UI with simulation parameters
+            self.update_ui_parameters()
+            
+        except Exception as e:
+            print(f"Error creating simulation: {str(e)}")
 
     def update_ui_parameters(self):
         """Update UI controls to match current simulation"""
@@ -715,16 +729,10 @@ class SimulationUI(QtWidgets.QMainWindow):
             self.num_users_input.blockSignals(True)
             self.step_duration_input.blockSignals(True)
 
-            # Count nodes of each type
-            bs_count = len(
-                [n for n in self.simulation.network.nodes if isinstance(n, BaseStation)]
-            )
-            haps_count = len(
-                [n for n in self.simulation.network.nodes if isinstance(n, HAPS)]
-            )
-            users_count = len(
-                [n for n in self.simulation.network.nodes if isinstance(n, UserDevice)]
-            )
+            # Count nodes of each type using new method
+            bs_count = self.simulation.network.count_nodes_by_type(BaseStation)
+            haps_count = self.simulation.network.count_nodes_by_type(HAPS)
+            users_count = self.simulation.network.count_nodes_by_type(UserDevice)
 
             # Update UI values
             self.num_bs_input.setValue(bs_count)

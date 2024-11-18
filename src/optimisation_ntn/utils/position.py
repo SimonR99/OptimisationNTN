@@ -23,11 +23,6 @@ class Position:
         return f"Position(x={self.x}, y={self.y})"
 
     @staticmethod
-    def distance(p1: "Position", p2: "Position") -> float:
-        """Calculate distance between two positions using numpy."""
-        return np.sqrt(np.sum((p1.coords - p2.coords) ** 2))
-
-    @staticmethod
     def distances(positions: list["Position"]) -> np.ndarray:
         """Calculate distances between all positions efficiently."""
         coords = np.array([p.coords for p in positions])

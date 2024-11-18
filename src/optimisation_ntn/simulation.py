@@ -171,61 +171,46 @@ class Simulation:
     ):
         """Initialize network with default nodes or a desired amount"""
         # Add default base stations
-        self.set_base_stations(nb_base_station)
+        self.set_nodes(BaseStation, nb_base_station)
 
         # Add default HAPS
-        self.set_haps(nb_haps)
+        self.set_nodes(HAPS, nb_haps)
 
         # Add default LEO satellites
         for i in range(nb_leo):
             self.network.add_node(LEO(i))
 
         # Add default user devices
-        self.set_users(self.DEFAULT_USER_COUNT)
+        self.set_nodes(UserDevice, self.DEFAULT_USER_COUNT)
 
-    def set_base_stations(self, num_base_stations: int):
-        """Remove all existing base stations and create new ones."""
-        # Remove all existing base stations
+    def set_nodes(self, node_type: type, count: int, **kwargs):
+        """Generic method to set nodes of a specific type."""
+        # Remove existing nodes of this type
         self.network.nodes = [
-            node for node in self.network.nodes if not isinstance(node, BaseStation)
+            node for node in self.network.nodes if not isinstance(node, node_type)
         ]
 
-        # Add new base stations
-        start_x = -(num_base_stations - 1) * 1.5 / 2
-        for i in range(num_base_stations):
-            x_pos = start_x + (i * 1.5)
-            base_station = BaseStation(i, Position(x_pos, 0), debug=self.debug)
-            self.network.add_node(base_station)
+        # Add new nodes based on type
+        if node_type == BaseStation:
+            start_x = -(count - 1) * 1.5 / 2
+            for i in range(count):
+                x_pos = start_x + (i * 1.5)
+                self.network.add_node(
+                    node_type(i, Position(x_pos, 0), debug=self.debug)
+                )
 
-    def set_haps(self, num_haps: int):
-        """Remove all existing HAPS and create new ones."""
-        # Remove all existing HAPS
-        self.network.nodes = [
-            node for node in self.network.nodes if not isinstance(node, HAPS)
-        ]
+        elif node_type == HAPS:
+            start_x = -(count - 1) * 2 / 2
+            height = 20
+            for i in range(count):
+                x_pos = start_x + (i * 2)
+                self.network.add_node(node_type(i, Position(x_pos, height)))
 
-        # Add new HAPS
-        start_x = -(num_haps - 1) * 2 / 2
-        height = 20  # Height for HAPS layer
-        for i in range(num_haps):
-            x_pos = start_x + (i * 2)
-            haps = HAPS(i, Position(x_pos, height))
-            self.network.add_node(haps)
-
-    def set_users(self, num_users: int):
-        """Remove all existing users and create new ones with random positions."""
-        # Remove all existing users
-        self.network.nodes = [
-            node for node in self.network.nodes if not isinstance(node, UserDevice)
-        ]
-
-        # Add new users with random positions
-        for i in range(num_users):
-            # Random position between -4 and 4 on x-axis
-            x_pos = random.uniform(-4, 4)
-            height = -2  # Height for users (below base stations)
-            user = UserDevice(i, Position(x_pos, height))
-            self.network.add_node(user)
+        elif node_type == UserDevice:
+            for i in range(count):
+                x_pos = random.uniform(-4, 4)
+                height = -2
+                self.network.add_node(node_type(i, Position(x_pos, height)))
 
     def optimize(self, num_iterations: int = 10) -> tuple[float, list[float]]:
         """Run multiple simulations to optimize energy consumption."""
@@ -292,19 +277,20 @@ class Simulation:
         # Calculate required matrix size based on simulation parameters
         matrix_size = self.max_tick_time + 1  # Add 1 to include the final step
 
-        # Generate request matrix
+        # Generate request matrix using the new counting method
         self.matrices.generate_request_matrix(
-            num_requests=self.network.count_users(), num_steps=matrix_size
+            num_requests=self.network.count_nodes_by_type(UserDevice), 
+            num_steps=matrix_size
         )
 
         # Generate coverage matrix
         self.matrices.generate_coverage_matrix(self.network)
 
-        # Generate power matrix
+        # Generate power matrix using the new counting method
         num_devices = (
-            self.network.count_haps()
-            + self.network.count_base_stations()
-            + self.network.count_leos()
+            self.network.count_nodes_by_type(HAPS)
+            + self.network.count_nodes_by_type(BaseStation)
+            + self.network.count_nodes_by_type(LEO)
         )
         self.matrices.generate_power_matrix(
             num_devices=num_devices,

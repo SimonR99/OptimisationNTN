@@ -64,9 +64,11 @@ class BaseNode(ABC):
         return Earth.bolztmann_constant * self.temperature
 
     def turn_on(self):
+        """Turn node on"""
         self.state = True
 
     def turn_off(self):
+        """Turn node off"""
         self.state = False
 
     def __str__(self):

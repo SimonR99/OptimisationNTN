@@ -13,8 +13,8 @@ from .communication_link import CommunicationLink
 
 class Network:
     def __init__(self, debug: bool = False):
-        self.nodes = []
-        self.communication_links = []
+        self.nodes: List[BaseNode] = []
+        self.communication_links: List[CommunicationLink] = []
         self.debug = debug
 
     def debug_print(self, *args, **kwargs):
@@ -26,27 +26,20 @@ class Network:
         """String representation of the network showing node counts."""
         return (
             f"Network Configuration:\n"
-            f"  HAPS: {self.count_haps()}\n"
-            f"  Users: {self.count_users()}\n"
+            f"  Base Stations: {self.count_nodes_by_type(BaseStation)}\n"
+            f"  HAPS: {self.count_nodes_by_type(HAPS)}\n"
+            f"  LEO: {self.count_nodes_by_type(LEO)}\n"
+            f"  Users: {self.count_nodes_by_type(UserDevice)}\n"
             f"  Total nodes: {len(self.nodes)}\n"
             f"  Communication links: {len(self.communication_links)}"
         )
 
-    def count_base_stations(self) -> int:
-        """Count number of base stations in network."""
-        return len([n for n in self.nodes if isinstance(n, BaseStation)])
-
-    def count_haps(self) -> int:
-        """Count number of HAPS in network."""
-        return len([n for n in self.nodes if isinstance(n, HAPS)])
-
-    def count_leos(self) -> int:
-        """Count number of LEO satellites in network."""
-        return len([n for n in self.nodes if isinstance(n, LEO)])
-
-    def count_users(self) -> int:
-        """Count number of user devices in network."""
-        return len([n for n in self.nodes if isinstance(n, UserDevice)])
+    def count_nodes_by_type(self, node_type: type) -> int:
+        """Count nodes of a specific type in network."""
+        try:
+            return len([n for n in self.nodes if isinstance(n, node_type)])
+        except Exception:
+            return 0
 
     def add_node(self, node):
         self.nodes.append(node)
@@ -238,6 +231,7 @@ class Network:
                     f"Added request {request.id} to transmission queue: {current_node} -> {next_node}"
                 )
                 return True
+        return False
 
     def _find_paths_depth_first_search(
         self, start: BaseNode, end: BaseNode, path=None, visited=None
