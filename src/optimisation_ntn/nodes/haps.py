@@ -13,9 +13,12 @@ class HAPS(BaseNode):
     haps_orbit_radius = Earth.radius + haps_altitude
 
     def __init__(
-        self, node_id: int, initial_position: Position = Position(0, haps_altitude)
+        self,
+        node_id: int,
+        initial_position: Position = Position(0, haps_altitude),
+        debug: bool = False,
     ):
-        super().__init__(node_id, initial_position)
+        super().__init__(node_id, initial_position, debug=debug)
         self.add_antenna("UHF", 2.0)
         self.add_antenna("VHF", 2.0)
         self.state = True

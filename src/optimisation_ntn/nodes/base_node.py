@@ -9,7 +9,13 @@ from ..utils.position import Position
 
 
 class BaseNode(ABC):
-    def __init__(self, node_id: int, initial_position: Position, temperature=300):
+    def __init__(
+        self,
+        node_id: int,
+        initial_position: Position,
+        temperature=300,
+        debug: bool = False,
+    ):
         self.node_id = node_id
         self.position = initial_position
         self.state = False
@@ -21,6 +27,7 @@ class BaseNode(ABC):
         self.current_load = 0.0
         self.processing_power = 0.0
         self.processing_queue: List[Request] = []
+        self.debug = debug
 
     def add_antenna(self, antenna_type: str, gain: float):
         """Adds an antenna with a specified type and gain to the node."""
@@ -57,9 +64,11 @@ class BaseNode(ABC):
         return Earth.bolztmann_constant * self.temperature
 
     def turn_on(self):
+        """Turn node on"""
         self.state = True
 
     def turn_off(self):
+        """Turn node off"""
         self.state = False
 
     def __str__(self):
@@ -80,11 +89,11 @@ class BaseNode(ABC):
             request.status = RequestStatus.PROCESSING
             request.current_node = self
             request.processing_progress = 0
-            print(
+            self.debug_print(
                 f"Request {request.id} status changed to {request.status.name} at {self}"
             )
         else:
-            print(
+            self.debug_print(
                 f"Node {self} cannot process request {request.id} (current load: {self.current_load}, power: {self.processing_power})"
             )
 
@@ -97,7 +106,7 @@ class BaseNode(ABC):
         completed = []
         for request in self.processing_queue:
             request.processing_progress += self.processing_power * time
-            print(
+            self.debug_print(
                 f"Node {self}: Processing request {request.id} "
                 f"({request.processing_progress:.1f}/{request.cycle_bits} units)"
             )
@@ -107,7 +116,7 @@ class BaseNode(ABC):
                 self.current_load -= request.cycle_bits
                 request.status = RequestStatus.COMPLETED
                 request.satisfaction = True
-                print(
+                self.debug_print(
                     f"Request {request.id} status changed to {request.status.name} at {self}"
                 )
 
@@ -118,3 +127,8 @@ class BaseNode(ABC):
     def tick(self, time: float):
         """Update node state including request processing"""
         self.process_requests(time)
+
+    def debug_print(self, *args, **kwargs):
+        """Print only if debug mode is enabled"""
+        if self.debug:
+            print(*args, **kwargs)

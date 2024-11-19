@@ -21,7 +21,7 @@ class TestPowerMatrix(unittest.TestCase):
 
         # Check matrix shape
         self.assertEqual(power_matrix.shape, (self.num_devices, self.num_steps))
-        
+
         # Check that all values are 1
         self.assertTrue(np.all(power_matrix == 1))
 
@@ -33,10 +33,10 @@ class TestPowerMatrix(unittest.TestCase):
 
         # Check matrix shape
         self.assertEqual(power_matrix.shape, (self.num_devices, self.num_steps))
-        
+
         # Check that all values are binary (0 or 1)
         self.assertTrue(np.all(np.logical_or(power_matrix == 0, power_matrix == 1)))
-        
+
         # Check that the proportion of 1s is roughly equal to the probability
         # (allowing for some random variation)
         proportion_ones = np.mean(power_matrix)
