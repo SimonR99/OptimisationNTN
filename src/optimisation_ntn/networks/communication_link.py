@@ -47,6 +47,11 @@ class CommunicationLink:
             (self.node_a.position.x - self.node_b.position.x) ** 2
             + (self.node_a.position.y - self.node_b.position.y) ** 2
         )
+    @property
+    def adjusted_bandwidth(self) -> float:
+        """Adjusts bandwidth based on the number of active links with the same type."""
+        active_count = self.node_b.get_active_count(type(self.node_a))
+        return self.total_bandwidth / max(1, active_count)
 
     @property
     def noise_power(self) -> float:
@@ -56,11 +61,31 @@ class CommunicationLink:
         )  # Assumes node_b is the receiver
         return spectral_noise_density * self.adjusted_bandwidth
 
-    @property
-    def adjusted_bandwidth(self) -> float:
-        """Adjusts bandwidth based on the number of active links with the same type."""
-        active_count = self.node_b.get_active_count(type(self.node_a))
-        return self.total_bandwidth / max(1, active_count)
+    def calculate_correction_factor(self) -> float:
+        """Calculates the Receiver Antenna Height Correction Factor."""
+        return(
+            1.1 * np.log10(self.carrier_frequency) - 0.7 * self.antenna_b.height
+            - (1.56 * np.log10(self.carrier_frequency) - 0.8)
+        )
+    
+    def calculate_path_loss(self) -> float:
+        """Calculates Path Loss NLOS (HATA Model) of the channel user-base station."""
+        correction_factor = self.calculate_correction_factor
+        return(
+            69.55 + 26.16 * np.log10(self.carrier_frequency) - 13.82 * np.log10(self.antenna_a.height) - 
+            correction_factor + 44.9 - 6.55 * np.log10(self.antenna_a.height) * np.log10(self.link_length)
+        )
+
+    def calculate_gain_base(self) -> float:
+        """Calculates Gain of the channel user-base station."""
+        path_loss = self.calculate_path_loss
+        return (
+            path_loss * np.abs(1) /self.link_length
+        )
+    
+    def calculate_snr_base(self) -> float:
+        """Calculates SNR (Signal to Noise Ration) of the channel user-base station."""
+        return((self.signal_power * self.calculate_gain_base) / self.noise_power)
 
     def calculate_fspl(self) -> float:
         """Calculates Free-Space Path Loss (FSPL) for the link."""
@@ -68,7 +93,7 @@ class CommunicationLink:
             4 * np.pi * self.link_length * self.carrier_frequency / Earth.speed_of_light
         ) ** 2
 
-    def calculate_snr(self) -> float:
+    def calculate_snr_leo(self) -> float:
         """Calculates the Signal-to-Noise Ratio (SNR) for the link."""
         fspl = self.calculate_fspl()
         # Use gains from compatible antennas
@@ -78,7 +103,7 @@ class CommunicationLink:
 
     def calculate_capacity(self) -> float:
         """Calculates the link capacity based on Shannon's formula using adjusted bandwidth."""
-        snr = self.calculate_snr()
+        snr = self.calculate_snr_leo()
         # Reduce multiplier to make transmission more visible
         return self.adjusted_bandwidth * np.log2(1 + snr) * 100  # Reduced from 10000 to 100
 
