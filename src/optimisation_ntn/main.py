@@ -44,11 +44,19 @@ def create_parser():
         help="Algorithm used for optimizating or running the simulation",
     )
 
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug printing",
+    )
+
     return parser
 
 
 def main(args):
-    simulation = Simulation(time_step=args.tick_time, max_time=args.max_time)
+    simulation = Simulation(
+        time_step=args.tick_time, max_time=args.max_time, debug=args.debug
+    )
 
     if args.algorithm not in ["Random", "AllOn"]:
         # Run optimization mode

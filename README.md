@@ -46,3 +46,15 @@ To run the simulation with the user interface, use the following command:
 ```sh
 python -m optimisation_ntn.gui
 ```
+
+## Testing and Formatting
+
+Before committing your changes, please run the following commands to ensure your code is formatted correctly and passes all tests:
+
+```sh
+black .
+pytest
+```
+
+- `black` : checks the code formatting.
+- `pytest` : runs the tests.

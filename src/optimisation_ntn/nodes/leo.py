@@ -29,11 +29,13 @@ class LEO(BaseNode):
 
     initial_angle = -final_angle
 
-    def __init__(self, node_id, start_angle=initial_angle):
+    def __init__(self, node_id, start_angle=initial_angle, debug: bool = False):
         global_position = Earth.calculate_position_from_angle(
             start_angle, self.leo_orbit_radius
         )
-        super().__init__(node_id, Earth.global_coordinate_to_local(global_position))
+        super().__init__(
+            node_id, Earth.global_coordinate_to_local(global_position), debug=debug
+        )
         self.add_antenna("VHF", 1.5)
         self.state = True
         self.battery_capacity = 100
