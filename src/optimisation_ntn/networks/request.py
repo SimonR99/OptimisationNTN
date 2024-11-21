@@ -111,3 +111,13 @@ class Request:
         )
         self.status = new_status
         self.last_status_change = current_time
+
+class UserDevice:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.completed_requests = []
+
+    def complete_request(self, request: Request):
+        """Mark a request as completed and track it."""
+        request.status = RequestStatus.COMPLETED
+        self.completed_requests.append(request)
