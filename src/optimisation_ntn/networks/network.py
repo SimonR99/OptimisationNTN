@@ -1,5 +1,4 @@
 import math
-import random
 from typing import List
 
 from optimisation_ntn.networks.request import Request, RequestStatus
@@ -13,35 +12,34 @@ from .communication_link import CommunicationLink
 
 
 class Network:
-    def __init__(self):
-        self.nodes = []
-        self.communication_links = []
+    def __init__(self, debug: bool = False):
+        self.nodes: List[BaseNode] = []
+        self.communication_links: List[CommunicationLink] = []
+        self.debug = debug
+
+    def debug_print(self, *args, **kwargs):
+        """Print only if debug mode is enabled"""
+        if self.debug:
+            print(*args, **kwargs)
 
     def __str__(self) -> str:
         """String representation of the network showing node counts."""
         return (
             f"Network Configuration:\n"
-            f"  HAPS: {self.count_haps()}\n"
-            f"  Users: {self.count_users()}\n"
+            f"  Base Stations: {self.count_nodes_by_type(BaseStation)}\n"
+            f"  HAPS: {self.count_nodes_by_type(HAPS)}\n"
+            f"  LEO: {self.count_nodes_by_type(LEO)}\n"
+            f"  Users: {self.count_nodes_by_type(UserDevice)}\n"
             f"  Total nodes: {len(self.nodes)}\n"
             f"  Communication links: {len(self.communication_links)}"
         )
 
-    def count_base_stations(self) -> int:
-        """Count number of base stations in network."""
-        return len([n for n in self.nodes if isinstance(n, BaseStation)])
-
-    def count_haps(self) -> int:
-        """Count number of HAPS in network."""
-        return len([n for n in self.nodes if isinstance(n, HAPS)])
-
-    def count_leos(self) -> int:
-        """Count number of LEO satellites in network."""
-        return len([n for n in self.nodes if isinstance(n, LEO)])
-
-    def count_users(self) -> int:
-        """Count number of user devices in network."""
-        return len([n for n in self.nodes if isinstance(n, UserDevice)])
+    def count_nodes_by_type(self, node_type: type) -> int:
+        """Count nodes of a specific type in network."""
+        try:
+            return len([n for n in self.nodes if isinstance(n, node_type)])
+        except Exception:
+            return 0
 
     def add_node(self, node):
         self.nodes.append(node)
@@ -55,7 +53,7 @@ class Network:
         user_nodes = [node for node in self.nodes if isinstance(node, UserDevice)]
         base_stations = [node for node in self.nodes if isinstance(node, BaseStation)]
 
-        print("\nCreating communication links:")  # Debug print
+        self.debug_print("\nCreating communication links:")
 
         # Connect each user to all HAPS and closest base station (bidirectional)
         for user in user_nodes:
@@ -63,24 +61,34 @@ class Network:
             for haps in haps_nodes:
                 # User -> HAPS
                 link = CommunicationLink(
-                    user, haps, total_bandwidth=1, signal_power=1, carrier_frequency=1
+                    user,
+                    haps,
+                    total_bandwidth=1,
+                    signal_power=1,
+                    carrier_frequency=1,
+                    debug=self.debug,
                 )
                 self.communication_links.append(link)
-                print(f"Created link: {user} -> {haps}")
+                self.debug_print(f"Created link: {user} -> {haps}")
                 # HAPS -> User
                 link = CommunicationLink(
-                    haps, user, total_bandwidth=1, signal_power=1, carrier_frequency=1
+                    haps,
+                    user,
+                    total_bandwidth=1,
+                    signal_power=1,
+                    carrier_frequency=1,
+                    debug=self.debug,
                 )
                 self.communication_links.append(link)
-                print(f"Created link: {haps} -> {user}")
+                self.debug_print(f"Created link: {haps} -> {user}")
 
             # Connect to closest base station (both directions)
             if base_stations:
                 # Print distances to all base stations for debugging
-                print(f"\nDistances from {user} to base stations:")
+                self.debug_print(f"\nDistances from {user} to base stations:")
                 for bs in base_stations:
                     distance = user.position.distance_to(bs.position)
-                    print(f"{bs}: {distance:.2f} units")
+                    self.debug_print(f"{bs}: {distance:.2f} units")
 
                 closest_bs = None
                 min_distance = float("inf")
@@ -102,9 +110,10 @@ class Network:
                         total_bandwidth=1,
                         signal_power=1,
                         carrier_frequency=1,
+                        debug=self.debug,
                     )
                     self.communication_links.append(link)
-                    print(
+                    self.debug_print(
                         f"Created link: {user} -> {closest_bs} (closest, distance: {min_distance:.2f})"
                     )
                     # BS -> User
@@ -114,9 +123,10 @@ class Network:
                         total_bandwidth=1,
                         signal_power=1,
                         carrier_frequency=1,
+                        debug=self.debug,
                     )
                     self.communication_links.append(link)
-                    print(f"Created link: {closest_bs} -> {user}")
+                    self.debug_print(f"Created link: {closest_bs} -> {user}")
 
         # Connect each base station to all HAPS (bidirectional)
         for bs in base_stations:
@@ -128,9 +138,10 @@ class Network:
                     total_bandwidth=2,  # Higher bandwidth for BS-HAPS links
                     signal_power=2,  # Higher power for BS-HAPS links
                     carrier_frequency=1,
+                    debug=self.debug,
                 )
                 self.communication_links.append(link)
-                print(f"Created link: {bs} -> {haps}")
+                self.debug_print(f"Created link: {bs} -> {haps}")
                 # HAPS -> BS
                 link = CommunicationLink(
                     haps,
@@ -138,9 +149,10 @@ class Network:
                     total_bandwidth=2,
                     signal_power=2,
                     carrier_frequency=1,
+                    debug=self.debug,
                 )
                 self.communication_links.append(link)
-                print(f"Created link: {haps} -> {bs}")
+                self.debug_print(f"Created link: {haps} -> {bs}")
 
     def get_compute_nodes(self) -> List[BaseNode]:
         """Get all nodes with processing capability"""
@@ -169,7 +181,7 @@ class Network:
 
         # Calculate path costs
         path_costs = []
-        print("Path costs:")
+        self.debug_print("Path costs:")
         for path in paths:
             cost = 0.0
             for i in range(len(path) - 1):
@@ -177,12 +189,14 @@ class Network:
                 distance = path[i].position.distance_to(path[i + 1].position)
                 cost += distance
             path_costs.append(cost)
-            print(f"Path: {' -> '.join(str(node) for node in path)}, Cost: {cost:.2f}")
+            self.debug_print(
+                f"Path: {' -> '.join(str(node) for node in path)}, Cost: {cost:.2f}"
+            )
 
         # Use path with minimum cost
         min_cost_index = path_costs.index(min(path_costs))
         path = paths[min_cost_index]
-        print(
+        self.debug_print(
             f"Selected path for request {request.id}: {' -> '.join(str(node) for node in path)}"
         )
 
@@ -200,7 +214,7 @@ class Network:
             return False
 
         if request.path_index >= len(request.path) - 1:
-            print(f"Request {request.id} has reached its target")
+            self.debug_print(f"Request {request.id} has reached its target")
             return True
 
         current_node = request.path[request.path_index]
@@ -213,10 +227,11 @@ class Network:
                 link.add_to_queue(request)
                 request.status = RequestStatus.IN_TRANSIT
                 request.next_node = next_node
-                print(
+                self.debug_print(
                     f"Added request {request.id} to transmission queue: {current_node} -> {next_node}"
                 )
                 return True
+        return False
 
     def _find_paths_depth_first_search(
         self, start: BaseNode, end: BaseNode, path=None, visited=None
@@ -236,13 +251,13 @@ class Network:
 
         # Find all connected nodes through communication links
         neighbors = set()
-        print(f"\nFinding neighbors for {start}:")  # Debug print
+        self.debug_print(f"\nFinding neighbors for {start}:")  # Debug print
 
         # Only check node_a since we have bidirectional links
         for link in self.communication_links:
             if link.node_a == start and link.node_b not in visited:
                 neighbors.add(link.node_b)
-                print(f"Found link to: {link.node_b}")
+                self.debug_print(f"Found link to: {link.node_b}")
 
         # Try all possible paths through neighbors
         for neighbor in neighbors:
@@ -268,10 +283,10 @@ class Network:
         # Then update all communication links
         for link in self.communication_links:
             if link.transmission_queue:
-                print(
+                self.debug_print(
                     f"Link {link.node_a} -> {link.node_b} has {len(link.transmission_queue)} requests in queue"
                 )
-                print(
+                self.debug_print(
                     f"Link {link.node_a} -> {link.node_b}: Transmitting request {link.transmission_queue[0].id} ({link.request_progress:.1f}/{link.transmission_queue[0].size} bits)"
                 )
             link.tick(time)
@@ -301,18 +316,18 @@ class Network:
                             # If we've reached the end of the path, add to processing queue
                             if request.path_index >= len(request.path):
                                 if current_node == request.target_node:
-                                    print(
+                                    self.debug_print(
                                         f"Request {request.id} reached final target node {current_node}, adding to processing queue"
                                     )
                                     current_node.add_request_to_process(request)
                                 else:
-                                    print(
+                                    self.debug_print(
                                         f"WARNING: Path ended at {current_node} but target was {request.target_node}"
                                     )
                             else:
                                 # Route to next node in path
                                 next_node = request.path[request.path_index]
-                                print(
+                                self.debug_print(
                                     f"Request {request.id} completed transmission to {current_node}, routing to next node {next_node}"
                                 )
 
@@ -332,10 +347,10 @@ class Network:
                                     next_link.add_to_queue(request)
                                     request.status = RequestStatus.IN_TRANSIT
                                     request.next_node = next_node
-                                    print(
+                                    self.debug_print(
                                         f"Added request {request.id} to transmission queue: {current_node} -> {next_node}"
                                     )
                                 else:
-                                    print(
+                                    self.debug_print(
                                         f"WARNING: Failed to find link between {current_node} and {next_node}"
                                     )
