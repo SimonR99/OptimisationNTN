@@ -107,7 +107,11 @@ class Simulation:
         all_requests = 0
 
         for user in [n for n in self.network.nodes if isinstance(n, UserDevice)]:
-            for request in user.completed_requests:  # Assume `completed_requests` keeps processed requests
+            for (
+                request
+            ) in (
+                user.completed_requests
+            ):  # Assume `completed_requests` keeps processed requests
                 all_requests += 1
                 process_time = request.last_status_change - request.creation_time
                 if process_time <= request.qos_limit:
@@ -120,7 +124,6 @@ class Simulation:
         # Calculate success rate as a percentage
         success_rate = (satisfied_requests / all_requests) * 100
         return success_rate
-
 
     def step(self) -> bool:
         """Run simulation for a single step."""

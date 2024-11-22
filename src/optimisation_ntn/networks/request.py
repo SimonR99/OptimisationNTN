@@ -112,6 +112,7 @@ class Request:
         self.status = new_status
         self.last_status_change = current_time
 
+
 class UserDevice:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
