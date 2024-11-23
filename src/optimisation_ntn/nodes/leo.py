@@ -38,7 +38,7 @@ class LEO(BaseNode):
         self.state = True
         self.battery_capacity = 100
         self.current_angle = start_angle
-        self.processing_power = 30.0
+        self.frequency = 10e9  # 10 GHz
 
     @property
     def is_visible(self) -> bool:

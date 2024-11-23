@@ -117,7 +117,7 @@ class Simulation:
                 min_distance = float("inf")
 
                 for compute_node in compute_nodes:
-                    if compute_node.state and compute_node.processing_power > 0:
+                    if compute_node.state and compute_node.frequency > 0:
                         distance = user.position.distance_to(compute_node.position)
                         if distance < min_distance:
                             min_distance = distance

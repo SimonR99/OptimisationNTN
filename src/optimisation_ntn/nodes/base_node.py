@@ -1,3 +1,4 @@
+import re
 from abc import ABC
 from typing import Dict, List, Optional, Tuple
 
@@ -19,7 +20,8 @@ class BaseNode(ABC):
             {}
         )  # Track active links by node type pair
         self.current_load = 0.0
-        self.processing_power = 0.0
+        self.cycle_per_bit = 500  # 500 cycles per each bit
+        self.frequency = 0e9  # 0 Hz (base node has no processing power)
         self.processing_queue: List[Request] = []
 
     def add_antenna(self, antenna_type: str, gain: float):
@@ -68,15 +70,16 @@ class BaseNode(ABC):
     def can_process(self, request: Request) -> bool:
         return (
             self.state
-            and self.processing_power > 0
-            and self.current_load + request.cycle_bits <= self.processing_power
+            and self.frequency > 0
+            and self.cycle_per_bit * (self.current_load + request.size) / self.frequency
+            <= request.qos_limit
         )
 
     def add_request_to_process(self, request: Request):
         """Add request to processing queue"""
         if self.can_process(request):
             self.processing_queue.append(request)
-            self.current_load += request.cycle_bits
+            self.current_load += request.size
             request.status = RequestStatus.PROCESSING
             request.current_node = self
             request.processing_progress = 0
@@ -85,7 +88,7 @@ class BaseNode(ABC):
             )
         else:
             print(
-                f"Node {self} cannot process request {request.id} (current load: {self.current_load}, power: {self.processing_power})"
+                f"Node {self} cannot process request {request.id} (current load: {self.current_load}, power: {self.frequency})"
             )
 
     def process_requests(self, time: float):
@@ -96,15 +99,15 @@ class BaseNode(ABC):
         # Process each request in queue
         completed = []
         for request in self.processing_queue:
-            request.processing_progress += self.processing_power * time
-            print(
+            request.processing_progress += self.frequency * time / self.cycle_per_bit
+            self.debug_print(
                 f"Node {self}: Processing request {request.id} "
-                f"({request.processing_progress:.1f}/{request.cycle_bits} units)"
+                f"({request.processing_progress:.1f}/{request.size} units)"
             )
 
-            if request.processing_progress >= request.cycle_bits:
+            if request.processing_progress >= request.size:
                 completed.append(request)
-                self.current_load -= request.cycle_bits
+                self.current_load -= request.size
                 request.status = RequestStatus.COMPLETED
                 request.satisfaction = True
                 print(

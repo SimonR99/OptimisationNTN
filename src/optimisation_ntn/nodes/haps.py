@@ -20,7 +20,7 @@ class HAPS(BaseNode):
         self.add_antenna("VHF", 2.0)
         self.state = True
         self.battery_capacity = 1000
-        self.processing_power = 40.0
+        self.frequency = 2.5e9  # 2.5 GHz
 
     def turn_on(self):
         self.state = True
