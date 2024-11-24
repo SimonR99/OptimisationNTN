@@ -64,28 +64,17 @@ class CommunicationLink:
         )  # Assumes node_b is the receiver
         return spectral_noise_density * self.adjusted_bandwidth
     
-    def linear_scale(gain: float) -> float:
+    def linear_scale(self, gain: float) -> float:
         """Linear scale the Gain in dB to apply in SNR."""
         return np.power(10 , gain) / 10
 
-    def convert_watt_dbm(power: float) -> float:
+    def convert_watt_dbm(self, power: float) -> float:
         """Convert signal_power from Watts to dBm."""
         return 10 * np.log10(1000 * power)
         
-    def calculate_correction_factor(self) -> float:
-        """Calculates the Receiver Antenna Height Correction Factor."""
-        return(
-            1.1 * np.log10(self.carrier_frequency) - 0.7 * self.antenna_b.height
-            - (1.56 * np.log10(self.carrier_frequency) - 0.8)
-        )
-    
-    def calculate_nlos_path_loss(self) -> float:
-        """Calculates Path Loss NLOS (HATA Model) of the channel user-base station."""
-        correction_factor = self.calculate_correction_factor()
-        return(
-            69.55 + 26.16 * np.log10(self.carrier_frequency) - 13.82 * np.log10(self.antenna_a.height) - 
-            correction_factor + 44.9 - 6.55 * np.log10(self.antenna_a.height) * np.log10(self.link_length)
-        )
+    def calculate_reference_path_loss(self) -> float:
+        """Calculates Reference Path Loss at Reference Distance of the channel user-base station."""
+        return 20 * np.log10(1) + 20 * np.log10(self.carrier_frequency) + 20 * np.log10(4 * np.pi / Earth.speed_of_light)
 
     def calculate_free_space_path_loss(self) -> float:
         """Calculates Free Space Path Loss for (user-haps, haps-base station, haps-leo)."""
@@ -93,7 +82,7 @@ class CommunicationLink:
     
     def calculate_gain_user_base(self) -> float:
         """Calculates Gain of the channel user-base station ."""
-        path_loss = self.calculate_nlos_path_loss()
+        path_loss = self.calculate_reference_path_loss()
         return path_loss * np.abs(1) /self.link_length
     
     def calculate_gain_other(self) -> float:
@@ -133,7 +122,7 @@ class CommunicationLink:
         """Processes requests in the queue."""
         if self.transmission_queue:
             current_request = self.transmission_queue[0]
-            capacity = self.calculate_capacity()
+            capacity = self.calculate_capacity_user_base()
             bits_transmitted = capacity * time
             self.request_progress += bits_transmitted
 

@@ -1,6 +1,7 @@
 import random
 import time
 from enum import Enum
+from typing import List, Optional, Tuple
 
 
 class RequestStatus(Enum):
@@ -18,9 +19,18 @@ class Priority(Enum):
 
 
 class Request:
+    lamda = 0
     id_counter = 0
 
-    def __init__(self, tick: int, initial_node: "BaseNode", target_node: "BaseNode"):
+    def __init__(
+        self,
+        tick: int,
+        initial_node: "BaseNode",
+        target_node: "BaseNode",
+        debug: bool = False,
+    ):
+        self.debug = debug
+
         self.id = Request.id_counter
         Request.id_counter += 1
         self.tick = tick
@@ -29,17 +39,25 @@ class Request:
         self.target_node = target_node
         self.status = RequestStatus.CREATED
         self.satisfaction = False
-        self.processing_progress = 0
+        self.processing_progress: float = 0.0
         self.qos_limit = 0.0
         self.size = 0.0
+        self.cycle_bits = 0.0
         self.priority = random.choice(list(Priority))
-        self.set_priority_type(self.priority)
         self.creation_time = tick
         self.last_status_change = tick
-        self.status_history = [(RequestStatus.CREATED, tick)]
-        self.path = None  # Will store complete path
-        self.path_index = 0  # Current position in path
-        print(f"Created request {self.id} from {initial_node} to {target_node}")
+        self.status_history: List[Tuple[RequestStatus, float]] = [
+            (RequestStatus.CREATED, float(tick))
+        ]
+        self.path: Optional[List["BaseNode"]] = None
+        self.path_index = 0
+
+        self.set_priority_type(self.priority)
+
+    def debug_print(self, *args, **kwargs):
+        """Print only if debug mode is enabled"""
+        if self.debug:
+            print(*args, **kwargs)
 
     def set_id(self, row: int, col: int):
         self.id = int(f"{row}{col}")
@@ -53,17 +71,21 @@ class Request:
     def set_priority_type(self, priority):
         match priority:
             case Priority.HIGH:
-                self.qos_limit = 0.2  # 200 ms
-                self.size = random.randint(5, 15) * 1000  # 5 to 15 kilo bytes
+                self.lamda = 0.2
+                self.qos_limit = 0.1  # 100 ms
+                self.size = random.randint(10, 30) * 500
+                self.cycle_bits = random.randint(10, 30)
             case Priority.MEDIUM:
-                self.qos_limit = 0.5  # 500 ms
-                self.size = random.randint(10, 40) * 1000  # 10 to 40 kilo bytes
+                self.lamda = 0.5
+                self.qos_limit = 0.3  # 300 ms
+                self.size = random.randint(20, 40) * 500
+                self.cycle_bits = random.randint(20, 40)
             case Priority.LOW:
-                self.qos_limit = 1  # 1000 ms
-                self.size = random.randint(30, 50) * 1000  # 30 to 50 kilo bytes
-        self.debug_print(
-            f"Request {self.id} created with size {self.size / 1000} kilo bytes"
-        )
+                self.lamda = 1
+                self.qos_limit = 0.5  # 500 ms
+                self.size = random.randint(30, 50) * 500
+                self.cycle_bits = random.randint(30, 50)
+        self.debug_print(f"Request {self.id} created with size {self.size} bits")
 
     def is_satisfied(self):
         return self.satisfaction
@@ -83,7 +105,7 @@ class Request:
         """Update request status and track timing"""
         current_time = time.time()
         self.status_history.append((new_status, current_time))
-        print(
+        self.debug_print(
             f"Request {self.id} status changed: {self.status} -> {new_status} "
             f"(time in previous status: {current_time - self.last_status_change:.2f}s)"
         )
