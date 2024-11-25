@@ -16,10 +16,10 @@ class HAPS(BaseNode):
         self, node_id: int, initial_position: Position = Position(0, haps_altitude)
     ):
         super().__init__(node_id, initial_position)
-        self.add_antenna("UHF", 2.0)
-        self.add_antenna("VHF", 2.0)
+        self.add_antenna("UHF", 15.0)
+        self.add_antenna("VHF", 15.0)
         self.state = True
-        self.battery_capacity = 1000
+        self.battery_capacity = 10000
         self.frequency = 2.5e9  # 2.5 GHz
 
     def turn_on(self):

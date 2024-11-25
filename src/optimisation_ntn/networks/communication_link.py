@@ -83,7 +83,7 @@ class CommunicationLink:
     def calculate_gain_user_base(self) -> float:
         """Calculates Gain of the channel user-base station ."""
         path_loss = self.calculate_reference_path_loss()
-        return path_loss * np.abs(1) /self.link_length
+        return path_loss * np.power(np.abs(2),2) / np.power(self.link_length,3)
     
     def calculate_gain_other(self) -> float:
         """Calculates Gain of any other channel (user-haps, haps-base, haps-leo). fspl is the free space path loss"""
@@ -99,7 +99,8 @@ class CommunicationLink:
     def calculate_snr_other(self) -> float:
         """Calculates SNR (Signal to Noise Ratio) of any other channel (user-haps, haps-base, haps-leo)."""
         gain = self.linear_scale(self.calculate_gain_other())
-        return self.signal_power * gain / self.noise_power
+        power = self.convert_watt_dbm(self.signal_power())
+        return power * gain / self.noise_power
 
     def calculate_capacity_user_base(self) -> float:
         """Calculates user-base station link capacity based on Shannon's formula using adjusted bandwidth."""

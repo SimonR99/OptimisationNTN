@@ -14,7 +14,7 @@ class UserDevice(BaseNode):
 
     def __init__(self, node_id: int, initial_position: Position):
         super().__init__(node_id, initial_position)
-        self.add_antenna("VHF", 1.5)
+        self.add_antenna("VHF", 3)
         self.current_requests: list[Request] = []
 
     def spawn_request(self, tick: int, target_node: BaseNode) -> Request:

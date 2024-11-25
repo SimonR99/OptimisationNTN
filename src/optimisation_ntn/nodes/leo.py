@@ -34,9 +34,9 @@ class LEO(BaseNode):
             start_angle, self.leo_orbit_radius
         )
         super().__init__(node_id, Earth.global_coordinate_to_local(global_position))
-        self.add_antenna("VHF", 1.5)
+        self.add_antenna("VHF", 8)
         self.state = True
-        self.battery_capacity = 100
+        self.battery_capacity = 5000
         self.current_angle = start_angle
         self.frequency = 10e9  # 10 GHz
 

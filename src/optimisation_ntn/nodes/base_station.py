@@ -10,7 +10,7 @@ class BaseStation(BaseNode):
         super().__init__(node_id, initial_position)
         self.state = True
         self.frequency = 1e9  # 1 GHz
-        self.add_antenna("VHF", 1.5)
+        self.add_antenna("VHF", 10)
 
     def turn_on(self):
         self.state = True

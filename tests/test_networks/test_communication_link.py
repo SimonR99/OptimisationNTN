@@ -33,7 +33,7 @@ class TestCommunicationLink(unittest.TestCase):
             signal_power=0,
             carrier_frequency=1,
         )
-        self.assertEqual(link.calculate_capacity(), 0.0)
+        self.assertEqual(link.calculate_capacity_user_base(), 0.0)
 
     def test_distance(self):
         # Test distance calculation
@@ -55,7 +55,7 @@ class TestCommunicationLink(unittest.TestCase):
         link = CommunicationLink(
             node_haps, node_leo, total_bandwidth=1, signal_power=1, carrier_frequency=1
         )
-        self.assertNotEqual(link.calculate_fspl(), 0.0)  # FSPL should not be zero
+        self.assertNotEqual(link.calculate_free_space_path_loss(), 0.0)  # FSPL should not be zero
 
     def test_single_request(self):
         # Set up a communication link with compatible antennas and a request
