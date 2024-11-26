@@ -10,6 +10,7 @@ from ..nodes.leo import LEO
 from ..nodes.user_device import UserDevice
 from .communication_link import CommunicationLink
 
+
 class Network:
     def __init__(self, debug: bool = False):
         self.nodes: List[BaseNode] = []

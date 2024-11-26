@@ -7,8 +7,10 @@ from ..networks.antenna import Antenna
 from ..networks.request import Request, RequestStatus
 from ..utils.position import Position
 
+
 def transmission_delay(request: Request, link_bandwidth):
-    return request.size/link_bandwidth
+    return request.size / link_bandwidth
+
 
 class BaseNode(ABC):
     def __init__(
@@ -93,7 +95,9 @@ class BaseNode(ABC):
         return (
             self.state
             and self.processing_frequency > 0
-            and self.cycle_per_bit * (self.current_load + request.size) / self.processing_frequency
+            and self.cycle_per_bit
+            * (self.current_load + request.size)
+            / self.processing_frequency
             <= request.qos_limit
         )
 
@@ -121,7 +125,9 @@ class BaseNode(ABC):
         # Process each request in queue
         completed = []
         for request in self.processing_queue:
-            request.processing_progress += self.processing_frequency * time / self.cycle_per_bit
+            request.processing_progress += (
+                self.processing_frequency * time / self.cycle_per_bit
+            )
             self.energy_consumed += self.processing_energy() * time
 
             self.debug_print(
@@ -159,20 +165,26 @@ class BaseNode(ABC):
         :param request:
         :return: energy consumed in unit of energy
         """
-        transmission_energy = self.transmission_power * transmission_delay(request, link_bandwidth)
+        transmission_energy = self.transmission_power * transmission_delay(
+            request, link_bandwidth
+        )
         self.battery_capacity -= transmission_energy
         if self.battery_capacity <= 0 and self.get_name() != "BS":
             self.turn_off()
         return transmission_energy
 
     def processing_delay(self, request: Request):
-        return request.size/self.processing_frequency
+        return request.size / self.processing_frequency
 
     def processing_energy(self):
         """Calculates the processing energy consumed and turn off the node if the battery is depleted.
         :return: energy consumed in unit of energy
         """
-        processing_energy = self.k_const * self.processing_frequency * self.processing_delay(self.processing_queue[0])
+        processing_energy = (
+            self.k_const
+            * self.processing_frequency
+            * self.processing_delay(self.processing_queue[0])
+        )
         self.battery_capacity -= processing_energy
         if self.battery_capacity <= 0 and self.get_name() != "BS":
             self.turn_off()

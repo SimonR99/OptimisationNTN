@@ -277,7 +277,12 @@ class Simulation:
         return total_energy
 
     def consumed_energy_graph(self):
-        plt.plot(self.energy_consumption_graph_y, self.energy_consumption_graph_x, color="blue", marker=".")
+        plt.plot(
+            self.energy_consumption_graph_y,
+            self.energy_consumption_graph_x,
+            color="blue",
+            marker=".",
+        )
         plt.title("Energy consumption")
         plt.xlabel("Secondes")
         plt.ylabel("Cumulative system energy consumed")
