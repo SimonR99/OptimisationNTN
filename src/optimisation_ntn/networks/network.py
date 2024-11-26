@@ -52,6 +52,7 @@ class Network:
         haps_nodes = [node for node in self.nodes if isinstance(node, HAPS)]
         user_nodes = [node for node in self.nodes if isinstance(node, UserDevice)]
         base_stations = [node for node in self.nodes if isinstance(node, BaseStation)]
+        leo_nodes = [node for node in self.nodes if isinstance(node, LEO)]
 
         self.debug_print("\nCreating communication links:")
 
@@ -70,17 +71,6 @@ class Network:
                 )
                 self.communication_links.append(link)
                 self.debug_print(f"Created link: {user} -> {haps}")
-                # HAPS -> User
-                link = CommunicationLink(
-                    haps,
-                    user,
-                    total_bandwidth=1,
-                    signal_power=1,
-                    carrier_frequency=1,
-                    debug=self.debug,
-                )
-                self.communication_links.append(link)
-                self.debug_print(f"Created link: {haps} -> {user}")
 
             # Connect to closest base station (both directions)
             if base_stations:
@@ -116,17 +106,6 @@ class Network:
                     self.debug_print(
                         f"Created link: {user} -> {closest_bs} (closest, distance: {min_distance:.2f})"
                     )
-                    # BS -> User
-                    link = CommunicationLink(
-                        closest_bs,
-                        user,
-                        total_bandwidth=1,
-                        signal_power=1,
-                        carrier_frequency=1,
-                        debug=self.debug,
-                    )
-                    self.communication_links.append(link)
-                    self.debug_print(f"Created link: {closest_bs} -> {user}")
 
         # Connect each base station to all HAPS (bidirectional)
         for bs in base_stations:
@@ -153,6 +132,21 @@ class Network:
                 )
                 self.communication_links.append(link)
                 self.debug_print(f"Created link: {haps} -> {bs}")
+
+        # Add new section: Connect each LEO to all HAPS (bidirectional)
+        for leo in leo_nodes:
+            for haps in haps_nodes:                
+                # HAPS -> LEO
+                link = CommunicationLink(
+                    haps,
+                    leo,
+                    total_bandwidth=2,
+                    signal_power=2,
+                    carrier_frequency=1,
+                    debug=self.debug,
+                )
+                self.communication_links.append(link)
+                self.debug_print(f"Created link: {haps} -> {leo}")
 
     def get_compute_nodes(self) -> List[BaseNode]:
         """Get all nodes with processing capability"""
