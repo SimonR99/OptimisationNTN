@@ -107,21 +107,20 @@ class Simulation:
         all_requests = 0
 
         for user in [n for n in self.network.nodes if isinstance(n, UserDevice)]:
-            for (
-                request
-            ) in (
-                user.completed_requests
-            ):  # Assume `completed_requests` keeps processed requests
+            for request in user.completed_requests:
                 all_requests += 1
-                process_time = request.last_status_change - request.creation_time
+
+                # Convert tick difference to actual time
+                process_time = (
+                    request.last_status_change - request.creation_time
+                ) * self.time_step
+
                 if process_time <= request.qos_limit:
                     satisfied_requests += 1
 
-        # Handle cases with no requests
         if all_requests == 0:
-            return 100.0
+            return 100.0  # No requests, success rate is 100%
 
-        # Calculate success rate as a percentage
         success_rate = (satisfied_requests / all_requests) * 100
         return success_rate
 
