@@ -394,7 +394,6 @@ class SimulationUI(QtWidgets.QMainWindow):
                 for link in self.simulation.network.communication_links:
                     source = link.node_a
                     target = link.node_b
-
                     # Get positions based on node types
                     source_pos = None
                     if isinstance(source, UserDevice):
