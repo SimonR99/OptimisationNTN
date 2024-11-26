@@ -10,6 +10,7 @@ class RequestStatus(Enum):
     IN_PROCESSING_QUEUE = 2
     PROCESSING = 3
     COMPLETED = 4
+    FAILED = 5
 
 
 class Priority(Enum):

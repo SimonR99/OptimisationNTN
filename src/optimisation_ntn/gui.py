@@ -212,7 +212,7 @@ class SimulationUI(QtWidgets.QMainWindow):
         info_layout.addWidget(QtWidgets.QLabel("UI Update Interval (ms):"), 1, 0)
         self.time_step_input = QtWidgets.QSpinBox()
         self.time_step_input.setRange(1, 100)
-        self.time_step_input.setValue(16)
+        self.time_step_input.setValue(100)
         self.time_step_input.valueChanged.connect(self.update_time_step)
         info_layout.addWidget(self.time_step_input, 1, 1)
 
@@ -394,7 +394,7 @@ class SimulationUI(QtWidgets.QMainWindow):
                 for link in self.simulation.network.communication_links:
                     source = link.node_a
                     target = link.node_b
-                    
+
                     # Get positions based on node types
                     source_pos = None
                     if isinstance(source, UserDevice):
@@ -421,7 +421,9 @@ class SimulationUI(QtWidgets.QMainWindow):
                         color = "yellow"  # Default color
                         if isinstance(source, LEO) or isinstance(target, LEO):
                             color = "cyan"  # LEO connections
-                        elif isinstance(source, BaseStation) or isinstance(target, BaseStation):
+                        elif isinstance(source, BaseStation) or isinstance(
+                            target, BaseStation
+                        ):
                             color = "yellow"  # BS connections
                         elif isinstance(source, HAPS) or isinstance(target, HAPS):
                             color = "orange"  # HAPS connections

@@ -60,6 +60,8 @@ class LEO(BaseNode):
         return self.speed / self.leo_orbit_radius * 360 / (2 * np.pi)
 
     def tick(self, time: float):
+        super().tick(time)
+
         # Update the position of the LEO satellite
         delta_angle = self.angular_speed * time
         self.current_angle += delta_angle

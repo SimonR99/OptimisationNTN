@@ -74,19 +74,12 @@ class Network:
 
             # Connect to closest base station (both directions)
             if base_stations:
-                # Print distances to all base stations for debugging
-                self.debug_print(f"\nDistances from {user} to base stations:")
-                for bs in base_stations:
-                    distance = user.position.distance_to(bs.position)
-                    self.debug_print(f"{bs}: {distance:.2f} units")
-
                 closest_bs = None
                 min_distance = float("inf")
 
                 for bs in base_stations:
-                    dx = user.position.x - bs.position.x
-                    dy = user.position.y - bs.position.y
-                    distance = math.sqrt(dx * dx + dy * dy)
+                    distance = user.position.distance_to(bs.position)
+                    self.debug_print(f"{bs}: {distance:.2f} m")
 
                     if distance < min_distance:
                         min_distance = distance
@@ -135,7 +128,7 @@ class Network:
 
         # Add new section: Connect each LEO to all HAPS (bidirectional)
         for leo in leo_nodes:
-            for haps in haps_nodes:                
+            for haps in haps_nodes:
                 # HAPS -> LEO
                 link = CommunicationLink(
                     haps,
