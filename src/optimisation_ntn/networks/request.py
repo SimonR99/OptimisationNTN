@@ -2,7 +2,6 @@ import random
 import time
 from enum import Enum
 from typing import List, Optional, Tuple
-from optimisation_ntn.nodes.base_node import BaseNode
 
 
 class RequestStatus(Enum):

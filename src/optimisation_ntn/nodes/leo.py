@@ -8,8 +8,6 @@ from .base_node import BaseNode
 
 class LEO(BaseNode):
 
-    frequency = 10e9
-    k_const = None
     leo_altitude = 500e3
     leo_temperature = 200
 

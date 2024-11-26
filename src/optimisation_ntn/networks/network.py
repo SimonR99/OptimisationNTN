@@ -10,7 +10,6 @@ from ..nodes.leo import LEO
 from ..nodes.user_device import UserDevice
 from .communication_link import CommunicationLink
 
-
 class Network:
     def __init__(self, debug: bool = False):
         self.nodes: List[BaseNode] = []
@@ -156,7 +155,7 @@ class Network:
 
     def get_compute_nodes(self) -> List[BaseNode]:
         """Get all nodes with processing capability"""
-        return [node for node in self.nodes if node.frequency > 0]
+        return [node for node in self.nodes if node.processing_frequency > 0]
 
     def route_request(self, request: Request) -> bool:
         """
