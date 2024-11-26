@@ -14,7 +14,6 @@ class UserDevice(BaseNode):
 
     def __init__(self, node_id: int, initial_position: Position, debug: bool = False):
         super().__init__(node_id, initial_position, debug=debug)
-        self.completed_requests = None
         self.add_antenna("VHF", 1.5)
         self.current_requests: list[Request] = []
 
