@@ -29,7 +29,6 @@ class BaseNode(ABC):
         )  # Track active links by node type pair
         self.current_load = 0.0
         self.cycle_per_bit = 500  # 500 cycles per each bit
-        self.frequency = 0e9  # 0 Hz (base node has no processing power)
         self.processing_queue: List[Request] = []
         self.battery_capacity = 0
         self.energy_consumed = 0.0
@@ -94,8 +93,8 @@ class BaseNode(ABC):
     def can_process(self, request: Request) -> bool:
         return (
             self.state
-            and self.frequency > 0
-            and self.cycle_per_bit * (self.current_load + request.size) / self.frequency
+            and self.processing_frequency > 0
+            and self.cycle_per_bit * (self.current_load + request.size) / self.processing_frequency
             <= request.qos_limit
         )
 
@@ -112,7 +111,7 @@ class BaseNode(ABC):
             )
         else:
             self.debug_print(
-                f"Node {self} cannot process request {request.id} (current load: {self.current_load}, power: {self.frequency})"
+                f"Node {self} cannot process request {request.id} (current load: {self.current_load}, power: {self.processing_frequency})"
             )
 
     def process_requests(self, time: float):
@@ -123,7 +122,7 @@ class BaseNode(ABC):
         # Process each request in queue
         completed = []
         for request in self.processing_queue:
-            request.processing_progress += self.frequency * time / self.cycle_per_bit
+            request.processing_progress += self.processing_frequency * time / self.cycle_per_bit
             self.energy_consumed += self.processing_energy() * time
 
             self.debug_print(
@@ -168,7 +167,7 @@ class BaseNode(ABC):
         return transmission_energy
 
     def processing_delay(self, request: Request):
-        return request.cycle_bits/self.processing_frequency
+        return request.size/self.processing_frequency
 
     def processing_energy(self):
         """Calculates the processing energy consumed and turn off the node if the battery is depleted.
