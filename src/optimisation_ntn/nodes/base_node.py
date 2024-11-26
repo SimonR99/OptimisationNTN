@@ -7,6 +7,8 @@ from ..networks.antenna import Antenna
 from ..networks.request import Request, RequestStatus
 from ..utils.position import Position
 
+def transmission_delay(request: Request, link_bandwidth):
+    return request.size/link_bandwidth
 
 class BaseNode(ABC):
     def __init__(
@@ -27,7 +29,19 @@ class BaseNode(ABC):
         self.current_load = 0.0
         self.processing_power = 0.0
         self.processing_queue: List[Request] = []
+        self.battery_capacity = 0
+        self.energy_consumed = 0.0
+        self.processing_frequency = 0
+        self.transmission_power = 0
+        self.k_const = 0
+        """Ce peak d'énergie est une constante déterminée sans sources scientifiques."""
+        self.turn_on_energy_peak = 0
+        self.turn_on_standby_energy = 0
         self.debug = debug
+        self.name = ""
+
+    def get_name(self) -> str:
+        return self.name
 
     def add_antenna(self, antenna_type: str, gain: float):
         """Adds an antenna with a specified type and gain to the node."""
@@ -64,7 +78,8 @@ class BaseNode(ABC):
         return Earth.bolztmann_constant * self.temperature
 
     def turn_on(self):
-        """Turn node on"""
+        """Turn node on and add energy consumed."""
+        self.energy_consumed += self.turn_on_energy_peak
         self.state = True
 
     def turn_off(self):
@@ -106,9 +121,12 @@ class BaseNode(ABC):
         completed = []
         for request in self.processing_queue:
             request.processing_progress += self.processing_power * time
+            self.energy_consumed += self.processing_energy() * time
+
             self.debug_print(
                 f"Node {self}: Processing request {request.id} "
-                f"({request.processing_progress:.1f}/{request.cycle_bits} units)"
+                f"({request.processing_progress:.1f}/{request.cycle_bits} units)\n"
+                f"Energy consumed up to now: {self.energy_consumed:.1f} unit of energy"
             )
 
             if request.processing_progress >= request.cycle_bits:
@@ -132,3 +150,35 @@ class BaseNode(ABC):
         """Print only if debug mode is enabled"""
         if self.debug:
             print(*args, **kwargs)
+
+    def transmission_energy(self, request: Request, link_bandwidth: float):
+        """Calculates the transmission energy consumed from the haps to the next node (bs or Leo) and turns off the node
+        if the battery is depleted.
+        :param link_bandwidth:
+        :param request:
+        :return: energy consumed in unit of energy
+        """
+        transmission_energy = self.transmission_power * transmission_delay(request, link_bandwidth)
+        self.battery_capacity -= transmission_energy
+        if self.battery_capacity <= 0 and self.get_name() != "BS":
+            self.turn_off()
+        return transmission_energy
+
+    def processing_delay(self, request: Request):
+        return request.cycle_bits/self.processing_frequency
+
+    def processing_energy(self):
+        """Calculates the processing energy consumed and turn off the node if the battery is depleted.
+        :return: energy consumed in unit of energy
+        """
+        processing_energy = self.k_const * self.processing_frequency * self.processing_delay(self.processing_queue[0])
+        self.battery_capacity -= processing_energy
+        if self.battery_capacity <= 0 and self.get_name() != "BS":
+            self.turn_off()
+        return processing_energy
+
+    def consume_standby_energy(self):
+        if self.state and self.get_name() != "BS":
+            self.energy_consumed += self.turn_on_standby_energy
+            if self.battery_capacity <= 0:
+                self.turn_off()

@@ -278,6 +278,8 @@ class Network:
         """Update network state including request routing"""
         # First process all nodes
         for node in self.nodes:
+            # consume basic standby energy
+            node.consume_standby_energy()
             node.tick(time)
 
         # Then update all communication links
@@ -298,11 +300,9 @@ class Network:
                     if request.status == RequestStatus.IN_TRANSIT:
                         # Find if request is actually in any transmission queue
                         in_queue = False
-                        current_link = None
                         for link in self.communication_links:
                             if request in link.transmission_queue:
                                 in_queue = True
-                                current_link = link
                                 break
 
                         if not in_queue:
@@ -354,3 +354,9 @@ class Network:
                                     self.debug_print(
                                         f"WARNING: Failed to find link between {current_node} and {next_node}"
                                     )
+
+    def get_total_energy_consumed(self):
+        total_energy_consumed = 0
+        for node in self.nodes:
+            total_energy_consumed += node.energy_consumed
+        return total_energy_consumed
