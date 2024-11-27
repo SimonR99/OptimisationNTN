@@ -104,24 +104,17 @@ class Simulation:
     def evaluate_qos_satisfaction(self) -> float:
         """Evaluate QoS satisfaction for all requests."""
         satisfied_requests = 0
-        all_requests = 0
 
         for user in [n for n in self.network.nodes if isinstance(n, UserDevice)]:
-            for request in user.completed_requests:
-                all_requests += 1
+            for request in user.current_requests:
 
-                # Convert tick difference to actual time
-                process_time = (
-                    request.last_status_change - request.creation_time
-                ) * self.time_step
-
-                if process_time <= request.qos_limit:
+                if request.satisfaction:
                     satisfied_requests += 1
 
-        if all_requests == 0:
+        if self.total_requests == 0:
             return 100.0  # No requests, success rate is 100%
 
-        success_rate = (satisfied_requests / all_requests) * 100
+        success_rate = (satisfied_requests / self.total_requests) * 100
         return success_rate
 
     def step(self) -> bool:

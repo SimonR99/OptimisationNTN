@@ -89,12 +89,6 @@ class Request:
                 self.cycle_bits = random.randint(30, 50)
         self.debug_print(f"Request {self.id} created with size {self.size} bits")
 
-    def is_satisfied(self, tick: int, time_step: float) -> bool:
-        """Check if the request meets QoS requirements."""
-        process_time = (tick - self.creation_time) * time_step
-        self.satisfaction = process_time <= self.qos_limit
-        return self.satisfaction
-
     def __str__(self):
         return f"Priority: {self.priority} + \nAppearing time: {self.tick} + \nSatisfaction:{self.satisfaction}"
 
@@ -116,6 +110,10 @@ class Request:
         )
         self.status = new_status
         self.last_status_change = current_time
+
+        if new_status == RequestStatus.COMPLETED:
+            if (self.time_in_current_status - self.creation_time) <= self.qos_limit:
+                self.satisfaction = True
 
     def __str__(self):
         return f"Priority: {self.priority}, Appearing time: {self.tick}, Satisfaction: {self.satisfaction}"

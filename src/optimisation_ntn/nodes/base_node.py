@@ -112,6 +112,8 @@ class BaseNode(ABC):
             )
 
             if request.processing_progress >= request.cycle_bits:
+                request.update_status(RequestStatus.COMPLETED)
+                request.satisfaction = True
                 completed.append(request)
                 self.current_load -= request.cycle_bits
                 request.status = RequestStatus.COMPLETED
