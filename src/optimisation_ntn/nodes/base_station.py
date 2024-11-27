@@ -9,7 +9,7 @@ class BaseStation(BaseNode):
     def __init__(self, node_id: int, initial_position: Position, debug: bool = False):
         super().__init__(node_id, initial_position, debug=debug)
         self.state = True
-        self.processing_power = 50.0
+        self.frequency = 1e9  # 1 GHz
         self.add_antenna("VHF", 1.5)
 
     def turn_on(self):
