@@ -81,9 +81,6 @@ class Request:
             f"Request {self.id} created with size {self.size / 1000} kilo bytes"
         )
 
-    def is_satisfied(self):
-        return self.satisfaction
-
     def __str__(self):
         return f"Priority: {self.priority} + \nAppearing time: {self.tick} + \nSatisfaction:{self.satisfaction}"
 
@@ -105,3 +102,10 @@ class Request:
         )
         self.status = new_status
         self.last_status_change = current_time
+
+        if new_status == RequestStatus.COMPLETED:
+            if (self.time_in_current_status - self.creation_time) <= self.qos_limit:
+                self.satisfaction = True
+
+    def __str__(self):
+        return f"Priority: {self.priority}, Appearing time: {self.tick}, Satisfaction: {self.satisfaction}"

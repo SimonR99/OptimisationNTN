@@ -81,6 +81,10 @@ class Simulation:
             if not self.step():
                 break
 
+        # QoS Evaluation
+        success_rate = self.evaluate_qos_satisfaction()
+        print(f"\nQoS Success Rate: {success_rate:.2f}%")
+
         # Calculate execution time and print results (always show these)
         execution_time = time.time() - start_time
         print("\nSimulation completed:")
@@ -96,6 +100,22 @@ class Simulation:
             print(f"{status.name}: {count}")
 
         return 0  # TODO: Implement energy calculation
+
+    def evaluate_qos_satisfaction(self) -> float:
+        """Evaluate QoS satisfaction for all requests."""
+        satisfied_requests = 0
+
+        for user in [n for n in self.network.nodes if isinstance(n, UserDevice)]:
+            for request in user.current_requests:
+
+                if request.satisfaction:
+                    satisfied_requests += 1
+
+        if self.total_requests == 0:
+            return 100.0  # No requests, success rate is 100%
+
+        success_rate = (satisfied_requests / self.total_requests) * 100
+        return success_rate
 
     def step(self) -> bool:
         """Run simulation for a single step."""
