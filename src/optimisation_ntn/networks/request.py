@@ -29,8 +29,6 @@ class Request:
         target_node: "BaseNode",
         debug: bool = False,
     ):
-        if tick < 0:
-            raise ValueError("Tick must be non-negative.")
         self.debug = debug
 
         self.id = Request.id_counter
