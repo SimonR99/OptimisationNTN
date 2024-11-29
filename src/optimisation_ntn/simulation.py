@@ -24,7 +24,7 @@ class Simulation:
     DEFAULT_BS_COUNT = 4
     DEFAULT_HAPS_COUNT = 1
     DEFAULT_LEO_COUNT = 1
-    DEFAULT_USER_COUNT = 200
+    DEFAULT_USER_COUNT = 5
 
     DEFAULT_TICK_TIME = 0.01
     DEFAULT_MAX_SIMULATION_TIME = 10
@@ -136,10 +136,11 @@ class Simulation:
                 request = user.create_request(self.current_step)
                 compute_nodes = self.network.get_compute_nodes(request)
 
+
                 # Find optimal compute node based on both compute and network delay
                 best_node = None
                 best_total_time = float("inf")
-
+                best_path = None
                 for compute_node in compute_nodes:
                     # Estimate processing time based on node's compute capacity
                     processing_time = compute_node.processing_time(request)
@@ -150,9 +151,11 @@ class Simulation:
                     network_delay = self.network.get_network_delay(request, path)
                     total_time = processing_time + network_delay
 
+    
                     if total_time < best_total_time:
                         best_total_time = total_time
                         best_node = compute_node
+                        best_path = path
 
                 # If we found a suitable compute node, assign it and try to route
                 if best_node:
@@ -161,6 +164,9 @@ class Simulation:
                         f"Selected compute node {best_node} for request {request.id} "
                         f"(estimated total time: {best_total_time:.3f}s)"
                     )
+
+                    request.path = best_path
+                    request.path_index = 0
 
                     if self.network.route_request(request):
                         self.debug_print(f"Request {request.id} routed successfully")

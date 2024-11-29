@@ -187,41 +187,6 @@ class Network:
         Returns:
             is_routed (bool): True if request was successfully routed
         """
-        source = request.current_node
-        target = request.target_node
-
-        # Find all possible paths to target
-        paths = self._find_paths_depth_first_search(source, target)
-        if not paths:
-            print(
-                f"WARNING: No path found for request {request.id} from {source} to {target}"
-            )
-            return False
-
-        # Calculate path costs
-        path_costs = []
-        self.debug_print("Path costs:")
-        for path in paths:
-            cost = 0.0
-            for i in range(len(path) - 1):
-                # Add distance cost
-                distance = path[i].position.distance_to(path[i + 1].position)
-                cost += distance
-            path_costs.append(cost)
-            self.debug_print(
-                f"Path: {' -> '.join(str(node) for node in path)}, Cost: {cost:.2f}"
-            )
-
-        # Use path with minimum cost
-        min_cost_index = path_costs.index(min(path_costs))
-        path = paths[min_cost_index]
-        self.debug_print(
-            f"Selected path for request {request.id}: {' -> '.join(str(node) for node in path)}"
-        )
-
-        # Store the complete path in the request
-        request.path = path
-        request.path_index = 0
 
         # Start routing through first link
         return self._route_to_next_node(request)
@@ -251,47 +216,7 @@ class Network:
                 )
                 return True
         return False
-
-    def _find_paths_depth_first_search(
-        self, start: BaseNode, end: BaseNode, path=None, visited=None
-    ) -> list[list[BaseNode]]:
-        """Find all possible paths between start and end nodes using depth-first search."""
-        if path is None:
-            path = []
-        if visited is None:
-            visited = set()
-
-        path = path + [start]
-        visited.add(start)
-
-        paths = []
-        if start == end:
-            return [path]
-
-        # Find all connected nodes through communication links
-        neighbors = set()
-        self.debug_print(f"\nFinding neighbors for {start}:")  # Debug print
-
-        # Only check node_a since we have bidirectional links
-        for link in self.communication_links:
-            if link.node_a == start and link.node_b not in visited:
-                neighbors.add(link.node_b)
-                self.debug_print(f"Found link to: {link.node_b}")
-
-        # Try all possible paths through neighbors
-        for neighbor in neighbors:
-            if neighbor not in visited:
-                # Create a new visited set for each neighbor to allow multiple paths
-                new_visited = visited.copy()
-                new_paths = self._find_paths_depth_first_search(
-                    neighbor, end, path, new_visited
-                )
-                if new_paths:
-                    paths.extend(new_paths)
-
-        # Remove current node from visited before backtracking
-        visited.remove(start)
-        return paths
+    
 
     def tick(self, time: float = 0.1):
         """Update network state including request routing"""
