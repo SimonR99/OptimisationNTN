@@ -132,7 +132,6 @@ class Simulation:
             if request_flag == 1:
                 user = user_devices[i]
 
-
                 # Create the request
                 request = user.create_request(self.current_step)
                 compute_nodes = self.network.get_compute_nodes(request)
