@@ -6,8 +6,8 @@ from .base_node import BaseNode
 
 
 class BaseStation(BaseNode):
-    def __init__(self, node_id: int, initial_position: Position):
-        super().__init__(node_id, initial_position)
+    def __init__(self, node_id: int, initial_position: Position, debug: bool = False):
+        super().__init__(node_id, initial_position, debug=debug)
         self.state = True
         self.frequency = 1e9  # 1 GHz
         self.add_antenna("VHF", 10)

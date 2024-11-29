@@ -10,7 +10,7 @@ from ..utils.position import Position
 
 
 class BaseNode(ABC):
-    def __init__(self, node_id: int, initial_position: Position, temperature=300):
+    def __init__(self, node_id: int, initial_position: Position, temperature=300, debug: bool = False):
         self.node_id = node_id
         self.position = initial_position
         self.state = False
@@ -22,7 +22,11 @@ class BaseNode(ABC):
         self.current_load = 0.0
         self.cycle_per_bit = 500  # 500 cycles per each bit
         self.frequency = 0e9  # 0 Hz (base node has no processing power)
+        self.path_loss_exponent = 0.0
+        self.attenuation_coefficient = 0.0
+        self.reference_lenght = 0.0
         self.processing_queue: List[Request] = []
+        self.debug=debug
 
     def add_antenna(self, antenna_type: str, gain: float):
         """Adds an antenna with a specified type and gain to the node."""
@@ -100,10 +104,10 @@ class BaseNode(ABC):
         completed = []
         for request in self.processing_queue:
             request.processing_progress += self.frequency * time / self.cycle_per_bit
-            self.debug_print(
+            """self.debug_print(
                 f"Node {self}: Processing request {request.id} "
                 f"({request.processing_progress:.1f}/{request.size} units)"
-            )
+            )"""
 
             if request.processing_progress >= request.size:
                 completed.append(request)
