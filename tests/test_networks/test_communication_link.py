@@ -29,8 +29,8 @@ class TestCommunicationLink(unittest.TestCase):
         link = CommunicationLink(
             self.node_a,
             self.node_b,
-            total_bandwidth=1,
-            signal_power=0,
+            total_bandwidth=0,
+            signal_power=1,
             carrier_frequency=1,
         )
         self.assertEqual(link.calculate_capacity(), 0.0)
