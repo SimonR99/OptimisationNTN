@@ -47,6 +47,9 @@ class BaseNode(ABC):
         self.recently_turned_on = False
         self.debug = debug
         self.name = ""
+        self.path_loss_exponent = 0.0
+        self.attenuation_coefficient = 0.0
+        self.reference_lenght = 0.0
 
     def get_name(self) -> str:
         return self.name
