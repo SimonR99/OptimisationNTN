@@ -37,7 +37,6 @@ class LEO(BaseNode):
         self.state = True
         self.battery_capacity = 5000
         self.current_angle = start_angle
-        self.processing_power = 30.0
         self.processing_frequency = 10e9
         self.k_const = 10e-28
         self.name = "LEO"
