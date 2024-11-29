@@ -151,6 +151,32 @@ class Network:
         """Calculate the total compute time for a path"""
         return sum(node.processing_time(request) for node in path)
 
+    def generate_request_path(self, source: BaseNode, target: BaseNode) -> List[BaseNode]:
+        """Generate a path for a request between source and target nodes"""
+        closest_haps = None
+        min_distance = float("inf")
+        for haps in [n for n in self.nodes if isinstance(n, HAPS)]:
+            distance = source.position.distance_to(haps.position)
+            if distance < min_distance:
+                min_distance = distance
+                closest_haps = haps
+
+        if target in source.destinations:
+            return [source, target]
+        elif closest_haps:
+            return [source, closest_haps, target]
+
+        raise ValueError(f"No path found for request from {source} to {target}")
+
+    def get_network_delay(self, request: Request, path: List[BaseNode]) -> float:
+        """Get the total network delay for a request"""
+        time = 0.0
+        for i in range(len(path) - 1):
+            for link in self.communication_links:
+                if link.node_a == path[i] and link.node_b == path[i + 1]:
+                    time += link.estimate_network_delay(request)
+        return time
+
     def route_request(self, request: Request) -> bool:
         """
         Route request to target compute node through available paths.

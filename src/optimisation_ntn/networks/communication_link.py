@@ -28,6 +28,7 @@ class CommunicationLink:
 
         # Identify compatible antennas for communication
         self.antenna_a, self.antenna_b = self.find_compatible_antennas()
+        self.node_a.add_destination(self.node_b)
 
         if not self.antenna_a or not self.antenna_b:
             raise ValueError(
@@ -63,6 +64,10 @@ class CommunicationLink:
         """Adjusts bandwidth based on the number of active links with the same type."""
         active_count = self.node_b.get_active_count(type(self.node_a))
         return self.total_bandwidth / max(1, active_count)
+    
+    def estimate_network_delay(self, request: Request) -> float:
+        """Estimates the network delay for the link."""
+        return request.size / self.calculate_capacity()
 
     def calculate_fspl(self) -> float:
         """Calculates Free-Space Path Loss (FSPL) for the link."""

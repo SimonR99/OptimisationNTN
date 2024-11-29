@@ -30,6 +30,8 @@ class BaseNode(ABC):
         self.processing_queue: List[Request] = []
         self.debug = debug
 
+        self.destinations: List["BaseNode"] = []
+
     def add_antenna(self, antenna_type: str, gain: float):
         """Adds an antenna with a specified type and gain to the node."""
         self.antennas.append(Antenna(antenna_type, gain))
@@ -40,6 +42,10 @@ class BaseNode(ABC):
             if antenna.is_compatible_with(other_antenna):
                 return antenna
         return None
+
+    def add_destination(self, destination: "BaseNode"):
+        """Add a destination node to the node"""
+        self.destinations.append(destination)
 
     def get_active_count(self, other_node_type: type) -> int:
         """Returns active link count for a given node type."""

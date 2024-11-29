@@ -24,7 +24,7 @@ class Simulation:
     DEFAULT_BS_COUNT = 4
     DEFAULT_HAPS_COUNT = 1
     DEFAULT_LEO_COUNT = 1
-    DEFAULT_USER_COUNT = 2
+    DEFAULT_USER_COUNT = 200
 
     DEFAULT_TICK_TIME = 0.01
     DEFAULT_MAX_SIMULATION_TIME = 10
@@ -144,11 +144,10 @@ class Simulation:
                     # Estimate processing time based on node's compute capacity
                     processing_time = compute_node.processing_time(request)
 
-                    # Estimate network delay (simplified - could be more complex)
-                    network_delay = (
-                        user.position.distance_to(compute_node.position) / 299792458
-                    )  # Speed of light
+                    path = self.network.generate_request_path(user, compute_node)
 
+                    # Estimate network delay (simplified - could be more complex)
+                    network_delay = self.network.get_network_delay(request, path)
                     total_time = processing_time + network_delay
 
                     if total_time < best_total_time:
