@@ -94,7 +94,7 @@ class CommunicationLink:
     def calculate_gain(self) -> float:
         if isinstance(self.node_a, UserDevice) and isinstance(self.node_b, BaseStation):
             """Calculates Gain of the current channel."""
-            path_loss = self.linear_scale_db(self.calculate_reference_path_loss())
+            path_loss = self.linear_scale_db(40)
             return path_loss * (np.abs(self.node_a.attenuation_coefficient) ** 2) / self.link_length ** self.node_a.path_loss_exponent
         else:
             fspl = self.calculate_free_space_path_loss()
