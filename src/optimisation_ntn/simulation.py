@@ -24,7 +24,7 @@ class Simulation:
     DEFAULT_BS_COUNT = 4
     DEFAULT_HAPS_COUNT = 1
     DEFAULT_LEO_COUNT = 1
-    DEFAULT_USER_COUNT = 1
+    DEFAULT_USER_COUNT = 20
 
     DEFAULT_TICK_TIME = 0.1
     DEFAULT_MAX_SIMULATION_TIME = 10
@@ -156,7 +156,7 @@ class Simulation:
                 if best_node:
                     user.assign_target_node(request, best_node)
                     request.path = best_path
-                    request.path_index = 0
+                    request.path_index = 1
                     request.status = RequestStatus.IN_TRANSIT
 
                     # Add request to first transmission queue
