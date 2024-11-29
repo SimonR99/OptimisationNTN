@@ -176,9 +176,9 @@ class BaseNode(ABC):
         :return: energy consumed in joules
         """
         # transmission power has to go from dBm to Watt
-        transmission_energy = convert_dbm_watt(self.transmission_power) * transmission_delay(
-            request, link_bandwidth
-        )
+        transmission_energy = convert_dbm_watt(
+            self.transmission_power
+        ) * transmission_delay(request, link_bandwidth)
         self.battery_capacity -= transmission_energy
         if self.battery_capacity <= 0 and self.get_name() != "BS":
             self.turn_off()
@@ -193,7 +193,7 @@ class BaseNode(ABC):
         """
         processing_energy = (
             self.k_const
-            * (self.processing_frequency ** 3)
+            * (self.processing_frequency**3)
             * self.processing_delay(self.processing_queue[0])
         )
         self.battery_capacity -= processing_energy
