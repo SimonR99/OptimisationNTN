@@ -61,13 +61,21 @@ class Network:
             for haps in haps_nodes:
                 # User -> HAPS
                 link = CommunicationLink(
-                    user, haps, total_bandwidth=174e6, signal_power=23, carrier_frequency=2e9
+                    user,
+                    haps,
+                    total_bandwidth=174e6,
+                    signal_power=23,
+                    carrier_frequency=2e9,
                 )
                 self.communication_links.append(link)
                 self.debug_print(f"Created link: {user} -> {haps}")
                 # HAPS -> User
                 link = CommunicationLink(
-                    haps, user, total_bandwidth=174e6, signal_power=33, carrier_frequency=2e9
+                    haps,
+                    user,
+                    total_bandwidth=174e6,
+                    signal_power=33,
+                    carrier_frequency=2e9,
                 )
                 self.communication_links.append(link)
                 self.debug_print(f"Created link: {haps} -> {user}")

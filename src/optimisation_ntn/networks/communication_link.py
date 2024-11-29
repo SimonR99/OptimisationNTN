@@ -9,6 +9,7 @@ from ..nodes.base_station import BaseStation
 from ..nodes.user_device import UserDevice
 from ..nodes.haps import HAPS
 
+
 class CommunicationLink:
     def __init__(
         self,
@@ -24,7 +25,9 @@ class CommunicationLink:
         self.signal_power = signal_power
         self.carrier_frequency = carrier_frequency
         self.total_bandwidth = total_bandwidth
-        self.transmission_queue: List[Request] = []  # FIFO queue        self.request_progress = 0  # Track bits transmitted for the current request
+        self.transmission_queue: List[Request] = (
+            []
+        )  # FIFO queue        self.request_progress = 0  # Track bits transmitted for the current request
         self.request_progress = 0
         self.debug = debug
 
@@ -63,15 +66,23 @@ class CommunicationLink:
         )
 
     @property
+    def adjusted_bandwidth(self) -> float:
+        """Adjusts bandwidth based on the number of active links with the same type."""
+        active_count = self.node_b.get_active_count(type(self.node_a))
+        return self.total_bandwidth / max(1, active_count)
+
+    @property
     def noise_power(self) -> float:
         """Calculates noise power based on the receiver's spectral noise density."""
-        spectral_noise_density = self.linear_scale_dbm(self.node_b.spectral_noise_density)
+        spectral_noise_density = self.linear_scale_dbm(
+            self.node_b.spectral_noise_density
+        )
         # Assumes node_b is the receiver
         return spectral_noise_density * self.adjusted_bandwidth
-    
+
     def linear_scale_db(self, gain: float) -> float:
         """Linear scale the Gain in dB to apply in SNR."""
-        return 10 ** (gain/10)
+        return 10 ** (gain / 10)
 
     def linear_scale_dbm(self, power: float) -> float:
         """Linear scale the dBm to apply in SNR."""
@@ -79,17 +90,27 @@ class CommunicationLink:
 
     def calculate_reference_path_loss(self) -> float:
         """Calculates Reference Path Loss at Reference Distance of the channel user-base station."""
-        return 20 * np.log10(self.node_a.reference_lenght) + 20 * np.log10(self.carrier_frequency) + 20 * np.log10(4 * np.pi / Earth.speed_of_light)
+        return (
+            20 * np.log10(self.node_a.reference_lenght)
+            + 20 * np.log10(self.carrier_frequency)
+            + 20 * np.log10(4 * np.pi / Earth.speed_of_light)
+        )
 
     def calculate_free_space_path_loss(self) -> float:
         """Calculates Free Space Path Loss for (user-haps, haps-base station, haps-leo)."""
-        return 4 * np.pi * self.link_length * self.carrier_frequency / Earth.speed_of_light
-    
+        return (
+            4 * np.pi * self.link_length * self.carrier_frequency / Earth.speed_of_light
+        )
+
     def calculate_gain(self) -> float:
         if isinstance(self.node_a, UserDevice) and isinstance(self.node_b, BaseStation):
             """Calculates Gain of the current channel."""
             path_loss = self.linear_scale_db(self.calculate_reference_path_loss())
-            return path_loss * (np.abs(self.node_a.attenuation_coefficient) ** 2) / self.link_length ** self.node_a.path_loss_exponent
+            return (
+                path_loss
+                * (np.abs(self.node_a.attenuation_coefficient) ** 2)
+                / self.link_length**self.node_a.path_loss_exponent
+            )
         else:
             fspl = self.calculate_free_space_path_loss()
             tx_antenna = self.linear_scale_db(self.antenna_a.gain)
@@ -131,6 +152,11 @@ class CommunicationLink:
                     )
                     * time
                 )
+            if self.debug:
+                cap_req_size = capacity / current_request.size
+                print(f"Capacity: {capacity} \n")
+                print(f"Request size: {current_request.size} \n")
+                print(f"Transmission time: {cap_req_size} \n")
             self.request_progress += bits_transmitted
 
             self.debug_print(

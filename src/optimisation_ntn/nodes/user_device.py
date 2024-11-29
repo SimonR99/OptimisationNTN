@@ -7,6 +7,7 @@ from optimisation_ntn.utils.position import Position
 from ..networks.antenna import Antenna
 from .base_node import BaseNode
 
+
 class UserDevice(BaseNode):
 
     REQUEST_LIMIT = 1
