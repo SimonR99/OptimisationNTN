@@ -19,7 +19,6 @@ class Priority(Enum):
 
 
 class Request:
-    lamda = 0
     id_counter = 0
 
     def __init__(
@@ -42,7 +41,6 @@ class Request:
         self.processing_progress: float = 0.0
         self.qos_limit = 0.0
         self.size = 0.0
-        self.cycle_bits = 0.0
         self.priority = random.choice(list(Priority))
         self.creation_time = tick
         self.last_status_change = tick
@@ -71,24 +69,17 @@ class Request:
     def set_priority_type(self, priority):
         match priority:
             case Priority.HIGH:
-                self.lamda = 0.2
-                self.qos_limit = 0.1  # 100 ms
-                self.size = random.randint(10, 30) * 500
-                self.cycle_bits = random.randint(10, 30)
+                self.qos_limit = 0.2  # 200 ms
+                self.size = random.randint(5, 15) * 1000  # 5 to 15 kilo bytes
             case Priority.MEDIUM:
-                self.lamda = 0.5
-                self.qos_limit = 0.3  # 300 ms
-                self.size = random.randint(20, 40) * 500
-                self.cycle_bits = random.randint(20, 40)
-            case Priority.LOW:
-                self.lamda = 1
                 self.qos_limit = 0.5  # 500 ms
-                self.size = random.randint(30, 50) * 500
-                self.cycle_bits = random.randint(30, 50)
-        self.debug_print(f"Request {self.id} created with size {self.size} bits")
-
-    def is_satisfied(self):
-        return self.satisfaction
+                self.size = random.randint(10, 40) * 1000  # 10 to 40 kilo bytes
+            case Priority.LOW:
+                self.qos_limit = 1  # 1000 ms
+                self.size = random.randint(30, 50) * 1000  # 30 to 50 kilo bytes
+        self.debug_print(
+            f"Request {self.id} created with size {self.size / 1000} kilo bytes"
+        )
 
     def __str__(self):
         return f"Priority: {self.priority} + \nAppearing time: {self.tick} + \nSatisfaction:{self.satisfaction}"
@@ -111,3 +102,10 @@ class Request:
         )
         self.status = new_status
         self.last_status_change = current_time
+
+        if new_status == RequestStatus.COMPLETED:
+            if (self.time_in_current_status - self.creation_time) <= self.qos_limit:
+                self.satisfaction = True
+
+    def __str__(self):
+        return f"Priority: {self.priority}, Appearing time: {self.tick}, Satisfaction: {self.satisfaction}"

@@ -66,7 +66,7 @@ def main(args):
     else:
         # Run normal simulation mode
         total_energy = simulation.run()
-        print(f"Total energy consumed: {total_energy}")
+        print(f"Total energy consumed: {total_energy} joules")
 
 
 if __name__ == "__main__":
