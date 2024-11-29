@@ -65,7 +65,7 @@ class CommunicationLink:
         """Adjusts bandwidth based on the number of active links with the same type."""
         active_count = self.node_b.get_active_count(type(self.node_a))
         return self.total_bandwidth / max(1, active_count)
-    
+
     def estimate_network_delay(self, request: Request) -> float:
         """Estimates the network delay for the link."""
         return request.size / self.calculate_capacity()

@@ -442,6 +442,12 @@ class SimulationUI(QtWidgets.QMainWindow):
                         )
                         line.setOpacity(0.5)
 
+                        # Add requests in transit for this link
+                        if link.transmission_queue:
+                            self.add_in_transit_requests(
+                                scene, link, source_pos, target_pos
+                            )
+
             # Store node positions for request visualization
             node_positions = {}
 
