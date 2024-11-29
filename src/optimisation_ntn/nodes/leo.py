@@ -43,9 +43,6 @@ class LEO(BaseNode):
         self.processing_frequency = 10e9
         self.k_const = 10e-28
         self.name = "LEO"
-        """Ce peak d'énergie est une constante déterminée sans sources scientifiques."""
-        self.turn_on_energy_peak = 2.0e-26
-        self.turn_on_standby_energy = 0.5e-26
 
     @property
     def is_visible(self) -> bool:

@@ -279,7 +279,9 @@ class Network:
         # First process all nodes
         for node in self.nodes:
             # consume basic standby energy
-            node.consume_standby_energy()
+            if not node.recently_turned_on:
+                node.consume_standby_energy()
+                node.recently_turned_on = False
             node.tick(time)
 
         # Then update all communication links

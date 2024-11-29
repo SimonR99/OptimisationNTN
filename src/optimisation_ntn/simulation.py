@@ -97,14 +97,15 @@ class Simulation:
         print(f"Simulation steps: {self.current_step}")
         print(f"Simulated time: {self.current_time:.2f} seconds")
         print(f"Average speed: {self.current_step/execution_time:.0f} steps/second")
-        print(f"Total energy consumed: {self.system_energy_consumed} unit of energy\n")
+        print(f"Total energy consumed: {self.system_energy_consumed} joules\n")
 
         # Print request statistics (always show these)
         print("\nRequest Statistics:")
         for status, count in self.request_stats.items():
             print(f"{status.name}: {count}")
 
-        self.consumed_energy_graph()
+        if self.debug:
+            self.consumed_energy_graph()
 
         return self.system_energy_consumed
 
@@ -161,7 +162,7 @@ class Simulation:
         # Update time and step counter
         self.current_time += self.time_step
         self.current_step += 1
-        self.system_energy_consumed += self.network.get_total_energy_consumed()
+        self.system_energy_consumed = self.network.get_total_energy_consumed()
         self.energy_consumption_graph_x.append(self.system_energy_consumed)
         return self.current_time < self.max_time
 

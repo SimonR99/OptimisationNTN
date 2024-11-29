@@ -19,14 +19,10 @@ class HAPS(BaseNode):
         self.add_antenna("VHF", 2.0)
         self.state = True
         self.battery_capacity = 1000
-        self.processing_power = 40.0
         self.processing_frequency = 2.5e9
         self.k_const = 10e-25
-        self.transmission_power = 10
+        self.transmission_power = 33
         self.name = "HAPS"
-        """Ce peak d'énergie est une constante déterminée sans sources scientifiques."""
-        self.turn_on_energy_peak = 2.5e-26
-        self.turn_on_standby_energy = 1e-26
 
     def __str__(self):
         return f"HAPS {self.node_id}"
