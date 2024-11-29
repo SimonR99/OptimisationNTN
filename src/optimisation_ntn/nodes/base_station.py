@@ -9,8 +9,9 @@ class BaseStation(BaseNode):
         self.processing_power = 50.0
         self.processing_frequency = 1e9
         self.k_const = 10e-28
-        self.add_antenna("VHF", 1.5)
+        self.add_antenna("VHF", 10)
         self.name = "BS"
+        
 
     def __str__(self):
         return f"Base Station {self.node_id}"
