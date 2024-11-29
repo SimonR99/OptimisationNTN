@@ -5,24 +5,26 @@ import numpy as np
 from ..nodes.base_node import BaseNode
 from ..utils.earth import Earth
 from .request import Request, RequestStatus
-
+from ..nodes.base_station import BaseStation
+from ..nodes.user_device import UserDevice
+from ..nodes.haps import HAPS
 
 class CommunicationLink:
     def __init__(
         self,
         node_a: BaseNode,
         node_b: BaseNode,
-        total_bandwidth: float,
         signal_power: float,
         carrier_frequency: float,
+        total_bandwidth: float,
         debug: bool = False,
     ):
         self.node_a = node_a
         self.node_b = node_b
-        self.total_bandwidth = total_bandwidth
         self.signal_power = signal_power
         self.carrier_frequency = carrier_frequency
-        self.transmission_queue: List[Request] = []
+        self.total_bandwidth = total_bandwidth
+        self.transmission_queue: List[Request] = []  # FIFO queue        self.request_progress = 0  # Track bits transmitted for the current request
         self.request_progress = 0
         self.debug = debug
 
@@ -42,6 +44,16 @@ class CommunicationLink:
                 return antenna_a, antenna_b
         return None, None
 
+    """@property
+    def max_bandwidth(self) -> float:
+        if isinstance(self.node_a, UserDevice):
+            return 174e6
+        if isinstance(self.node_a, HAPS):
+            if isinstance(self.node_b, BaseStation):
+                return 146e6
+            else: 
+                return 4e9"""
+
     @property
     def link_length(self) -> float:
         """Calculates the distance between node_a and node_b."""
@@ -53,38 +65,48 @@ class CommunicationLink:
     @property
     def noise_power(self) -> float:
         """Calculates noise power based on the receiver's spectral noise density."""
-        spectral_noise_density = (
-            self.node_b.spectral_noise_density
-        )  # Assumes node_b is the receiver
+        spectral_noise_density = self.linear_scale_dbm(self.node_b.spectral_noise_density)
+        # Assumes node_b is the receiver
         return spectral_noise_density * self.adjusted_bandwidth
+    
+    def linear_scale_db(self, gain: float) -> float:
+        """Linear scale the Gain in dB to apply in SNR."""
+        return 10 ** (gain/10)
 
-    @property
-    def adjusted_bandwidth(self) -> float:
-        """Adjusts bandwidth based on the number of active links with the same type."""
-        active_count = self.node_b.get_active_count(type(self.node_a))
-        return self.total_bandwidth / max(1, active_count)
+    def linear_scale_dbm(self, power: float) -> float:
+        """Linear scale the dBm to apply in SNR."""
+        return 10 ** ((power - 30) / 10)
 
-    def calculate_fspl(self) -> float:
-        """Calculates Free-Space Path Loss (FSPL) for the link."""
-        return (
-            4 * np.pi * self.link_length * self.carrier_frequency / Earth.speed_of_light
-        ) ** 2
+    def calculate_reference_path_loss(self) -> float:
+        """Calculates Reference Path Loss at Reference Distance of the channel user-base station."""
+        return 20 * np.log10(self.node_a.reference_lenght) + 20 * np.log10(self.carrier_frequency) + 20 * np.log10(4 * np.pi / Earth.speed_of_light)
+
+    def calculate_free_space_path_loss(self) -> float:
+        """Calculates Free Space Path Loss for (user-haps, haps-base station, haps-leo)."""
+        return 4 * np.pi * self.link_length * self.carrier_frequency / Earth.speed_of_light
+    
+    def calculate_gain(self) -> float:
+        if isinstance(self.node_a, UserDevice) and isinstance(self.node_b, BaseStation):
+            """Calculates Gain of the current channel."""
+            path_loss = self.linear_scale_db(self.calculate_reference_path_loss())
+            return path_loss * (np.abs(self.node_a.attenuation_coefficient) ** 2) / self.link_length ** self.node_a.path_loss_exponent
+        else:
+            fspl = self.calculate_free_space_path_loss()
+            tx_antenna = self.linear_scale_db(self.antenna_a.gain)
+            rx_antenna = self.linear_scale_db(self.antenna_b.gain)
+            return tx_antenna * rx_antenna * fspl
 
     def calculate_snr(self) -> float:
-        """Calculates the Signal-to-Noise Ratio (SNR) for the link."""
-        fspl = self.calculate_fspl()
-        # Use gains from compatible antennas
-        return (self.signal_power * self.antenna_a.gain * self.antenna_b.gain) / (
-            fspl * self.noise_power
-        )
+        """Calculates SNR (Signal to Noise Ratio) of the current channel."""
+        gain = self.calculate_gain()
+        power = self.linear_scale_dbm(self.signal_power)
+        return power * gain / self.noise_power
 
     def calculate_capacity(self) -> float:
-        """Calculates the link capacity based on Shannon's formula using adjusted bandwidth."""
+        """Calculates link capacity based on Shannon's formula using adjusted bandwidth."""
         snr = self.calculate_snr()
         # Reduce multiplier to make transmission more visible
-        return (
-            self.adjusted_bandwidth * np.log2(1 + snr) * 100
-        )  # Reduced from 10000 to 100
+        return self.adjusted_bandwidth * np.log2(1 + snr)
 
     def add_to_queue(self, request: Request):
         """Adds a request to the transmission queue and resets progress tracking."""

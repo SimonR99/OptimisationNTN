@@ -7,14 +7,17 @@ from optimisation_ntn.utils.position import Position
 from ..networks.antenna import Antenna
 from .base_node import BaseNode
 
-
 class UserDevice(BaseNode):
 
     REQUEST_LIMIT = 1
 
     def __init__(self, node_id: int, initial_position: Position, debug: bool = False):
         super().__init__(node_id, initial_position, debug=debug)
-        self.add_antenna("VHF", 1.5)
+        self.add_antenna("VHF", 3)
+        self.transmission_power = 23
+        self.path_loss_exponent = 3
+        self.attenuation_coefficient = 3
+        self.reference_lenght = 1
         self.current_requests: list[Request] = []
         self.transmission_power = 23
         self.name = "USER DEVICE"

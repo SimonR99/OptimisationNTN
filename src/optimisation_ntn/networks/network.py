@@ -61,23 +61,13 @@ class Network:
             for haps in haps_nodes:
                 # User -> HAPS
                 link = CommunicationLink(
-                    user,
-                    haps,
-                    total_bandwidth=1,
-                    signal_power=1,
-                    carrier_frequency=1,
-                    debug=self.debug,
+                    user, haps, total_bandwidth=174e6, signal_power=23, carrier_frequency=2e9
                 )
                 self.communication_links.append(link)
                 self.debug_print(f"Created link: {user} -> {haps}")
                 # HAPS -> User
                 link = CommunicationLink(
-                    haps,
-                    user,
-                    total_bandwidth=1,
-                    signal_power=1,
-                    carrier_frequency=1,
-                    debug=self.debug,
+                    haps, user, total_bandwidth=174e6, signal_power=33, carrier_frequency=2e9
                 )
                 self.communication_links.append(link)
                 self.debug_print(f"Created link: {haps} -> {user}")
@@ -107,10 +97,9 @@ class Network:
                     link = CommunicationLink(
                         user,
                         closest_bs,
-                        total_bandwidth=1,
-                        signal_power=1,
-                        carrier_frequency=1,
-                        debug=self.debug,
+                        total_bandwidth=174e6,
+                        signal_power=23,
+                        carrier_frequency=2e9,
                     )
                     self.communication_links.append(link)
                     self.debug_print(
@@ -120,10 +109,9 @@ class Network:
                     link = CommunicationLink(
                         closest_bs,
                         user,
-                        total_bandwidth=1,
-                        signal_power=1,
-                        carrier_frequency=1,
-                        debug=self.debug,
+                        total_bandwidth=174e6,
+                        signal_power=30,
+                        carrier_frequency=2e9,
                     )
                     self.communication_links.append(link)
                     self.debug_print(f"Created link: {closest_bs} -> {user}")
@@ -135,10 +123,9 @@ class Network:
                 link = CommunicationLink(
                     bs,
                     haps,
-                    total_bandwidth=2,  # Higher bandwidth for BS-HAPS links
-                    signal_power=2,  # Higher power for BS-HAPS links
-                    carrier_frequency=1,
-                    debug=self.debug,
+                    total_bandwidth=146e6,  # Higher bandwidth for BS-HAPS links
+                    signal_power=30,  # Higher power for BS-HAPS links
+                    carrier_frequency=2e9,
                 )
                 self.communication_links.append(link)
                 self.debug_print(f"Created link: {bs} -> {haps}")
@@ -146,10 +133,9 @@ class Network:
                 link = CommunicationLink(
                     haps,
                     bs,
-                    total_bandwidth=2,
-                    signal_power=2,
-                    carrier_frequency=1,
-                    debug=self.debug,
+                    total_bandwidth=146e6,
+                    signal_power=33,
+                    carrier_frequency=2e9,
                 )
                 self.communication_links.append(link)
                 self.debug_print(f"Created link: {haps} -> {bs}")
