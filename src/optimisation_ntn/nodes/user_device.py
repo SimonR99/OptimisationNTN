@@ -17,15 +17,21 @@ class UserDevice(BaseNode):
         self.add_antenna("VHF", 1.5)
         self.current_requests: list[Request] = []
 
-    def spawn_request(self, tick: int, target_node: BaseNode) -> Request:
-        """Spawn a new request from this user device"""
-        request = Request(tick, self, target_node, debug=self.debug)
-        request.status = RequestStatus.CREATED
+    def create_request(self, tick: int) -> Request:
+        """Create a new request without specifying target node yet"""
+        request = Request(
+            tick, self, None, debug=self.debug
+        )
         self.current_requests.append(request)
         self.debug_print(
-            f"User {self.node_id} spawned request {request.id} with status {request.status.name}"
+            f"User {self.node_id} created request {request.id} with status {request.status.name}"
         )
         return request
+
+    def assign_target_node(self, request: Request, target_node: BaseNode):
+        """Assign a target node to an existing request"""
+        request.target_node = target_node
+        self.debug_print(f"Request {request.id} assigned target node: {target_node}")
 
     def __str__(self):
         return f"User {self.node_id}"

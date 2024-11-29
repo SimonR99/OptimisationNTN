@@ -141,9 +141,13 @@ class Network:
                 self.communication_links.append(link)
                 self.debug_print(f"Created link: {haps} -> {leo}")
 
-    def get_compute_nodes(self) -> List[BaseNode]:
+    def get_compute_nodes(self, request : Request|None = None, check_state: bool = True) -> List[BaseNode]:
         """Get all nodes with processing capability"""
-        return [node for node in self.nodes if node.frequency > 0]
+        return [node for node in self.nodes if node.can_process(request, check_state)]
+    
+    def compute_path_time(self, path : List[BaseNode], request : Request) -> float:
+        """Calculate the total compute time for a path"""
+        return sum(node.processing_time(request) for node in path)
 
     def route_request(self, request: Request) -> bool:
         """

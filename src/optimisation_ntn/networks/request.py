@@ -26,7 +26,7 @@ class Request:
         self,
         tick: int,
         initial_node: "BaseNode",
-        target_node: "BaseNode",
+        target_node: Optional["BaseNode"] = None,
         debug: bool = False,
     ):
         self.debug = debug

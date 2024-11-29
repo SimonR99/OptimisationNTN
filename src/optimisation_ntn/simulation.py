@@ -26,8 +26,8 @@ class Simulation:
     DEFAULT_LEO_COUNT = 1
     DEFAULT_USER_COUNT = 2
 
-    DEFAULT_TICK_TIME = 0.1
-    DEFAULT_MAX_SIMULATION_TIME = 50
+    DEFAULT_TICK_TIME = 0.01
+    DEFAULT_MAX_SIMULATION_TIME = 10
 
     def __init__(
         self,
@@ -106,32 +106,44 @@ class Simulation:
 
         # Get user devices and compute nodes
         user_devices = [n for n in self.network.nodes if isinstance(n, UserDevice)]
-        compute_nodes = self.network.get_compute_nodes()
 
         # Create new requests for users
         for i, request_flag in enumerate(new_requests):
-            if request_flag == 1 and i < len(user_devices):
+            if request_flag == 1:
                 user = user_devices[i]
 
-                # Find closest available compute node
-                closest_compute = None
-                min_distance = float("inf")
+
+                # Create the request
+                request = user.create_request(self.current_step)
+                compute_nodes = self.network.get_compute_nodes(request)
+
+                # Find optimal compute node based on both compute and network delay
+                best_node = None
+                best_total_time = float("inf")
 
                 for compute_node in compute_nodes:
-                    if compute_node.state and compute_node.frequency > 0:
-                        distance = user.position.distance_to(compute_node.position)
-                        if distance < min_distance:
-                            min_distance = distance
-                            closest_compute = compute_node
+                    # Estimate processing time based on node's compute capacity
+                    processing_time = compute_node.processing_time(request)
 
-                # Create request to closest compute node if found
-                if closest_compute:
-                    request = user.spawn_request(self.current_step, closest_compute)
+                    # Estimate network delay (simplified - could be more complex)
+                    network_delay = (
+                        user.position.distance_to(compute_node.position) / 299792458
+                    )  # Speed of light
+
+                    total_time = processing_time + network_delay
+
+                    if total_time < best_total_time:
+                        best_total_time = total_time
+                        best_node = compute_node
+
+                # If we found a suitable compute node, assign it and try to route
+                if best_node:
+                    user.assign_target_node(request, best_node)
                     self.debug_print(
-                        f"Created request from {user} to {closest_compute} (distance: {min_distance:.2f})"
+                        f"Selected compute node {best_node} for request {request.id} "
+                        f"(estimated total time: {best_total_time:.3f}s)"
                     )
 
-                    # Try to route the request through the network
                     if self.network.route_request(request):
                         self.debug_print(f"Request {request.id} routed successfully")
                         self.total_requests += 1

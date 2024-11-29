@@ -64,6 +64,12 @@ class BaseNode(ABC):
     def spectral_noise_density(self) -> float:
         """Calculates spectral noise density based on temperature."""
         return Earth.bolztmann_constant * self.temperature
+    
+    @property
+    def processing_time(self, request : Request) -> float:
+        """Calculate processing time for a request"""
+        total_load = self.current_load + request.size
+        return self.cycle_per_bit * total_load / self.frequency
 
     def turn_on(self):
         """Turn node on"""
@@ -75,14 +81,30 @@ class BaseNode(ABC):
 
     def __str__(self):
         return f"Node {self.node_id}"
+    
 
-    def can_process(self, request: Request) -> bool:
-        return (
-            self.state
-            and self.frequency > 0
-            and self.cycle_per_bit * (self.current_load + request.size) / self.frequency
-            <= request.qos_limit
-        )
+    def can_process(self, request: Request|None = None, check_state: bool = True) -> bool:
+        """Check if node can process a request
+        
+        Args:
+            request: The request to process. If None, checks basic processing capability.
+            check_state: Whether to check if the node is on or not
+        Returns:
+            bool: True if the node can process the request, False otherwise.
+        """
+        # Basic checks for processing capability
+        if self.frequency <= 0:
+            return False
+        
+        if check_state and not self.state:
+            return False
+            
+        # If no specific request, just check basic capability
+        if request is None:
+            return True
+            
+        # Calculate processing time for the new total load
+        return self.processing_time(request) <= request.qos_limit
 
     def add_request_to_process(self, request: Request):
         """Add request to processing queue"""
