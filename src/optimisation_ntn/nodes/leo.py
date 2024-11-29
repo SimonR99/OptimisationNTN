@@ -70,3 +70,6 @@ class LEO(BaseNode):
             self.current_angle, self.leo_orbit_radius
         )
         self.position = Earth.global_coordinate_to_local(global_position)
+
+    def __str__(self):
+        return f"LEO {self.node_id}"

@@ -151,7 +151,9 @@ class Network:
         """Calculate the total compute time for a path"""
         return sum(node.processing_time(request) for node in path)
 
-    def generate_request_path(self, source: BaseNode, target: BaseNode) -> List[BaseNode]:
+    def generate_request_path(
+        self, source: BaseNode, target: BaseNode
+    ) -> List[BaseNode]:
         """Generate a path for a request between source and target nodes"""
         closest_haps = None
         min_distance = float("inf")
@@ -177,54 +179,13 @@ class Network:
                     time += link.estimate_network_delay(request)
         return time
 
-    def route_request(self, request: Request) -> bool:
-        """
-        Route request to target compute node through available paths.
-
-        Args:
-            request (Request): The request to be routed
-
-        Returns:
-            is_routed (bool): True if request was successfully routed
-        """
-
-        # Start routing through first link
-        return self._route_to_next_node(request)
-
-    def _route_to_next_node(self, request: Request) -> bool:
-        """Route request to its next node in the path."""
-        if not hasattr(request, "path") or not request.path:
-            print(f"WARNING: Request {request.id} has no path")
-            return False
-
-        if request.path_index >= len(request.path) - 1:
-            self.debug_print(f"Request {request.id} has reached its target")
-            return True
-
-        current_node = request.path[request.path_index]
-        next_node = request.path[request.path_index + 1]
-
-        # Find link between current and next node
-        for link in self.communication_links:  # For all available links
-            # If the link connects the current node to the next node
-            if link.node_a == current_node and link.node_b == next_node:
-                link.add_to_queue(request)
-                request.status = RequestStatus.IN_TRANSIT
-                request.next_node = next_node
-                self.debug_print(
-                    f"Added request {request.id} to transmission queue: {current_node} -> {next_node}"
-                )
-                return True
-        return False
-    
-
     def tick(self, time: float = 0.1):
         """Update network state including request routing"""
-        # First process all nodes
+        # Update all compute nodes
         for node in self.nodes:
             node.tick(time)
 
-        # Then update all communication links
+        # Update all communication links and handle completed transmissions
         for link in self.communication_links:
             if link.transmission_queue:
                 self.debug_print(
@@ -233,68 +194,34 @@ class Network:
                 self.debug_print(
                     f"Link {link.node_a} -> {link.node_b}: Transmitting request {link.transmission_queue[0].id} ({link.request_progress:.1f}/{link.transmission_queue[0].size} bits)"
                 )
+
             link.tick(time)
 
-        # Check for requests that need routing
-        for node in self.nodes:
-            if isinstance(node, UserDevice):
-                for request in node.current_requests:
-                    if request.status == RequestStatus.IN_TRANSIT:
-                        # Find if request is actually in any transmission queue
-                        in_queue = False
-                        current_link = None
-                        for link in self.communication_links:
-                            if request in link.transmission_queue:
-                                in_queue = True
-                                current_link = link
-                                break
+            # Handle completed transmissions
+            for request in link.completed_requests:
+                current_node = request.path[request.path_index]
+                request.path_index += 1
 
-                        if not in_queue:
-                            # Request has finished transmission to next node
-                            current_node = request.path[request.path_index]
-                            request.current_node = current_node
+                # If request has reached its final destination
+                if request.path_index >= len(request.path):
+                    if current_node == request.target_node:
+                        self.debug_print(
+                            f"Request {request.id} reached target node {current_node}, adding to processing queue"
+                        )
+                        current_node.add_request_to_process(request)
+                else:
+                    # Route to next node
+                    next_node = request.path[request.path_index]
+                    self.debug_print(
+                        f"Request {request.id} completed transmission to {current_node}, routing to {next_node}"
+                    )
 
-                            # Move to next node in path
-                            request.path_index += 1
-
-                            # If we've reached the end of the path, add to processing queue
-                            if request.path_index >= len(request.path):
-                                if current_node == request.target_node:
-                                    self.debug_print(
-                                        f"Request {request.id} reached final target node {current_node}, adding to processing queue"
-                                    )
-                                    current_node.add_request_to_process(request)
-                                else:
-                                    self.debug_print(
-                                        f"WARNING: Path ended at {current_node} but target was {request.target_node}"
-                                    )
-                            else:
-                                # Route to next node in path
-                                next_node = request.path[request.path_index]
-                                self.debug_print(
-                                    f"Request {request.id} completed transmission to {current_node}, routing to next node {next_node}"
-                                )
-
-                                # Find the appropriate link
-                                next_link = next(
-                                    (
-                                        l
-                                        for l in self.communication_links
-                                        if l.node_a == current_node
-                                        and l.node_b == next_node
-                                    ),
-                                    None,
-                                )
-
-                                if next_link:
-                                    # Add request to the next link's queue
-                                    next_link.add_to_queue(request)
-                                    request.status = RequestStatus.IN_TRANSIT
-                                    request.next_node = next_node
-                                    self.debug_print(
-                                        f"Added request {request.id} to transmission queue: {current_node} -> {next_node}"
-                                    )
-                                else:
-                                    self.debug_print(
-                                        f"WARNING: Failed to find link between {current_node} and {next_node}"
-                                    )
+                    # Find next link and add request to its queue
+                    for next_link in self.communication_links:
+                        if (
+                            next_link.node_a == current_node
+                            and next_link.node_b == next_node
+                        ):
+                            next_link.add_to_queue(request)
+                            request.next_node = next_node
+                            break

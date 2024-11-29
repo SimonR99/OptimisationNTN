@@ -25,6 +25,7 @@ class CommunicationLink:
         self.transmission_queue: List[Request] = []
         self.request_progress = 0
         self.debug = debug
+        self.completed_requests = []
 
         # Identify compatible antennas for communication
         self.antenna_a, self.antenna_b = self.find_compatible_antennas()
@@ -103,6 +104,8 @@ class CommunicationLink:
 
     def tick(self, time: float):
         """Processes requests in the queue."""
+        self.completed_requests.clear()  # Clear previous completed requests
+
         if self.transmission_queue:
             current_request = self.transmission_queue[0]
             capacity = self.calculate_capacity()
@@ -119,15 +122,7 @@ class CommunicationLink:
                     f"Request {current_request.id} completed transmission from {self.node_a} to {self.node_b}"
                 )
 
-                # Update request's current node and status
-                current_request.current_node = self.node_b
-                if self.node_b == current_request.target_node:
-                    self.node_b.add_request_to_process(current_request)
-                else:
-                    current_request.path_index += 1
-                    self.debug_print(
-                        f"Request {current_request.id} moving to next node in path (index: {current_request.path_index})"
-                    )
-
+                # Add to completed requests instead of handling routing here
+                self.completed_requests.append(current_request)
                 self.transmission_queue.pop(0)
                 self.request_progress = 0

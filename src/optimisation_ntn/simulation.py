@@ -136,7 +136,6 @@ class Simulation:
                 request = user.create_request(self.current_step)
                 compute_nodes = self.network.get_compute_nodes(request)
 
-
                 # Find optimal compute node based on both compute and network delay
                 best_node = None
                 best_total_time = float("inf")
@@ -144,42 +143,44 @@ class Simulation:
                 for compute_node in compute_nodes:
                     # Estimate processing time based on node's compute capacity
                     processing_time = compute_node.processing_time(request)
-
                     path = self.network.generate_request_path(user, compute_node)
-
-                    # Estimate network delay (simplified - could be more complex)
                     network_delay = self.network.get_network_delay(request, path)
                     total_time = processing_time + network_delay
 
-    
                     if total_time < best_total_time:
                         best_total_time = total_time
                         best_node = compute_node
                         best_path = path
 
-                # If we found a suitable compute node, assign it and try to route
+                # If we found a suitable compute node, assign it and initialize routing
                 if best_node:
                     user.assign_target_node(request, best_node)
-                    self.debug_print(
-                        f"Selected compute node {best_node} for request {request.id} "
-                        f"(estimated total time: {best_total_time:.3f}s)"
-                    )
-
                     request.path = best_path
                     request.path_index = 0
+                    request.status = RequestStatus.IN_TRANSIT
 
-                    if self.network.route_request(request):
-                        self.debug_print(f"Request {request.id} routed successfully")
-                        self.total_requests += 1
-                    else:
-                        self.debug_print(f"Failed to route request {request.id}")
+                    # Add request to first transmission queue
+                    current_node = request.path[0]
+                    next_node = request.path[1]
+
+                    # Find the appropriate link
+                    for link in self.network.communication_links:
+                        if link.node_a == current_node and link.node_b == next_node:
+                            link.add_to_queue(request)
+                            request.next_node = next_node
+                            self.debug_print(
+                                f"Added request {request.id} to transmission queue: {current_node} -> {next_node}"
+                            )
+                            break
+
+                    self.total_requests += 1
                 else:
                     self.debug_print(f"No available compute nodes found for {user}")
 
-        # Update network state (transfer + processing)
+        # Update network state
         self.network.tick(self.time_step)
 
-        # Update assignment matrix and stats
+        # Update matrices and stats
         self.matrices.update_assignment_matrix(self.network)
         self.update_request_stats()
 
