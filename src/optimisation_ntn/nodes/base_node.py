@@ -1,4 +1,3 @@
-import re
 from abc import ABC
 from typing import Dict, List, Optional, Tuple
 
@@ -137,6 +136,8 @@ class BaseNode(ABC):
             )
 
             if request.processing_progress >= request.size:
+                request.update_status(RequestStatus.COMPLETED)
+                request.satisfaction = True
                 completed.append(request)
                 self.current_load -= request.size
                 request.status = RequestStatus.COMPLETED
