@@ -16,6 +16,8 @@ class UserDevice(BaseNode):
         super().__init__(node_id, initial_position, debug=debug)
         self.add_antenna("VHF", 1.5)
         self.current_requests: list[Request] = []
+        self.transmission_power = 23
+        self.name = "USER DEVICE"
 
     def spawn_request(self, tick: int, target_node: BaseNode) -> Request:
         """Spawn a new request from this user device"""

@@ -5,6 +5,7 @@ import time
 from typing import Optional
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 from optimisation_ntn.networks.request import Request, RequestStatus
 
@@ -47,6 +48,10 @@ class Simulation:
         self.request_stats = {status: 0 for status in RequestStatus}
         self.is_paused = False
         self.debug = debug
+        """This value is will be positive, however, it is to be minimised; as a greater value, means greater energy consumption"""
+        self.system_energy_consumed = 0
+        self.energy_consumption_graph_x = []
+        self.energy_consumption_graph_y = np.arange(0, 300.1, 0.1)
 
         # Initialize with default values
         self.initialize_default_nodes()
@@ -87,19 +92,26 @@ class Simulation:
 
         # Calculate execution time and print results (always show these)
         execution_time = time.time() - start_time
+
+        # Calculate total energy consumed
+        self.system_energy_consumed = self.network.get_total_energy_consumed()
         print("\nSimulation completed:")
         print(f"Total requests: {self.total_requests}")
         print(f"Execution time: {execution_time:.2f} seconds")
         print(f"Simulation steps: {self.current_step}")
         print(f"Simulated time: {self.current_time:.2f} seconds")
-        print(f"Average speed: {self.current_step/execution_time:.0f} steps/second\n")
+        print(f"Average speed: {self.current_step/execution_time:.0f} steps/second")
+        print(f"Total energy consumed: {self.system_energy_consumed} joules\n")
 
         # Print request statistics (always show these)
         print("\nRequest Statistics:")
         for status, count in self.request_stats.items():
             print(f"{status.name}: {count}")
 
-        return 0  # TODO: Implement energy calculation
+        if self.debug:
+            self.consumed_energy_graph()
+
+        return self.system_energy_consumed
 
     def evaluate_qos_satisfaction(self) -> float:
         """Evaluate QoS satisfaction for all requests."""
@@ -138,7 +150,7 @@ class Simulation:
                 min_distance = float("inf")
 
                 for compute_node in compute_nodes:
-                    if compute_node.state and compute_node.frequency > 0:
+                    if compute_node.state and compute_node.processing_frequency > 0:
                         distance = user.position.distance_to(compute_node.position)
                         if distance < min_distance:
                             min_distance = distance
@@ -170,6 +182,8 @@ class Simulation:
         # Update time and step counter
         self.current_time += self.time_step
         self.current_step += 1
+        self.system_energy_consumed = self.network.get_total_energy_consumed()
+        self.energy_consumption_graph_x.append(self.system_energy_consumed)
         return self.current_time < self.max_time
 
     def reset(self):
@@ -180,6 +194,7 @@ class Simulation:
         self.matrix_history.clear()
         self.total_requests = 0
         self.request_stats = {status: 0 for status in RequestStatus}
+        self.system_energy_consumed = 0
         self.initialize_default_nodes()
         self.initialize_matrices()  # Re-initialize matrices after reset
 
@@ -281,6 +296,18 @@ class Simulation:
             # Sum energy consumption from each matrix snapshot
             total_energy += matrix.calculate_energy()
         return total_energy
+
+    def consumed_energy_graph(self):
+        plt.plot(
+            self.energy_consumption_graph_y,
+            self.energy_consumption_graph_x,
+            color="blue",
+            marker=".",
+        )
+        plt.title("Energy consumption")
+        plt.xlabel("Secondes")
+        plt.ylabel("Cumulative system energy consumed")
+        plt.show()
 
     def update_request_stats(self):
         """Update statistics for all requests in the network"""
