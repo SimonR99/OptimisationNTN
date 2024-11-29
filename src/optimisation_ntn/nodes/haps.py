@@ -1,10 +1,6 @@
-from optimisation_ntn.networks.antenna import Antenna
-from optimisation_ntn.nodes.user_device import UserDevice
 from optimisation_ntn.utils.earth import Earth
-from optimisation_ntn.utils.position import Position
-
-from ..utils.position import Position
 from .base_node import BaseNode
+from ..utils.position import Position
 
 
 class HAPS(BaseNode):
@@ -19,14 +15,11 @@ class HAPS(BaseNode):
         self.add_antenna("UHF", 15.0)
         self.add_antenna("VHF", 15.0)
         self.state = True
-        self.battery_capacity = 10000
-        self.frequency = 2.5e9  # 2.5 GHz
-
-    def turn_on(self):
-        self.state = True
-
-    def turn_off(self):
-        self.state = False
+        self.battery_capacity = 1000
+        self.processing_frequency = 2.5e9
+        self.k_const = 10e-25
+        self.transmission_power = 33
+        self.name = "HAPS"
 
     def __str__(self):
         return f"HAPS {self.node_id}"

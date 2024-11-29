@@ -19,6 +19,8 @@ class UserDevice(BaseNode):
         self.attenuation_coefficient = 3
         self.reference_lenght = 1
         self.current_requests: list[Request] = []
+        self.transmission_power = 23
+        self.name = "USER DEVICE"
 
     def spawn_request(self, tick: int, target_node: BaseNode) -> Request:
         """Spawn a new request from this user device"""
