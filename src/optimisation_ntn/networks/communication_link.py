@@ -125,6 +125,7 @@ class CommunicationLink:
             current_request = self.transmission_queue[0]
             capacity = self.calculate_capacity()
             bits_transmitted = capacity * time
+            
             if self.node_a.get_name() == "HAPS":
                 self.node_a.energy_consumed += (
                     self.node_a.transmission_energy(
