@@ -183,6 +183,10 @@ class Network:
         """Update network state including request routing"""
         # Update all compute nodes
         for node in self.nodes:
+            # consume basic standby energy
+            if not node.recently_turned_on:
+                node.consume_standby_energy()
+                node.recently_turned_on = False
             node.tick(time)
 
         # Update all communication links and handle completed transmissions
@@ -225,3 +229,9 @@ class Network:
                             next_link.add_to_queue(request)
                             request.next_node = next_node
                             break
+
+    def get_total_energy_consumed(self):
+        total_energy_consumed = 0
+        for node in self.nodes:
+            total_energy_consumed += node.energy_consumed
+        return total_energy_consumed

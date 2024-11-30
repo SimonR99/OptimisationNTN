@@ -16,6 +16,8 @@ class UserDevice(BaseNode):
         super().__init__(node_id, initial_position, debug=debug)
         self.add_antenna("VHF", 1.5)
         self.current_requests: list[Request] = []
+        self.transmission_power = 23
+        self.name = "USER DEVICE"
 
     def create_request(self, tick: int) -> Request:
         """Create a new request without specifying target node yet"""

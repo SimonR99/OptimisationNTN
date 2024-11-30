@@ -3,7 +3,6 @@ import numpy as np
 from optimisation_ntn.nodes.haps import HAPS
 from optimisation_ntn.utils.earth import Earth
 
-from ..utils.position import Position
 from .base_node import BaseNode
 
 
@@ -38,9 +37,12 @@ class LEO(BaseNode):
         )
         self.add_antenna("VHF", 1.5)
         self.state = True
-        self.battery_capacity = 100
+        self.battery_capacity = 5000
         self.current_angle = start_angle
-        self.frequency = 10e9  # 10 GHz
+        self.processing_power = 30.0
+        self.processing_frequency = 10e9
+        self.k_const = 10e-28
+        self.name = "LEO"
 
     @property
     def is_visible(self) -> bool:
