@@ -58,7 +58,7 @@ class CommunicationLink:
         spectral_noise_density = (
             self.node_b.spectral_noise_density
         )  # Assumes node_b is the receiver
-        return spectral_noise_density() * self.adjusted_bandwidth
+        return spectral_noise_density * self.adjusted_bandwidth
 
     @property
     def adjusted_bandwidth(self) -> float:

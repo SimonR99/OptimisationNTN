@@ -85,6 +85,7 @@ class BaseNode(ABC):
         if link_type in self.active_links and self.active_links[link_type] > 0:
             self.active_links[link_type] -= 1
 
+    @property
     def spectral_noise_density(self) -> float:
         """Calculates spectral noise density based on temperature."""
         return Earth.bolztmann_constant * self.temperature
