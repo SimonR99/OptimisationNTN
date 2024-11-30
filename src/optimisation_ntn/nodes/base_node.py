@@ -52,7 +52,6 @@ class BaseNode(ABC):
     def get_name(self) -> str:
         return self.name
 
-
     def add_antenna(self, antenna_type: str, gain: float):
         """Adds an antenna with a specified type and gain to the node."""
         self.antennas.append(Antenna(antenna_type, gain))
