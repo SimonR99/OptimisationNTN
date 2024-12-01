@@ -33,7 +33,7 @@ class Simulation:
         time_step: float = DEFAULT_TICK_TIME,
         max_time: float = DEFAULT_MAX_SIMULATION_TIME,
         debug: bool = False,
-        user_count: int = DEFAULT_USER_COUNT
+        user_count: int = DEFAULT_USER_COUNT,
     ):
         self.user_count = user_count
         self.current_step = 0

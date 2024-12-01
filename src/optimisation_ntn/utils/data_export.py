@@ -1,6 +1,7 @@
 import os
 import csv
 
+
 def export_to_csv(filename, data, headers):
     """Export data to a CSV file."""
     directory = os.path.dirname(filename)
@@ -16,6 +17,7 @@ def export_to_csv(filename, data, headers):
         print(f"Data successfully exported to {os.path.abspath(filename)}")
     except Exception as e:
         print(f"Error while writing to {os.path.abspath(filename)}: {e}")
+
 
 def collect_graph_data(all_iterations_data):
     """Aggregate data from all iterations for different plots."""
@@ -45,16 +47,16 @@ def collect_graph_data(all_iterations_data):
     export_to_csv(
         os.path.join(base_directory, "success_rate_vs_request.csv"),
         success_rate_vs_total_requests,
-        ["Number of Requests", "Success Rate"]
+        ["Number of Requests", "Success Rate"],
     )
     export_to_csv(
         os.path.join(base_directory, "energy_consumed_vs_request.csv"),
         energy_consumed_data,
-        ["Number of Requests", "Energy Consumed (by type)", "Node Type"]
+        ["Number of Requests", "Energy Consumed (by type)", "Node Type"],
     )
     export_to_csv(
         os.path.join(base_directory, "energy_vs_completed.csv"),
         completed_requests_data,
-        ["Completed Requests", "Total Energy Consumed"]
+        ["Completed Requests", "Total Energy Consumed"],
     )
     print(f"CSV files generated in: {base_directory}")

@@ -4,6 +4,7 @@ import math
 from optimisation_ntn.simulation import Simulation
 from optimisation_ntn.utils.data_export import collect_graph_data
 
+
 def create_parser():
     parser = argparse.ArgumentParser(
         description="Run the NTN network simulation with custom parameters."
@@ -74,8 +75,12 @@ def main(args):
 
     for i in range(args.iteration_count):
         if i != 0:
-            current_user_count = math.ceil(current_user_count * args.user_count_multiplier)
-        print(f"Starting iteration {i + 1}/{args.iteration_count} with {current_user_count} users...")
+            current_user_count = math.ceil(
+                current_user_count * args.user_count_multiplier
+            )
+        print(
+            f"Starting iteration {i + 1}/{args.iteration_count} with {current_user_count} users..."
+        )
 
         # Create a new simulation instance for each iteration
         simulation = Simulation(
@@ -102,7 +107,6 @@ def main(args):
 
     # Compile and export data for all iterations
     collect_graph_data(all_iterations_data)
-
 
 
 if __name__ == "__main__":
