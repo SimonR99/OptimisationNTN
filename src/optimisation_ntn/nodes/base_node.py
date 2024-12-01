@@ -47,6 +47,7 @@ class BaseNode(ABC):
         self.recently_turned_on = False
         self.debug = debug
         self.name = ""
+        self.destinations: List["BaseNode"] = []
 
     def get_name(self) -> str:
         return self.name
@@ -61,6 +62,10 @@ class BaseNode(ABC):
             if antenna.is_compatible_with(other_antenna):
                 return antenna
         return None
+
+    def add_destination(self, destination: "BaseNode"):
+        """Add a destination node to the node"""
+        self.destinations.append(destination)
 
     def get_active_count(self, other_node_type: type) -> int:
         """Returns active link count for a given node type."""
@@ -85,6 +90,11 @@ class BaseNode(ABC):
         """Calculates spectral noise density based on temperature."""
         return Earth.bolztmann_constant * self.temperature
 
+    def processing_time(self, request: Request) -> float:
+        """Calculate processing time for a request"""
+        total_load = self.current_load + request.size
+        return self.cycle_per_bit * total_load / self.processing_frequency
+
     def turn_on(self):
         """Turn node on and add energy consumed."""
 
@@ -101,15 +111,30 @@ class BaseNode(ABC):
     def __str__(self):
         return f"Node {self.node_id}"
 
-    def can_process(self, request: Request) -> bool:
-        return (
-            self.state
-            and self.processing_frequency > 0
-            and self.cycle_per_bit
-            * (self.current_load + request.size)
-            / self.processing_frequency
-            <= request.qos_limit
-        )
+    def can_process(
+        self, request: Request | None = None, check_state: bool = True
+    ) -> bool:
+        """Check if node can process a request
+
+        Args:
+            request: The request to process. If None, checks basic processing capability.
+            check_state: Whether to check if the node is on or not
+        Returns:
+            bool: True if the node can process the request, False otherwise.
+        """
+        # Basic checks for processing capability
+        if self.processing_frequency <= 0:
+            return False
+
+        if check_state and not self.state:
+            return False
+
+        # If no specific request, just check basic capability
+        if request is None:
+            return True
+
+        # Calculate processing time for the new total load
+        return self.processing_time(request) <= request.qos_limit
 
     def add_request_to_process(self, request: Request):
         """Add request to processing queue"""
