@@ -212,7 +212,7 @@ class SimulationUI(QtWidgets.QMainWindow):
         info_layout.addWidget(QtWidgets.QLabel("UI Update Interval (ms):"), 1, 0)
         self.time_step_input = QtWidgets.QSpinBox()
         self.time_step_input.setRange(1, 100)
-        self.time_step_input.setValue(16)
+        self.time_step_input.setValue(100)
         self.time_step_input.valueChanged.connect(self.update_time_step)
         info_layout.addWidget(self.time_step_input, 1, 1)
 
@@ -356,52 +356,6 @@ class SimulationUI(QtWidgets.QMainWindow):
                         y_pos + user_pixmap.height() / 2,
                     )
 
-            # Draw communication links if enabled
-            if self.show_links:
-                for link in self.simulation.network.communication_links:
-                    source = link.node_a
-                    target = link.node_b
-
-                    # Get positions based on node types
-                    source_pos = None
-                    target_pos = None
-
-                    if isinstance(source, UserDevice):
-                        source_pos = user_positions.get(source)
-                    elif isinstance(source, HAPS):
-                        source_pos = haps_positions.get(source)
-                    elif isinstance(source, BaseStation):
-                        source_pos = bs_positions.get(source)
-
-                    if isinstance(target, UserDevice):
-                        target_pos = user_positions.get(target)
-                    elif isinstance(target, HAPS):
-                        target_pos = haps_positions.get(target)
-                    elif isinstance(target, BaseStation):
-                        target_pos = bs_positions.get(target)
-
-                    if source_pos and target_pos:
-                        # Use different colors based on connection type
-                        if isinstance(source, BaseStation) or isinstance(
-                            target, BaseStation
-                        ):
-                            color = "yellow"  # BS connections
-                        else:
-                            color = "white"  # Other connections
-
-                        pen = QtGui.QPen(QtGui.QColor(color))
-                        pen.setStyle(QtCore.Qt.SolidLine)
-                        pen.setWidth(1)
-
-                        line = scene.addLine(
-                            source_pos[0],
-                            source_pos[1],
-                            target_pos[0],
-                            target_pos[1],
-                            pen,
-                        )
-                        line.setOpacity(0.5)
-
             # Add LEO satellites
             leo_pixmap = QtGui.QPixmap("images/leo.png").scaled(30, 30)
             leo_positions = {}
@@ -422,12 +376,77 @@ class SimulationUI(QtWidgets.QMainWindow):
                     leo_item.setPos(x_pos, y_pos)
                     scene.addItem(leo_item)
 
+                    leo_positions[node] = (
+                        x_pos + leo_pixmap.width() / 2,
+                        y_pos + leo_pixmap.height() / 2,
+                    )
+
                     # Add angle text
                     angle_text = scene.addText(
                         f"LEO {node.node_id}\nAngle: {node.current_angle:.1f}°"
                     )
                     angle_text.setDefaultTextColor(QtGui.QColor("white"))
                     angle_text.setPos(x_pos, y_pos - 40)
+
+            # Draw communication links if enabled
+            if self.show_links:
+                # Draw all communication links from the network
+                for link in self.simulation.network.communication_links:
+                    source = link.node_a
+                    target = link.node_b
+                    # Get positions based on node types
+                    source_pos = None
+                    if isinstance(source, UserDevice):
+                        source_pos = user_positions.get(source)
+                    elif isinstance(source, HAPS):
+                        source_pos = haps_positions.get(source)
+                    elif isinstance(source, BaseStation):
+                        source_pos = bs_positions.get(source)
+                    elif isinstance(source, LEO):
+                        source_pos = leo_positions.get(source)
+
+                    target_pos = None
+                    if isinstance(target, UserDevice):
+                        target_pos = user_positions.get(target)
+                    elif isinstance(target, HAPS):
+                        target_pos = haps_positions.get(target)
+                    elif isinstance(target, BaseStation):
+                        target_pos = bs_positions.get(target)
+                    elif isinstance(target, LEO):
+                        target_pos = leo_positions.get(target)
+
+                    if source_pos and target_pos:
+                        # Use different colors based on connection type
+                        color = "yellow"  # Default color
+                        if isinstance(source, LEO) or isinstance(target, LEO):
+                            color = "cyan"  # LEO connections
+                        elif isinstance(source, BaseStation) or isinstance(
+                            target, BaseStation
+                        ):
+                            color = "yellow"  # BS connections
+                        elif isinstance(source, HAPS) or isinstance(target, HAPS):
+                            color = "orange"  # HAPS connections
+                        else:
+                            color = "white"  # Other connections
+
+                        pen = QtGui.QPen(QtGui.QColor(color))
+                        pen.setStyle(QtCore.Qt.SolidLine)
+                        pen.setWidth(1)
+
+                        line = scene.addLine(
+                            source_pos[0],
+                            source_pos[1],
+                            target_pos[0],
+                            target_pos[1],
+                            pen,
+                        )
+                        line.setOpacity(0.5)
+
+                        # Add requests in transit for this link
+                        if link.transmission_queue:
+                            self.add_in_transit_requests(
+                                scene, link, source_pos, target_pos
+                            )
 
             # Store node positions for request visualization
             node_positions = {}

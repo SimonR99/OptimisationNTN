@@ -10,6 +10,7 @@ class RequestStatus(Enum):
     IN_PROCESSING_QUEUE = 2
     PROCESSING = 3
     COMPLETED = 4
+    FAILED = 5
 
 
 class Priority(Enum):
@@ -25,7 +26,7 @@ class Request:
         self,
         tick: int,
         initial_node: "BaseNode",
-        target_node: "BaseNode",
+        target_node: Optional["BaseNode"] = None,
         debug: bool = False,
     ):
         self.debug = debug

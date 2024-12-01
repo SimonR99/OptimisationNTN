@@ -6,6 +6,7 @@ import numpy as np
 from ..networks.request import RequestStatus
 from ..nodes.base_station import BaseStation
 from ..nodes.user_device import UserDevice
+from ..networks.network import Network
 
 
 class MatrixType(Enum):
@@ -93,10 +94,10 @@ class DecisionMatrices:
         power_matrix = strategy.generate_power_matrix(num_devices, num_steps)
         self.matrices[MatrixType.POWER_STATE] = power_matrix
 
-    def update_assignment_matrix(self, network):
+    def update_assignment_matrix(self, network: Network):
         """Update real-time request assignment matrix"""
         users = [n for n in network.nodes if isinstance(n, UserDevice)]
-        compute_nodes = network.get_compute_nodes()
+        compute_nodes = network.get_compute_nodes(check_state=False)
 
         assignment_matrix = np.zeros((len(users), len(compute_nodes)))
 
