@@ -3,7 +3,8 @@
 import random
 import time
 from typing import Optional
-
+import csv
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -185,6 +186,62 @@ class Simulation:
         self.system_energy_consumed = self.network.get_total_energy_consumed()
         self.energy_consumption_graph_x.append(self.system_energy_consumed)
         return self.current_time < self.max_time
+
+    def export_to_csv(self, filename, data, headers):
+        """Export data to a CSV file."""
+        # Ensure the directory exists
+        directory = os.path.dirname(filename)
+        if directory and not os.path.exists(directory):
+            os.makedirs(directory)
+
+        try:
+            # Write data to the CSV file
+            with open(filename, mode="w", newline="", encoding="utf-8") as file:
+                writer = csv.writer(file)
+                if headers:  # Write headers only if provided
+                    writer.writerow(headers)
+                if isinstance(data[0], (list, tuple)):  # Check if data is iterable
+                    writer.writerows(data)
+                else:
+                    writer.writerows([[d] for d in data])  # Convert flat data to rows
+            print(f"Data successfully exported to {os.path.abspath(filename)}")
+        except Exception as e:
+            print(f"Error while writing to {os.path.abspath(filename)}: {e}")
+
+    def collect_graph_data(self):
+        """Collect data for different plots."""
+        # Collect data for plots
+        success_rate_vs_total_requests = [[self.total_requests, self.evaluate_qos_satisfaction()]]
+        energy_consumed_data = [
+            [self.total_requests, self.total_energy_bs],
+            [self.total_requests, self.total_energy_haps],
+            [self.total_requests, self.total_energy_leo]
+        ]
+        completed_requests_data = [[self.total_requests, self.total_energy_bs + self.total_energy_haps + self.total_energy_leo]]
+
+        # Define the directory for results
+        base_directory = os.path.join(os.getcwd(), "OptimisationNTN/results")
+        if not os.path.exists(base_directory):
+            os.makedirs(base_directory)
+
+        # Export data to CSV files
+        self.export_to_csv(
+            os.path.join(base_directory, "success_rate_vs_request.csv"),
+            success_rate_vs_total_requests,
+            ["Number of Requests", "Success Rate"]
+        )
+        self.export_to_csv(
+            os.path.join(base_directory, "energy_consumed_vs_request.csv"),
+            energy_consumed_data,
+            ["Number of Requests", "Energy Consumed (by type)"]
+        )
+        self.export_to_csv(
+            os.path.join(base_directory, "energy_vs_completed.csv"),
+            completed_requests_data,
+            ["Completed Requests", "Total Energy Consumed"]
+        )
+
+        print(f"CSV files generated in: {base_directory}")
 
     def reset(self):
         """Reset the simulation to initial state."""

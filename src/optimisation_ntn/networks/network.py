@@ -362,3 +362,24 @@ class Network:
         for node in self.nodes:
             total_energy_consumed += node.energy_consumed
         return total_energy_consumed
+
+    def get_energy_bs(self):
+        total_energy_bs = 0
+        for node in self.nodes:
+            if node.get_name() == "BS":
+                total_energy_bs += node.energy_consumed
+        return total_energy_bs
+
+    def get_energy_haps(self):
+        total_energy_haps = 0
+        for node in self.nodes:
+            if node.get_name() == "HAPS":
+                total_energy_haps += node.energy_consumed
+        return total_energy_haps
+
+    def get_energy_leo(self):
+        total_energy_leo = 0
+        for node in self.nodes:
+            if node.get_name() == "LEO":
+                total_energy_leo += node.energy_consumed
+        return total_energy_leo
