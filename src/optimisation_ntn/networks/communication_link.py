@@ -99,22 +99,25 @@ class CommunicationLink:
         return (
             4 * np.pi * self.link_length * self.carrier_frequency / Earth.speed_of_light
         )
-
+    
     def calculate_gain(self) -> float:
+        """Calculates Gain of the channel user - base station."""
         if isinstance(self.node_a, UserDevice) and isinstance(self.node_b, BaseStation):
-            """Calculates Gain of the current channel."""
+            """Linear Scale the path loss link of 40 dB. 40 dB selon études"""
             path_loss = self.linear_scale_db(40)
+            
             return (
                 path_loss
                 * (np.abs(self.node_a.attenuation_coefficient) ** 2)
                 / self.link_length**self.node_a.path_loss_exponent
             )
+            """Calculates Gain of the current channel that is different from user - bs."""
         else:
             fspl = self.calculate_free_space_path_loss()
             tx_antenna = self.linear_scale_db(self.antenna_a.gain)
             rx_antenna = self.linear_scale_db(self.antenna_b.gain)
             return tx_antenna * rx_antenna * fspl
-
+    
     def calculate_snr(self) -> float:
         """Calculates SNR (Signal to Noise Ratio) of the current channel."""
         gain = self.calculate_gain()

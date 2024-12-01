@@ -67,6 +67,7 @@ class Network:
                     total_bandwidth=174e6,
                     signal_power=23,
                     carrier_frequency=2e9,
+                    debug=self.debug,
                 )
                 self.communication_links.append(link)
                 self.debug_print(f"Created link: {user} -> {haps}")
@@ -92,6 +93,7 @@ class Network:
                         total_bandwidth=174e6,
                         signal_power=23,
                         carrier_frequency=2e9,
+                        debug=self.debug,
                     )
                     self.communication_links.append(link)
                     self.debug_print(
@@ -105,9 +107,10 @@ class Network:
                 link = CommunicationLink(
                     bs,
                     haps,
-                    total_bandwidth=146e6,  # Higher bandwidth for BS-HAPS links
+                    total_bandwidth=174e6,  # Higher bandwidth for BS-HAPS links
                     signal_power=30,  # Higher power for BS-HAPS links
                     carrier_frequency=2e9,
+                    debug=self.debug,
                 )
                 self.communication_links.append(link)
                 self.debug_print(f"Created link: {bs} -> {haps}")
@@ -115,13 +118,13 @@ class Network:
                 link = CommunicationLink(
                     haps,
                     bs,
-                    total_bandwidth=2,
-                    signal_power=2,
-                    carrier_frequency=1,
+                    total_bandwidth=174e6,
+                    signal_power=33,
+                    carrier_frequency=2e9,
                     debug=self.debug,
                 )
                 self.communication_links.append(link)
-                self.debug_print(f"Created link: {haps} -> {leo}")
+                self.debug_print(f"Created link: {haps} -> {bs}")
 
         # Add new section: Connect each LEO to all HAPS (bidirectional)
         for leo in leo_nodes:
@@ -130,9 +133,9 @@ class Network:
                 link = CommunicationLink(
                     haps,
                     leo,
-                    total_bandwidth=2,
-                    signal_power=2,
-                    carrier_frequency=1,
+                    total_bandwidth=174e6,
+                    signal_power=33,
+                    carrier_frequency=2e9,
                     debug=self.debug,
                 )
                 self.communication_links.append(link)
