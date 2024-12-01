@@ -53,6 +53,9 @@ class Simulation:
         self.system_energy_consumed = 0
         self.energy_consumption_graph_x = []
         self.energy_consumption_graph_y = np.arange(0, 300.1, 0.1)
+        self.total_energy_bs = 0
+        self.total_energy_haps = 0
+        self.total_energy_leo = 0
 
         # Initialize with default values
         self.initialize_default_nodes()
@@ -111,6 +114,13 @@ class Simulation:
 
         if self.debug:
             self.consumed_energy_graph()
+
+        # Statistics gathering for total energy consumed for each group of node
+        self.total_energy_bs = self.network.get_energy_bs()
+        self.total_energy_haps = self.network.get_energy_haps()
+        self.total_energy_leo = self.network.get_energy_leo()
+
+        self.collect_graph_data()
 
         return self.system_energy_consumed
 
