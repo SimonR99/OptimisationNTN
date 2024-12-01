@@ -88,14 +88,6 @@ class CommunicationLink:
         """Linear scale the dBm to apply in SNR."""
         return 10 ** ((power - 30) / 10)
 
-    def calculate_reference_path_loss(self) -> float:
-        """Calculates Reference Path Loss at Reference Distance of the channel user-base station."""
-        return (
-            20 * np.log10(self.node_a.reference_lenght)
-            + 20 * np.log10(self.carrier_frequency)
-            + 20 * np.log10(4 * np.pi / Earth.speed_of_light)
-        )
-
     def calculate_free_space_path_loss(self) -> float:
         """Calculates Free Space Path Loss for (user-haps, haps-base station, haps-leo)."""
         return (
@@ -105,7 +97,7 @@ class CommunicationLink:
     def calculate_gain(self) -> float:
         if isinstance(self.node_a, UserDevice) and isinstance(self.node_b, BaseStation):
             """Calculates Gain of the current channel."""
-            path_loss = self.linear_scale_db(self.calculate_reference_path_loss())
+            path_loss = self.linear_scale_db(40)
             return (
                 path_loss
                 * (np.abs(self.node_a.attenuation_coefficient) ** 2)
