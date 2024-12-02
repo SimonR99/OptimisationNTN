@@ -22,14 +22,12 @@ class BaseNode(ABC):
         self,
         node_id: int,
         initial_position: Position,
-        temperature=300,
         debug: bool = False,
     ):
         self.node_id = node_id
         self.position = initial_position
         self.state = False
         self.antennas: List[Antenna] = []
-        self.temperature = temperature
         self.active_links: Dict[Tuple[type, type], int] = (
             {}
         )  # Track active links by node type pair
@@ -41,12 +39,17 @@ class BaseNode(ABC):
         self.processing_frequency = 0
         self.transmission_power = 0
         self.k_const = 0
+        """Défini dans des études"""
+        self.spectral_noise_density = -174
         """Ce peak d'énergie est une constante déterminée sans sources scientifiques."""
         self.turn_on_energy_peak = 0.03
         self.turn_on_standby_energy = 0.01
         self.recently_turned_on = False
         self.debug = debug
         self.name = ""
+        self.path_loss_exponent = 0.0
+        self.attenuation_coefficient = 0.0
+        self.reference_lenght = 0.0
         self.destinations: List["BaseNode"] = []
 
     def get_name(self) -> str:
@@ -84,11 +87,6 @@ class BaseNode(ABC):
         link_type = (type(self), other_node_type)
         if link_type in self.active_links and self.active_links[link_type] > 0:
             self.active_links[link_type] -= 1
-
-    @property
-    def spectral_noise_density(self) -> float:
-        """Calculates spectral noise density based on temperature."""
-        return Earth.bolztmann_constant * self.temperature
 
     def processing_time(self, request: Request) -> float:
         """Calculate processing time for a request"""
