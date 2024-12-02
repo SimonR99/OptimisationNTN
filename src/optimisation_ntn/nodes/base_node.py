@@ -95,7 +95,7 @@ class BaseNode(ABC):
         total_load = self.current_load + request.size
         return self.cycle_per_bit * total_load / self.processing_frequency
 
-    def turn_on(self):
+    def _turn_on(self):
         """Turn node on and add energy consumed."""
 
         if self.battery_capacity <= 0:
@@ -104,9 +104,18 @@ class BaseNode(ABC):
         self.state = True
         self.recently_turned_on = True
 
-    def turn_off(self):
+    def _turn_off(self):
         """Turn node off"""
         self.state = False
+
+    def set_state(self, state: bool):
+        """Set node state"""
+        if state==self.state:
+            return
+        if state:
+            self._turn_on()
+        else:
+            self._turn_off()
 
     def __str__(self):
         return f"Node {self.node_id}"
@@ -208,7 +217,7 @@ class BaseNode(ABC):
         ) * transmission_delay(request, link_bandwidth)
         self.battery_capacity -= transmission_energy
         if self.battery_capacity <= 0 and self.get_name() != "BS":
-            self.turn_off()
+            self._turn_off()
         return transmission_energy
 
     def processing_delay(self, request: Request):
@@ -225,11 +234,11 @@ class BaseNode(ABC):
         )
         self.battery_capacity -= processing_energy
         if self.battery_capacity <= 0 and self.get_name() != "BS":
-            self.turn_off()
+            self._turn_off()
         return processing_energy
 
     def consume_standby_energy(self):
         if self.state:
             self.energy_consumed += self.turn_on_standby_energy
             if self.battery_capacity <= 0 and self.get_name() != "BS":
-                self.turn_off()
+                self._turn_off()
