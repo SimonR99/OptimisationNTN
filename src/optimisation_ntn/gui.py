@@ -717,11 +717,7 @@ class SimulationUI(QtWidgets.QMainWindow):
 
             # Create new simulation instance with debug mode
             simulation = Simulation(debug=False)
-
-            # Initialize network and matrices
-            simulation.initialize_default_nodes()
-            simulation.initialize_matrices()
-
+            
             # Store simulation
             self.simulations[simulation_name] = simulation
             self.simulation = simulation
@@ -769,62 +765,20 @@ class SimulationUI(QtWidgets.QMainWindow):
         """Update the number of base stations in the simulation and view"""
         if self.simulation:
             num_bs = self.num_bs_input.value()
-            self.set_base_stations(num_bs)
+            self.simulation.set_nodes(BaseStation, num_bs)
             self.load_close_up_view()
-
-    def set_base_stations(self, num_base_stations: int):
-        """Remove all existing base stations and create new ones."""
-        network = self.simulation.network
-        # Remove all existing base stations
-        network.nodes = [
-            node for node in network.nodes if not isinstance(node, BaseStation)
-        ]
-
-        # Add new base stations
-        start_x = -(num_base_stations - 1) * 1.5 / 2
-        for i in range(num_base_stations):
-            x_pos = start_x + (i * 1.5)
-            base_station = BaseStation(i, Position(x_pos, 0))
-            network.add_node(base_station)
 
     def update_haps(self):
         if self.simulation:
             num_haps = self.num_haps_input.value()
-            self.set_haps(num_haps)
+            self.simulation.set_nodes(HAPS, num_haps)
             self.load_close_up_view()
-
-    def set_haps(self, num_haps: int):
-        network = self.simulation.network
-        # Remove all existing HAPS
-        network.nodes = [node for node in network.nodes if not isinstance(node, HAPS)]
-
-        # Add new HAPS
-        start_x = -(num_haps - 1) * 2 / 2
-        height = 20  # Height for HAPS layer
-        for i in range(num_haps):
-            x_pos = start_x + (i * 2)
-            haps = HAPS(i, Position(x_pos, height))
-            network.add_node(haps)
 
     def update_users(self):
         if self.simulation:
             num_users = self.num_users_input.value()
-            self.set_users(num_users)
+            self.simulation.set_nodes(UserDevice, num_users)
             self.load_close_up_view()
-
-    def set_users(self, num_users: int):
-        network = self.simulation.network
-        # Remove all existing users
-        network.nodes = [
-            node for node in network.nodes if not isinstance(node, UserDevice)
-        ]
-
-        # Add new users with random positions
-        for i in range(num_users):
-            x_pos = random.uniform(-4, 4)
-            height = -2  # Height for users (below base stations)
-            user = UserDevice(i, Position(x_pos, height))
-            network.add_node(user)
 
     def toggle_links(self, state):
         self.show_links = bool(state)
