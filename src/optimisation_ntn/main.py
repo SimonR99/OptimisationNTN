@@ -55,7 +55,7 @@ def create_parser():
 
 def main(args):
     simulation = Simulation(
-        time_step=args.tick_time, max_time=args.max_time, debug=args.debug
+        seed=42, time_step=args.tick_time, max_time=args.max_time, debug=args.debug
     )
 
     if args.algorithm not in ["Random", "AllOn"]:
