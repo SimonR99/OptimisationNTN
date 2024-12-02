@@ -5,6 +5,7 @@ import time
 from typing import Optional
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 from optimisation_ntn.networks.request import Request, RequestStatus
 
@@ -47,6 +48,10 @@ class Simulation:
         self.request_stats = {status: 0 for status in RequestStatus}
         self.is_paused = False
         self.debug = debug
+        """This value is will be positive, however, it is to be minimised; as a greater value, means greater energy consumption"""
+        self.system_energy_consumed = 0
+        self.energy_consumption_graph_x = []
+        self.energy_consumption_graph_y = np.arange(0, 300.1, 0.1)
 
         # Initialize with default values
         self.initialize_default_nodes()
@@ -81,21 +86,48 @@ class Simulation:
             if not self.step():
                 break
 
+        # QoS Evaluation
+        success_rate = self.evaluate_qos_satisfaction()
+        print(f"\nQoS Success Rate: {success_rate:.2f}%")
+
         # Calculate execution time and print results (always show these)
         execution_time = time.time() - start_time
+
+        # Calculate total energy consumed
+        self.system_energy_consumed = self.network.get_total_energy_consumed()
         print("\nSimulation completed:")
         print(f"Total requests: {self.total_requests}")
         print(f"Execution time: {execution_time:.2f} seconds")
         print(f"Simulation steps: {self.current_step}")
         print(f"Simulated time: {self.current_time:.2f} seconds")
-        print(f"Average speed: {self.current_step/execution_time:.0f} steps/second\n")
+        print(f"Average speed: {self.current_step/execution_time:.0f} steps/second")
+        print(f"Total energy consumed: {self.system_energy_consumed} joules\n")
 
         # Print request statistics (always show these)
         print("\nRequest Statistics:")
         for status, count in self.request_stats.items():
             print(f"{status.name}: {count}")
 
-        return 0  # TODO: Implement energy calculation
+        if self.debug:
+            self.consumed_energy_graph()
+
+        return self.system_energy_consumed
+
+    def evaluate_qos_satisfaction(self) -> float:
+        """Evaluate QoS satisfaction for all requests."""
+        satisfied_requests = 0
+
+        for user in [n for n in self.network.nodes if isinstance(n, UserDevice)]:
+            for request in user.current_requests:
+
+                if request.satisfaction:
+                    satisfied_requests += 1
+
+        if self.total_requests == 0:
+            return 100.0  # No requests, success rate is 100%
+
+        success_rate = (satisfied_requests / self.total_requests) * 100
+        return success_rate
 
     def step(self) -> bool:
         """Run simulation for a single step."""
@@ -106,50 +138,69 @@ class Simulation:
 
         # Get user devices and compute nodes
         user_devices = [n for n in self.network.nodes if isinstance(n, UserDevice)]
-        compute_nodes = self.network.get_compute_nodes()
 
         # Create new requests for users
         for i, request_flag in enumerate(new_requests):
-            if request_flag == 1 and i < len(user_devices):
+            if request_flag == 1:
                 user = user_devices[i]
 
-                # Find closest available compute node
-                closest_compute = None
-                min_distance = float("inf")
+                # Create the request
+                request = user.create_request(self.current_step)
+                compute_nodes = self.network.get_compute_nodes(request)
 
+                # Find optimal compute node based on both compute and network delay
+                best_node = None
+                best_total_time = float("inf")
+                best_path = None
                 for compute_node in compute_nodes:
-                    if compute_node.state and compute_node.processing_power > 0:
-                        distance = user.position.distance_to(compute_node.position)
-                        if distance < min_distance:
-                            min_distance = distance
-                            closest_compute = compute_node
+                    # Estimate processing time based on node's compute capacity
+                    processing_time = compute_node.processing_time(request)
+                    path = self.network.generate_request_path(user, compute_node)
+                    network_delay = self.network.get_network_delay(request, path)
+                    total_time = processing_time + network_delay
 
-                # Create request to closest compute node if found
-                if closest_compute:
-                    request = user.spawn_request(self.current_step, closest_compute)
-                    self.debug_print(
-                        f"Created request from {user} to {closest_compute} (distance: {min_distance:.2f})"
-                    )
+                    if total_time < best_total_time:
+                        best_total_time = total_time
+                        best_node = compute_node
+                        best_path = path
 
-                    # Try to route the request through the network
-                    if self.network.route_request(request):
-                        self.debug_print(f"Request {request.id} routed successfully")
-                        self.total_requests += 1
-                    else:
-                        self.debug_print(f"Failed to route request {request.id}")
+                # If we found a suitable compute node, assign it and initialize routing
+                if best_node:
+                    user.assign_target_node(request, best_node)
+                    request.path = best_path
+                    request.path_index = 1
+                    request.status = RequestStatus.IN_TRANSIT
+
+                    # Add request to first transmission queue
+                    current_node = request.path[0]
+                    next_node = request.path[1]
+
+                    # Find the appropriate link
+                    for link in self.network.communication_links:
+                        if link.node_a == current_node and link.node_b == next_node:
+                            link.add_to_queue(request)
+                            request.next_node = next_node
+                            self.debug_print(
+                                f"Added request {request.id} to transmission queue: {current_node} -> {next_node}"
+                            )
+                            break
+
+                    self.total_requests += 1
                 else:
                     self.debug_print(f"No available compute nodes found for {user}")
 
-        # Update network state (transfer + processing)
+        # Update network state
         self.network.tick(self.time_step)
 
-        # Update assignment matrix and stats
+        # Update matrices and stats
         self.matrices.update_assignment_matrix(self.network)
         self.update_request_stats()
 
         # Update time and step counter
         self.current_time += self.time_step
         self.current_step += 1
+        self.system_energy_consumed = self.network.get_total_energy_consumed()
+        self.energy_consumption_graph_x.append(self.system_energy_consumed)
         return self.current_time < self.max_time
 
     def reset(self):
@@ -160,6 +211,7 @@ class Simulation:
         self.matrix_history.clear()
         self.total_requests = 0
         self.request_stats = {status: 0 for status in RequestStatus}
+        self.system_energy_consumed = 0
         self.initialize_default_nodes()
         self.initialize_matrices()  # Re-initialize matrices after reset
 
@@ -261,6 +313,18 @@ class Simulation:
             # Sum energy consumption from each matrix snapshot
             total_energy += matrix.calculate_energy()
         return total_energy
+
+    def consumed_energy_graph(self):
+        plt.plot(
+            self.energy_consumption_graph_y,
+            self.energy_consumption_graph_x,
+            color="blue",
+            marker=".",
+        )
+        plt.title("Energy consumption")
+        plt.xlabel("Secondes")
+        plt.ylabel("Cumulative system energy consumed")
+        plt.show()
 
     def update_request_stats(self):
         """Update statistics for all requests in the network"""
