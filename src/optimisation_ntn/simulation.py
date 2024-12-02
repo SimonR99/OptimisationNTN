@@ -385,11 +385,7 @@ class Simulation:
         
         current_power_states = power_matrix[:, self.current_step]
         
-        on_count = sum(current_power_states)
-        total_count = len(current_power_states)
-        # print(f"Step {self.current_step}: {on_count}/{total_count} nodes on "
-         #       f"({on_count/total_count*100:.1f}%)")
-        
+
         for node_idx, node in enumerate(compute_nodes):
             if node_idx < len(current_power_states):
                 node.set_state(bool(current_power_states[node_idx]))
