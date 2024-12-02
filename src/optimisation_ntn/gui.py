@@ -6,7 +6,8 @@ import sys
 
 import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
-from PySide6.QtCharts import QChart, QChartView, QLineSeries
+from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis
+from PySide6.QtCore import Qt
 
 from .nodes.base_station import BaseStation
 from .nodes.haps import HAPS
@@ -224,6 +225,11 @@ class SimulationUI(QtWidgets.QMainWindow):
         info_layout.addWidget(QtWidgets.QLabel("Current Step:"), 3, 0)
         self.current_step_label = QtWidgets.QLabel("0")
         info_layout.addWidget(self.current_step_label, 3, 1)
+
+        # Add energy consumption display to info layout
+        info_layout.addWidget(QtWidgets.QLabel("Energy Consumed:"), 4, 0)
+        self.current_energy_label = QtWidgets.QLabel("0.0 J")
+        info_layout.addWidget(self.current_energy_label, 4, 1)
 
         info_box.setLayout(info_layout)
         horizontal_layout.addWidget(info_box)
@@ -620,15 +626,34 @@ class SimulationUI(QtWidgets.QMainWindow):
             line.setOpacity(0.5)
 
     def create_live_graph(self, title):
+        """Create a live graph widget for energy or throughput monitoring"""
         series = QLineSeries()
-        series.append(0, random.uniform(50, 150))
         chart = QChart()
         chart.addSeries(series)
         chart.setTitle(title)
-        chart.createDefaultAxes()
+
+        # Create axes explicitly
+        axis_x = QValueAxis()
+        axis_y = QValueAxis()
+
+        # Store series reference if it's the energy graph
+        if title == "Energy":
+            self.energy_series = series
+            # Configure axes
+            axis_x.setTitleText("Time (s)")
+            axis_y.setTitleText("Energy (J)")
+            axis_x.setRange(0, self.simulation.max_time if self.simulation else 300)
+            axis_y.setRange(0, 200)
+
+        # Add axes to chart
+        chart.addAxis(axis_x, Qt.AlignBottom)
+        chart.addAxis(axis_y, Qt.AlignLeft)
+        series.attachAxis(axis_x)
+        series.attachAxis(axis_y)
+
         chart.setBackgroundBrush(QtGui.QColor("#2e2e2e"))
         chart_view = QChartView(chart)
-        chart_view.setRenderHint(QtGui.QPainter.Antialiasing)
+        chart_view.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
         return chart_view
 
     def create_results_tab(self):
@@ -643,9 +668,10 @@ class SimulationUI(QtWidgets.QMainWindow):
     def start_simulation(self):
         if self.simulation:
             self.simulation.is_paused = False
-            update_interval = (
-                self.time_step_input.value()
-            )  # Get UI update interval in ms
+            update_interval = self.time_step_input.value()
+
+            # Disable step duration input while simulation is running
+            self.step_duration_input.setEnabled(False)
 
             # Create timer for UI updates
             self.timer = QtCore.QTimer()
@@ -661,6 +687,12 @@ class SimulationUI(QtWidgets.QMainWindow):
             # Update UI
             if can_continue:
                 self.update_simulation_display()
+                # Update energy graph
+                if hasattr(self, "energy_series"):
+                    self.energy_series.append(
+                        self.simulation.current_time,
+                        self.simulation.system_energy_consumed,
+                    )
                 # Force scene update
                 self.load_close_up_view()
                 self.schematic_view.viewport().update()
@@ -675,12 +707,21 @@ class SimulationUI(QtWidgets.QMainWindow):
             self.current_time_label.setText(f"{self.simulation.current_time:.1f}s")
             self.current_step_label.setText(str(self.simulation.current_step))
 
+            # Add energy consumption display
+            if hasattr(self, "current_energy_label"):
+                self.current_energy_label.setText(
+                    f"{self.simulation.system_energy_consumed:.2f} J"
+                )
+
     def reset_simulation(self):
         if self.simulation:
             # Stop timer if running
             if hasattr(self, "timer") and self.timer.isActive():
                 self.timer.stop()
                 self.run_pause_btn.setText("Run")
+
+            # Re-enable step duration input
+            self.step_duration_input.setEnabled(True)
 
             self.simulation.reset()
             self.update_ui_parameters()
@@ -718,13 +759,12 @@ class SimulationUI(QtWidgets.QMainWindow):
             # Create new simulation instance with debug mode
             simulation = Simulation(debug=False)
 
-            # Initialize network and matrices
-            simulation.initialize_default_nodes()
-            simulation.initialize_matrices()
-
             # Store simulation
             self.simulations[simulation_name] = simulation
             self.simulation = simulation
+
+            # Ensure step duration input is enabled for new simulation
+            self.step_duration_input.setEnabled(True)
 
             # Add to list and select it
             self.sim_list.addItem(simulation_name)
@@ -769,62 +809,20 @@ class SimulationUI(QtWidgets.QMainWindow):
         """Update the number of base stations in the simulation and view"""
         if self.simulation:
             num_bs = self.num_bs_input.value()
-            self.set_base_stations(num_bs)
+            self.simulation.set_nodes(BaseStation, num_bs)
             self.load_close_up_view()
-
-    def set_base_stations(self, num_base_stations: int):
-        """Remove all existing base stations and create new ones."""
-        network = self.simulation.network
-        # Remove all existing base stations
-        network.nodes = [
-            node for node in network.nodes if not isinstance(node, BaseStation)
-        ]
-
-        # Add new base stations
-        start_x = -(num_base_stations - 1) * 1.5 / 2
-        for i in range(num_base_stations):
-            x_pos = start_x + (i * 1.5)
-            base_station = BaseStation(i, Position(x_pos, 0))
-            network.add_node(base_station)
 
     def update_haps(self):
         if self.simulation:
             num_haps = self.num_haps_input.value()
-            self.set_haps(num_haps)
+            self.simulation.set_nodes(HAPS, num_haps)
             self.load_close_up_view()
-
-    def set_haps(self, num_haps: int):
-        network = self.simulation.network
-        # Remove all existing HAPS
-        network.nodes = [node for node in network.nodes if not isinstance(node, HAPS)]
-
-        # Add new HAPS
-        start_x = -(num_haps - 1) * 2 / 2
-        height = 20  # Height for HAPS layer
-        for i in range(num_haps):
-            x_pos = start_x + (i * 2)
-            haps = HAPS(i, Position(x_pos, height))
-            network.add_node(haps)
 
     def update_users(self):
         if self.simulation:
             num_users = self.num_users_input.value()
-            self.set_users(num_users)
+            self.simulation.set_nodes(UserDevice, num_users)
             self.load_close_up_view()
-
-    def set_users(self, num_users: int):
-        network = self.simulation.network
-        # Remove all existing users
-        network.nodes = [
-            node for node in network.nodes if not isinstance(node, UserDevice)
-        ]
-
-        # Add new users with random positions
-        for i in range(num_users):
-            x_pos = random.uniform(-4, 4)
-            height = -2  # Height for users (below base stations)
-            user = UserDevice(i, Position(x_pos, height))
-            network.add_node(user)
 
     def toggle_links(self, state):
         self.show_links = bool(state)
