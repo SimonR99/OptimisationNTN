@@ -9,7 +9,6 @@ from .base_node import BaseNode
 
 
 class UserDevice(BaseNode):
-
     REQUEST_LIMIT = 1
 
     def __init__(self, node_id: int, initial_position: Position, debug: bool = False):

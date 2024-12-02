@@ -25,7 +25,9 @@ class CommunicationLink:
         self.signal_power = signal_power
         self.carrier_frequency = carrier_frequency
         self.total_bandwidth = total_bandwidth
-        self.transmission_queue: List[Request] = (
+        self.transmission_queue: List[
+            Request
+        ] = (
             []
         )  # FIFO queue        self.request_progress = 0  # Track bits transmitted for the current request
         self.request_progress = 0

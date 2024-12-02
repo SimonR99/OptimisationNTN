@@ -28,9 +28,9 @@ class BaseNode(ABC):
         self.position = initial_position
         self.state = False
         self.antennas: List[Antenna] = []
-        self.active_links: Dict[Tuple[type, type], int] = (
-            {}
-        )  # Track active links by node type pair
+        self.active_links: Dict[
+            Tuple[type, type], int
+        ] = {}  # Track active links by node type pair
         self.current_load = 0.0
         self.cycle_per_bit = 500  # 500 cycles per each bit
         self.processing_queue: List[Request] = []

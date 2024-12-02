@@ -145,7 +145,6 @@ class Simulation:
 
         for user in [n for n in self.network.nodes if isinstance(n, UserDevice)]:
             for request in user.current_requests:
-
                 if request.satisfaction:
                     satisfied_requests += 1
 
