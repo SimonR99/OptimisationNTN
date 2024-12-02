@@ -631,11 +631,11 @@ class SimulationUI(QtWidgets.QMainWindow):
         chart = QChart()
         chart.addSeries(series)
         chart.setTitle(title)
-        
+
         # Create axes explicitly
         axis_x = QValueAxis()
         axis_y = QValueAxis()
-        
+
         # Store series reference if it's the energy graph
         if title == "Energy":
             self.energy_series = series
@@ -644,13 +644,13 @@ class SimulationUI(QtWidgets.QMainWindow):
             axis_y.setTitleText("Energy (J)")
             axis_x.setRange(0, self.simulation.max_time if self.simulation else 300)
             axis_y.setRange(0, 200)
-        
+
         # Add axes to chart
         chart.addAxis(axis_x, Qt.AlignBottom)
         chart.addAxis(axis_y, Qt.AlignLeft)
         series.attachAxis(axis_x)
         series.attachAxis(axis_y)
-        
+
         chart.setBackgroundBrush(QtGui.QColor("#2e2e2e"))
         chart_view = QChartView(chart)
         chart_view.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
@@ -668,9 +668,10 @@ class SimulationUI(QtWidgets.QMainWindow):
     def start_simulation(self):
         if self.simulation:
             self.simulation.is_paused = False
-            update_interval = (
-                self.time_step_input.value()
-            )  # Get UI update interval in ms
+            update_interval = self.time_step_input.value()
+
+            # Disable step duration input while simulation is running
+            self.step_duration_input.setEnabled(False)
 
             # Create timer for UI updates
             self.timer = QtCore.QTimer()
@@ -687,10 +688,10 @@ class SimulationUI(QtWidgets.QMainWindow):
             if can_continue:
                 self.update_simulation_display()
                 # Update energy graph
-                if hasattr(self, 'energy_series'):
+                if hasattr(self, "energy_series"):
                     self.energy_series.append(
                         self.simulation.current_time,
-                        self.simulation.system_energy_consumed
+                        self.simulation.system_energy_consumed,
                     )
                 # Force scene update
                 self.load_close_up_view()
@@ -705,9 +706,9 @@ class SimulationUI(QtWidgets.QMainWindow):
             # Update time labels
             self.current_time_label.setText(f"{self.simulation.current_time:.1f}s")
             self.current_step_label.setText(str(self.simulation.current_step))
-            
+
             # Add energy consumption display
-            if hasattr(self, 'current_energy_label'):
+            if hasattr(self, "current_energy_label"):
                 self.current_energy_label.setText(
                     f"{self.simulation.system_energy_consumed:.2f} J"
                 )
@@ -718,6 +719,9 @@ class SimulationUI(QtWidgets.QMainWindow):
             if hasattr(self, "timer") and self.timer.isActive():
                 self.timer.stop()
                 self.run_pause_btn.setText("Run")
+
+            # Re-enable step duration input
+            self.step_duration_input.setEnabled(True)
 
             self.simulation.reset()
             self.update_ui_parameters()
@@ -754,10 +758,13 @@ class SimulationUI(QtWidgets.QMainWindow):
 
             # Create new simulation instance with debug mode
             simulation = Simulation(debug=False)
-            
+
             # Store simulation
             self.simulations[simulation_name] = simulation
             self.simulation = simulation
+
+            # Ensure step duration input is enabled for new simulation
+            self.step_duration_input.setEnabled(True)
 
             # Add to list and select it
             self.sim_list.addItem(simulation_name)
