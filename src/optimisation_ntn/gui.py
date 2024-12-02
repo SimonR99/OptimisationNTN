@@ -296,16 +296,29 @@ class SimulationUI(QtWidgets.QMainWindow):
                 QtGui.QBrush(QtGui.QColor("skyblue")),
             )
 
-            # Add HAPS
             haps_pixmap = QtGui.QPixmap("images/haps.png").scaled(30, 30)
             haps_positions = {}
 
+            bs_pixmap = QtGui.QPixmap("images/base_station.png").scaled(30, 30)
+            bs_positions = {}
+
+            user_pixmap = QtGui.QPixmap("images/person.png").scaled(20, 20)
+            user_positions = {}
+
+            leo_pixmap = QtGui.QPixmap("images/leo.png").scaled(30, 30)
+            leo_positions = {}
+
             for node in self.simulation.network.nodes:
+                # Add HAPS
                 if isinstance(node, HAPS):
                     x_pos = node.position.x * 50
                     y_pos = 100
                     haps_item = QtWidgets.QGraphicsPixmapItem(haps_pixmap)
                     haps_item.setPos(x_pos, y_pos)
+
+                    if not node.state:
+                        haps_item.setOpacity(0.2)
+
                     scene.addItem(haps_item)
 
                     haps_positions[node] = (
@@ -321,17 +334,16 @@ class SimulationUI(QtWidgets.QMainWindow):
                         - text.boundingRect().width() / 2,
                         y_pos - 20,
                     )
-
-            # Add Base Stations
-            bs_pixmap = QtGui.QPixmap("images/base_station.png").scaled(30, 30)
-            bs_positions = {}
-
-            for node in self.simulation.network.nodes:
+                # Add Base Stations
                 if isinstance(node, BaseStation):
                     x_pos = node.position.x * 50
                     y_pos = 250  # Just above the floor
                     bs_item = QtWidgets.QGraphicsPixmapItem(bs_pixmap)
                     bs_item.setPos(x_pos, y_pos)
+
+                    if not node.state:
+                        bs_item.setOpacity(0.2)
+
                     scene.addItem(bs_item)
 
                     bs_positions[node] = (
@@ -346,11 +358,7 @@ class SimulationUI(QtWidgets.QMainWindow):
                         y_pos + bs_pixmap.height() + 5,
                     )
 
-            # Add Users
-            user_pixmap = QtGui.QPixmap("images/person.png").scaled(20, 20)
-            user_positions = {}
-
-            for node in self.simulation.network.nodes:
+                # Add Users
                 if isinstance(node, UserDevice):
                     x_pos = node.position.x * 50
                     y_pos = 270
@@ -362,11 +370,7 @@ class SimulationUI(QtWidgets.QMainWindow):
                         y_pos + user_pixmap.height() / 2,
                     )
 
-            # Add LEO satellites
-            leo_pixmap = QtGui.QPixmap("images/leo.png").scaled(30, 30)
-            leo_positions = {}
-
-            for node in self.simulation.network.nodes:
+                # Add LEO satellites
                 if isinstance(node, LEO) and node.is_visible:
                     # Calculate position based on visible angle range
                     view_width = 400  # Width of the view
@@ -380,6 +384,10 @@ class SimulationUI(QtWidgets.QMainWindow):
 
                     leo_item = QtWidgets.QGraphicsPixmapItem(leo_pixmap)
                     leo_item.setPos(x_pos, y_pos)
+
+                    if not node.state:
+                        leo_item.setOpacity(0.2)
+
                     scene.addItem(leo_item)
 
                     leo_positions[node] = (

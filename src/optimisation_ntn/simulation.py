@@ -9,7 +9,12 @@ import matplotlib.pyplot as plt
 
 from optimisation_ntn.networks.request import Request, RequestStatus
 
-from .algorithms.power_strategy import AllOnStrategy, PowerStateStrategy
+from .algorithms.power_strategy import (
+    AllOnStrategy,
+    PowerStateStrategy,
+    RandomStrategy,
+    StaticRandomStrategy,
+)
 from .matrices.decision_matrices import DecisionMatrices, MatrixType
 from .networks.network import Network
 from .nodes.base_station import BaseStation
@@ -136,6 +141,9 @@ class Simulation:
 
     def step(self) -> bool:
         """Run simulation for a single step."""
+        # Apply power states at the beginning of each step
+        self.apply_power_states()
+
         # Get new requests from request matrix for this tick
         new_requests = self.matrices.get_matrix(MatrixType.REQUEST)[
             :, self.current_step
@@ -355,19 +363,37 @@ class Simulation:
         # Generate coverage matrix
         self.matrices.generate_coverage_matrix(self.network)
 
-        # Generate power matrix using the new counting method
-        num_devices = (
+        # Generate power matrix with the strategy
+        compute_nodes_count = (
             self.network.count_nodes_by_type(HAPS)
             + self.network.count_nodes_by_type(BaseStation)
             + self.network.count_nodes_by_type(LEO)
         )
+
+        # Set the strategy if not already set
+        if not self.strategy:
+            self.strategy = StaticRandomStrategy()
+
         self.matrices.generate_power_matrix(
-            num_devices=num_devices,
+            num_devices=compute_nodes_count,
             num_steps=matrix_size,
-            strategy=AllOnStrategy(),
+            strategy=self.strategy,
         )
 
     def debug_print(self, *args, **kwargs):
         """Print only if debug mode is enabled"""
         if self.debug:
             print(*args, **kwargs)
+
+    def apply_power_states(self):
+        """Apply power states from power matrix to network nodes"""
+        power_matrix = self.matrices.get_matrix(MatrixType.POWER_STATE)
+        compute_nodes = [
+            n for n in self.network.nodes if isinstance(n, (HAPS, BaseStation, LEO))
+        ]
+
+        current_power_states = power_matrix[:, self.current_step]
+
+        for node_idx, node in enumerate(compute_nodes):
+            if node_idx < len(current_power_states):
+                node.set_state(bool(current_power_states[node_idx]))
