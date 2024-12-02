@@ -395,9 +395,6 @@ class SimulationUI(QtWidgets.QMainWindow):
                     )
                     angle_text.setDefaultTextColor(QtGui.QColor("white"))
                     angle_text.setPos(x_pos, y_pos - 40)
-                
-                    
-
 
             # Draw communication links if enabled
             if self.show_links:

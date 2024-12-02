@@ -110,7 +110,7 @@ class BaseNode(ABC):
 
     def set_state(self, state: bool):
         """Set node state"""
-        if state==self.state:
+        if state == self.state:
             return
         if state:
             self._turn_on()

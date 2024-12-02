@@ -80,24 +80,24 @@ class RandomStrategy(PowerStateStrategy):
 
 class StaticRandomStrategy(PowerStateStrategy):
     """Strategy that randomly turns nodes on/off at the start and maintains those states"""
-    
+
     def generate_power_matrix(self, num_devices: int, num_steps: int) -> np.ndarray:
         """Generate a power matrix where each node's state is randomly chosen once
         and remains constant throughout the simulation.
-        
+
         Args:
             num_devices: Number of devices to generate states for
             num_steps: Number of time steps in the simulation
-            
+
         Returns:
             np.ndarray: Power state matrix with shape (num_devices, num_steps)
         """
         # Generate random initial states for each device (0 or 1)
         initial_states = np.random.randint(0, 2, size=num_devices)
-        
+
         # Repeat these states for all time steps
         power_matrix = np.tile(initial_states.reshape(-1, 1), (1, num_steps))
-        
+
         return power_matrix
 
     def update_parameters(self, energy_history: list[float]) -> None:
