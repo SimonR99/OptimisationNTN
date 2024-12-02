@@ -40,7 +40,7 @@ def collect_graph_data(all_iterations_data):
             [total_requests, total_energy_bs + total_energy_haps + total_energy_leo]
         )
 
-    base_directory = os.path.join(os.getcwd(), "Statistic_csv")
+    base_directory = os.path.join(os.getcwd(), "statistic_csv")
     if not os.path.exists(base_directory):
         os.makedirs(base_directory)
 

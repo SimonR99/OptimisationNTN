@@ -5,6 +5,8 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
+from typing import Optional
+
 from optimisation_ntn.networks.request import RequestStatus
 
 from .algorithms.power_strategy import (
