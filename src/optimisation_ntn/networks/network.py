@@ -54,7 +54,7 @@ class Network:
         base_stations = [node for node in self.nodes if isinstance(node, BaseStation)]
         leo_nodes = [node for node in self.nodes if isinstance(node, LEO)]
 
-        self.debug_print("\nCreating communication links:")
+        """self.debug_print("\nCreating communication links:")"""
 
         # Connect each user to all HAPS and closest base station (bidirectional)
         for user in user_nodes:
@@ -107,7 +107,7 @@ class Network:
                 link = CommunicationLink(
                     bs,
                     haps,
-                    total_bandwidth=174e6,  # Higher bandwidth for BS-HAPS links
+                    total_bandwidth=174e3,  # Higher bandwidth for BS-HAPS links
                     signal_power=30,  # Higher power for BS-HAPS links
                     carrier_frequency=2e9,
                     debug=self.debug,
@@ -220,7 +220,7 @@ class Network:
                         f"Request {request.id} completed transmission to {current_node}, routing to {next_node}"
                     )
 
-                    # Find next link and add request to its queue
+               # Find next link and add request to its queue
                     for next_link in self.communication_links:
                         if (
                             next_link.node_a == current_node

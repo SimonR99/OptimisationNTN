@@ -71,13 +71,13 @@ class Request:
         match priority:
             case Priority.HIGH:
                 self.qos_limit = 0.2  # 200 ms
-                self.size = random.randint(5, 15) * 1000  # 5 to 15 kilo bytes
+                self.size = random.randint(1, 3) * 1000000  # 1 to 3 Mb
             case Priority.MEDIUM:
                 self.qos_limit = 0.5  # 500 ms
-                self.size = random.randint(10, 40) * 1000  # 10 to 40 kilo bytes
+                self.size = random.randint(4, 6) * 1000000  # 4 to 6 Mb
             case Priority.LOW:
                 self.qos_limit = 1  # 1000 ms
-                self.size = random.randint(30, 50) * 1000  # 30 to 50 kilo bytes
+                self.size = random.randint(7, 10) * 1000000  # 7 to 10 Mb
         self.debug_print(
             f"Request {self.id} created with size {self.size / 1000} kilo bytes"
         )
