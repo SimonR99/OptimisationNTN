@@ -3,6 +3,11 @@ from typing import Dict
 
 import numpy as np
 
+from ..algorithms.power_strategy import PowerStateStrategy
+from ..algorithms.power_strategy import GeneticAlgorithmStrategy
+from ..algorithms.power_strategy import AllOnStrategy
+from ..algorithms.power_strategy import RandomStrategy
+from ..algorithms.power_strategy import StaticRandomStrategy
 from ..networks.request import RequestStatus
 from ..nodes.base_station import BaseStation
 from ..nodes.user_device import UserDevice
@@ -14,7 +19,6 @@ class MatrixType(Enum):
     POWER_STATE = "B"
     REQUEST = "K"
     ASSIGNMENT = "X"
-
 
 class DecisionMatrices:
     def __init__(self, dimension: int = 0):
@@ -79,7 +83,7 @@ class DecisionMatrices:
                 break
 
     def generate_power_matrix(
-        self, num_devices: int, num_steps: int, strategy: "PowerStateStrategy"
+        self, num_devices: int, num_steps: int, strategy: PowerStateStrategy
     ):
         """Generate power state matrix based on a given strategy.
 
@@ -91,6 +95,7 @@ class DecisionMatrices:
         Returns:
             np.ndarray: Power state matrix
         """
+        print(strategy.get_name())
         power_matrix = strategy.generate_power_matrix(num_devices, num_steps)
         self.matrices[MatrixType.POWER_STATE] = power_matrix
 

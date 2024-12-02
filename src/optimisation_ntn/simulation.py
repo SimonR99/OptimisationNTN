@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 
 from typing import Optional
 
+from sympy.strategies.core import switch
+
 from optimisation_ntn.networks.request import RequestStatus
 
 from .algorithms.power_strategy import (
@@ -14,6 +16,7 @@ from .algorithms.power_strategy import (
     PowerStateStrategy,
     RandomStrategy,
     StaticRandomStrategy,
+    GeneticAlgorithmStrategy,
 )
 from .matrices.decision_matrices import DecisionMatrices, MatrixType
 from .networks.network import Network
@@ -42,6 +45,7 @@ class Simulation:
         max_time: float = DEFAULT_MAX_SIMULATION_TIME,
         debug: bool = False,
         user_count: int = DEFAULT_USER_COUNT,
+        strategy = "StaticRandomStrategy",
     ):
         # Set the random seed if provided
         if seed is not None:
@@ -53,7 +57,7 @@ class Simulation:
         self.max_time = max_time
         self.network = Network(debug=debug)
         self.matrices = DecisionMatrices(dimension=user_count)
-        self.strategy: PowerStateStrategy | None = None
+        self.strategy = self.set_strategy(strategy)
         self.matrix_history: list[DecisionMatrices] = []
         self.total_requests = 0
         self.request_stats = {status: 0 for status in RequestStatus}
@@ -78,9 +82,17 @@ class Simulation:
         """Calculate the maximum number of simulation steps."""
         return int(self.max_time / self.time_step)
 
-    def set_strategy(self, strategy: PowerStateStrategy):
+    def set_strategy(self, strategy: str):
         """Set the optimization strategy to use"""
-        self.strategy = strategy
+        match strategy:
+            case "AllOn":
+                return AllOnStrategy()
+            case "Random":
+                return RandomStrategy()
+            case "StaticRandom":
+                return StaticRandomStrategy()
+            case "Genetic":
+                return GeneticAlgorithmStrategy()
 
     def run(self) -> float:
         """Run simulation until self.max_time.
@@ -286,56 +298,6 @@ class Simulation:
                 height = -2
                 self.network.add_node(node_type(i, Position(x_pos, height)))
 
-    def optimize(self, num_iterations: int = 10) -> tuple[float, list[float]]:
-        """Run multiple simulations to optimize energy consumption."""
-        start_time = time.time()
-
-        print(f"\nStarting optimization with {num_iterations} iterations")
-        print("Initial parameters:")
-        print(f"Time step: {self.time_step}s")
-        print(f"Max simulation time: {self.max_time}s")
-        print(f"{self.network}")  # Use Network's string representation
-        print("\nOptimization running...\n")
-
-        best_energy = float("inf")
-        energy_history = []
-
-        for i in range(num_iterations):
-            print(f"Iteration {i+1}/{num_iterations}")
-            energy = self.run()
-            energy_history.append(energy)
-
-            if energy < best_energy:
-                best_energy = energy
-
-            self.reset()
-
-            if self.strategy:
-                self.strategy.update_parameters(energy_history)
-
-        # Print optimization results
-        execution_time = time.time() - start_time
-        print("\nOptimization completed:")
-        print(f"Total execution time: {execution_time:.2f} seconds")
-        print(
-            f"Average time per iteration: {execution_time/num_iterations:.2f} seconds"
-        )
-        print(f"Best energy found: {best_energy}")
-
-        return best_energy, energy_history
-
-    def calculate_total_energy(self) -> float:
-        """Calculate total energy consumed during simulation.
-
-        Returns:
-            float: Total energy consumption
-        """
-        total_energy = 0.0
-        for matrix in self.matrix_history:
-            # Sum energy consumption from each matrix snapshot
-            total_energy += matrix.calculate_energy()
-        return total_energy
-
     def consumed_energy_graph(self):
         plt.plot(
             self.energy_consumption_graph_y,
@@ -379,14 +341,10 @@ class Simulation:
             + self.network.count_nodes_by_type(LEO)
         )
 
-        # Set the strategy if not already set
-        if not self.strategy:
-            self.strategy = StaticRandomStrategy()
-
         self.matrices.generate_power_matrix(
-            num_devices=compute_nodes_count,
-            num_steps=matrix_size,
-            strategy=self.strategy,
+            compute_nodes_count,
+            matrix_size,
+            self.strategy
         )
 
     def debug_print(self, *args, **kwargs):

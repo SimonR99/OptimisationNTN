@@ -55,11 +55,11 @@ def create_parser():
     parser.add_argument(
         "--algorithm",
         type=str,
-        choices=["Random", "AllOn"],
-        default="AllOn",
+        choices=["Random", "StaticRandom", "AllOn", "Genetic"],
         help="Algorithm used for optimizing or running the simulation",
     )
 
+    # Debug mode
     parser.add_argument(
         "--debug",
         action="store_true",
@@ -71,7 +71,7 @@ def create_parser():
 
 def main(args):
     all_iterations_data = []
-    current_user_count = 50
+    current_user_count = Simulation.DEFAULT_USER_COUNT
 
     for i in range(args.iteration_count):
         if i != 0:
@@ -89,6 +89,7 @@ def main(args):
             max_time=args.max_time,
             debug=args.debug,
             user_count=current_user_count,  # Use the computed user count
+            strategy=args.algorithm,
         )
 
         # Run the simulation
@@ -107,16 +108,17 @@ def main(args):
         print(f"Iteration {i + 1} - Total energy consumed: {total_energy} joules")
 
     # Compile and export data for all iterations
-    collect_graph_data(all_iterations_data)
+    if args.debug:
+        collect_graph_data(all_iterations_data)
 
 
 if __name__ == "__main__":
     parser = create_parser()
     parser.add_argument(
         "--mode",
-        choices=["run", "optimize"],
+        choices=["run"],
         default="run",
-        help="Simulation mode: run a single simulation or optimize over multiple runs",
+        help="Simulation mode: run a single simulation",
     )
     args = parser.parse_args()
     main(args)
