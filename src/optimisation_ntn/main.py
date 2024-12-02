@@ -84,6 +84,7 @@ def main(args):
 
         # Create a new simulation instance for each iteration
         simulation = Simulation(
+            seed=42,
             time_step=args.tick_time,
             max_time=args.max_time,
             debug=args.debug,

@@ -6,7 +6,8 @@ import sys
 
 import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
-from PySide6.QtCharts import QChart, QChartView, QLineSeries
+from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis
+from PySide6.QtCore import Qt
 
 from .nodes.base_station import BaseStation
 from .nodes.haps import HAPS
@@ -212,7 +213,7 @@ class SimulationUI(QtWidgets.QMainWindow):
         info_layout.addWidget(QtWidgets.QLabel("UI Update Interval (ms):"), 1, 0)
         self.time_step_input = QtWidgets.QSpinBox()
         self.time_step_input.setRange(1, 100)
-        self.time_step_input.setValue(16)
+        self.time_step_input.setValue(100)
         self.time_step_input.valueChanged.connect(self.update_time_step)
         info_layout.addWidget(self.time_step_input, 1, 1)
 
@@ -224,6 +225,11 @@ class SimulationUI(QtWidgets.QMainWindow):
         info_layout.addWidget(QtWidgets.QLabel("Current Step:"), 3, 0)
         self.current_step_label = QtWidgets.QLabel("0")
         info_layout.addWidget(self.current_step_label, 3, 1)
+
+        # Add energy consumption display to info layout
+        info_layout.addWidget(QtWidgets.QLabel("Energy Consumed:"), 4, 0)
+        self.current_energy_label = QtWidgets.QLabel("0.0 J")
+        info_layout.addWidget(self.current_energy_label, 4, 1)
 
         info_box.setLayout(info_layout)
         horizontal_layout.addWidget(info_box)
@@ -290,16 +296,29 @@ class SimulationUI(QtWidgets.QMainWindow):
                 QtGui.QBrush(QtGui.QColor("skyblue")),
             )
 
-            # Add HAPS
             haps_pixmap = QtGui.QPixmap("images/haps.png").scaled(30, 30)
             haps_positions = {}
 
+            bs_pixmap = QtGui.QPixmap("images/base_station.png").scaled(30, 30)
+            bs_positions = {}
+
+            user_pixmap = QtGui.QPixmap("images/person.png").scaled(20, 20)
+            user_positions = {}
+
+            leo_pixmap = QtGui.QPixmap("images/leo.png").scaled(30, 30)
+            leo_positions = {}
+
             for node in self.simulation.network.nodes:
+                # Add HAPS
                 if isinstance(node, HAPS):
                     x_pos = node.position.x * 50
                     y_pos = 100
                     haps_item = QtWidgets.QGraphicsPixmapItem(haps_pixmap)
                     haps_item.setPos(x_pos, y_pos)
+
+                    if not node.state:
+                        haps_item.setOpacity(0.2)
+
                     scene.addItem(haps_item)
 
                     haps_positions[node] = (
@@ -315,17 +334,16 @@ class SimulationUI(QtWidgets.QMainWindow):
                         - text.boundingRect().width() / 2,
                         y_pos - 20,
                     )
-
-            # Add Base Stations
-            bs_pixmap = QtGui.QPixmap("images/base_station.png").scaled(30, 30)
-            bs_positions = {}
-
-            for node in self.simulation.network.nodes:
+                # Add Base Stations
                 if isinstance(node, BaseStation):
                     x_pos = node.position.x * 50
                     y_pos = 250  # Just above the floor
                     bs_item = QtWidgets.QGraphicsPixmapItem(bs_pixmap)
                     bs_item.setPos(x_pos, y_pos)
+
+                    if not node.state:
+                        bs_item.setOpacity(0.2)
+
                     scene.addItem(bs_item)
 
                     bs_positions[node] = (
@@ -340,11 +358,7 @@ class SimulationUI(QtWidgets.QMainWindow):
                         y_pos + bs_pixmap.height() + 5,
                     )
 
-            # Add Users
-            user_pixmap = QtGui.QPixmap("images/person.png").scaled(20, 20)
-            user_positions = {}
-
-            for node in self.simulation.network.nodes:
+                # Add Users
                 if isinstance(node, UserDevice):
                     x_pos = node.position.x * 50
                     y_pos = 270
@@ -356,36 +370,76 @@ class SimulationUI(QtWidgets.QMainWindow):
                         y_pos + user_pixmap.height() / 2,
                     )
 
+                # Add LEO satellites
+                if isinstance(node, LEO) and node.is_visible:
+                    # Calculate position based on visible angle range
+                    view_width = 400  # Width of the view
+
+                    # Map angle from [-13.6, 13.6] to screen coordinates
+                    angle_range = np.abs(LEO.initial_angle - LEO.final_angle)
+                    x_pos = (
+                        (node.current_angle - LEO.initial_angle) / angle_range
+                    ) * view_width - view_width / 2
+                    y_pos = 50  # Keep constant height for horizontal movement
+
+                    leo_item = QtWidgets.QGraphicsPixmapItem(leo_pixmap)
+                    leo_item.setPos(x_pos, y_pos)
+
+                    if not node.state:
+                        leo_item.setOpacity(0.2)
+
+                    scene.addItem(leo_item)
+
+                    leo_positions[node] = (
+                        x_pos + leo_pixmap.width() / 2,
+                        y_pos + leo_pixmap.height() / 2,
+                    )
+
+                    # Add angle text
+                    angle_text = scene.addText(
+                        f"LEO {node.node_id}\nAngle: {node.current_angle:.1f}°"
+                    )
+                    angle_text.setDefaultTextColor(QtGui.QColor("white"))
+                    angle_text.setPos(x_pos, y_pos - 40)
+
             # Draw communication links if enabled
             if self.show_links:
+                # Draw all communication links from the network
                 for link in self.simulation.network.communication_links:
                     source = link.node_a
                     target = link.node_b
-
                     # Get positions based on node types
                     source_pos = None
-                    target_pos = None
-
                     if isinstance(source, UserDevice):
                         source_pos = user_positions.get(source)
                     elif isinstance(source, HAPS):
                         source_pos = haps_positions.get(source)
                     elif isinstance(source, BaseStation):
                         source_pos = bs_positions.get(source)
+                    elif isinstance(source, LEO):
+                        source_pos = leo_positions.get(source)
 
+                    target_pos = None
                     if isinstance(target, UserDevice):
                         target_pos = user_positions.get(target)
                     elif isinstance(target, HAPS):
                         target_pos = haps_positions.get(target)
                     elif isinstance(target, BaseStation):
                         target_pos = bs_positions.get(target)
+                    elif isinstance(target, LEO):
+                        target_pos = leo_positions.get(target)
 
                     if source_pos and target_pos:
                         # Use different colors based on connection type
-                        if isinstance(source, BaseStation) or isinstance(
+                        color = "yellow"  # Default color
+                        if isinstance(source, LEO) or isinstance(target, LEO):
+                            color = "cyan"  # LEO connections
+                        elif isinstance(source, BaseStation) or isinstance(
                             target, BaseStation
                         ):
                             color = "yellow"  # BS connections
+                        elif isinstance(source, HAPS) or isinstance(target, HAPS):
+                            color = "orange"  # HAPS connections
                         else:
                             color = "white"  # Other connections
 
@@ -402,32 +456,11 @@ class SimulationUI(QtWidgets.QMainWindow):
                         )
                         line.setOpacity(0.5)
 
-            # Add LEO satellites
-            leo_pixmap = QtGui.QPixmap("images/leo.png").scaled(30, 30)
-            leo_positions = {}
-
-            for node in self.simulation.network.nodes:
-                if isinstance(node, LEO) and node.is_visible:
-                    # Calculate position based on visible angle range
-                    view_width = 400  # Width of the view
-
-                    # Map angle from [-13.6, 13.6] to screen coordinates
-                    angle_range = np.abs(LEO.initial_angle - LEO.final_angle)
-                    x_pos = (
-                        (node.current_angle - LEO.initial_angle) / angle_range
-                    ) * view_width - view_width / 2
-                    y_pos = 50  # Keep constant height for horizontal movement
-
-                    leo_item = QtWidgets.QGraphicsPixmapItem(leo_pixmap)
-                    leo_item.setPos(x_pos, y_pos)
-                    scene.addItem(leo_item)
-
-                    # Add angle text
-                    angle_text = scene.addText(
-                        f"LEO {node.node_id}\nAngle: {node.current_angle:.1f}°"
-                    )
-                    angle_text.setDefaultTextColor(QtGui.QColor("white"))
-                    angle_text.setPos(x_pos, y_pos - 40)
+                        # Add requests in transit for this link
+                        if link.transmission_queue:
+                            self.add_in_transit_requests(
+                                scene, link, source_pos, target_pos
+                            )
 
             # Store node positions for request visualization
             node_positions = {}
@@ -601,15 +634,34 @@ class SimulationUI(QtWidgets.QMainWindow):
             line.setOpacity(0.5)
 
     def create_live_graph(self, title):
+        """Create a live graph widget for energy or throughput monitoring"""
         series = QLineSeries()
-        series.append(0, random.uniform(50, 150))
         chart = QChart()
         chart.addSeries(series)
         chart.setTitle(title)
-        chart.createDefaultAxes()
+
+        # Create axes explicitly
+        axis_x = QValueAxis()
+        axis_y = QValueAxis()
+
+        # Store series reference if it's the energy graph
+        if title == "Energy":
+            self.energy_series = series
+            # Configure axes
+            axis_x.setTitleText("Time (s)")
+            axis_y.setTitleText("Energy (J)")
+            axis_x.setRange(0, self.simulation.max_time if self.simulation else 300)
+            axis_y.setRange(0, 200)
+
+        # Add axes to chart
+        chart.addAxis(axis_x, Qt.AlignBottom)
+        chart.addAxis(axis_y, Qt.AlignLeft)
+        series.attachAxis(axis_x)
+        series.attachAxis(axis_y)
+
         chart.setBackgroundBrush(QtGui.QColor("#2e2e2e"))
         chart_view = QChartView(chart)
-        chart_view.setRenderHint(QtGui.QPainter.Antialiasing)
+        chart_view.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
         return chart_view
 
     def create_results_tab(self):
@@ -624,9 +676,10 @@ class SimulationUI(QtWidgets.QMainWindow):
     def start_simulation(self):
         if self.simulation:
             self.simulation.is_paused = False
-            update_interval = (
-                self.time_step_input.value()
-            )  # Get UI update interval in ms
+            update_interval = self.time_step_input.value()
+
+            # Disable step duration input while simulation is running
+            self.step_duration_input.setEnabled(False)
 
             # Create timer for UI updates
             self.timer = QtCore.QTimer()
@@ -642,6 +695,12 @@ class SimulationUI(QtWidgets.QMainWindow):
             # Update UI
             if can_continue:
                 self.update_simulation_display()
+                # Update energy graph
+                if hasattr(self, "energy_series"):
+                    self.energy_series.append(
+                        self.simulation.current_time,
+                        self.simulation.system_energy_consumed,
+                    )
                 # Force scene update
                 self.load_close_up_view()
                 self.schematic_view.viewport().update()
@@ -656,12 +715,21 @@ class SimulationUI(QtWidgets.QMainWindow):
             self.current_time_label.setText(f"{self.simulation.current_time:.1f}s")
             self.current_step_label.setText(str(self.simulation.current_step))
 
+            # Add energy consumption display
+            if hasattr(self, "current_energy_label"):
+                self.current_energy_label.setText(
+                    f"{self.simulation.system_energy_consumed:.2f} J"
+                )
+
     def reset_simulation(self):
         if self.simulation:
             # Stop timer if running
             if hasattr(self, "timer") and self.timer.isActive():
                 self.timer.stop()
                 self.run_pause_btn.setText("Run")
+
+            # Re-enable step duration input
+            self.step_duration_input.setEnabled(True)
 
             self.simulation.reset()
             self.update_ui_parameters()
@@ -699,13 +767,12 @@ class SimulationUI(QtWidgets.QMainWindow):
             # Create new simulation instance with debug mode
             simulation = Simulation(debug=False)
 
-            # Initialize network and matrices
-            simulation.initialize_default_nodes()
-            simulation.initialize_matrices()
-
             # Store simulation
             self.simulations[simulation_name] = simulation
             self.simulation = simulation
+
+            # Ensure step duration input is enabled for new simulation
+            self.step_duration_input.setEnabled(True)
 
             # Add to list and select it
             self.sim_list.addItem(simulation_name)
@@ -750,62 +817,20 @@ class SimulationUI(QtWidgets.QMainWindow):
         """Update the number of base stations in the simulation and view"""
         if self.simulation:
             num_bs = self.num_bs_input.value()
-            self.set_base_stations(num_bs)
+            self.simulation.set_nodes(BaseStation, num_bs)
             self.load_close_up_view()
-
-    def set_base_stations(self, num_base_stations: int):
-        """Remove all existing base stations and create new ones."""
-        network = self.simulation.network
-        # Remove all existing base stations
-        network.nodes = [
-            node for node in network.nodes if not isinstance(node, BaseStation)
-        ]
-
-        # Add new base stations
-        start_x = -(num_base_stations - 1) * 1.5 / 2
-        for i in range(num_base_stations):
-            x_pos = start_x + (i * 1.5)
-            base_station = BaseStation(i, Position(x_pos, 0))
-            network.add_node(base_station)
 
     def update_haps(self):
         if self.simulation:
             num_haps = self.num_haps_input.value()
-            self.set_haps(num_haps)
+            self.simulation.set_nodes(HAPS, num_haps)
             self.load_close_up_view()
-
-    def set_haps(self, num_haps: int):
-        network = self.simulation.network
-        # Remove all existing HAPS
-        network.nodes = [node for node in network.nodes if not isinstance(node, HAPS)]
-
-        # Add new HAPS
-        start_x = -(num_haps - 1) * 2 / 2
-        height = 20  # Height for HAPS layer
-        for i in range(num_haps):
-            x_pos = start_x + (i * 2)
-            haps = HAPS(i, Position(x_pos, height))
-            network.add_node(haps)
 
     def update_users(self):
         if self.simulation:
             num_users = self.num_users_input.value()
-            self.set_users(num_users)
+            self.simulation.set_nodes(UserDevice, num_users)
             self.load_close_up_view()
-
-    def set_users(self, num_users: int):
-        network = self.simulation.network
-        # Remove all existing users
-        network.nodes = [
-            node for node in network.nodes if not isinstance(node, UserDevice)
-        ]
-
-        # Add new users with random positions
-        for i in range(num_users):
-            x_pos = random.uniform(-4, 4)
-            height = -2  # Height for users (below base stations)
-            user = UserDevice(i, Position(x_pos, height))
-            network.add_node(user)
 
     def toggle_links(self, state):
         self.show_links = bool(state)

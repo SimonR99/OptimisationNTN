@@ -7,7 +7,12 @@ import matplotlib.pyplot as plt
 
 from optimisation_ntn.networks.request import RequestStatus
 
-from .algorithms.power_strategy import AllOnStrategy, PowerStateStrategy
+from .algorithms.power_strategy import (
+    AllOnStrategy,
+    PowerStateStrategy,
+    RandomStrategy,
+    StaticRandomStrategy,
+)
 from .matrices.decision_matrices import DecisionMatrices, MatrixType
 from .networks.network import Network
 from .nodes.base_station import BaseStation
@@ -30,11 +35,15 @@ class Simulation:
 
     def __init__(
         self,
+        seed: Optional[int] = None,
         time_step: float = DEFAULT_TICK_TIME,
         max_time: float = DEFAULT_MAX_SIMULATION_TIME,
         debug: bool = False,
         user_count: int = DEFAULT_USER_COUNT,
     ):
+        # Set the random seed if provided
+        if seed is not None:
+            random.seed(seed)
         self.user_count = user_count
         self.current_step = 0
         self.current_time = 0.0
@@ -139,6 +148,9 @@ class Simulation:
 
     def step(self) -> bool:
         """Run simulation for a single step."""
+        # Apply power states at the beginning of each step
+        self.apply_power_states()
+
         # Get new requests from request matrix for this tick
         new_requests = self.matrices.get_matrix(MatrixType.REQUEST)[
             :, self.current_step
@@ -146,44 +158,61 @@ class Simulation:
 
         # Get user devices and compute nodes
         user_devices = [n for n in self.network.nodes if isinstance(n, UserDevice)]
-        compute_nodes = self.network.get_compute_nodes()
 
         # Create new requests for users
         for i, request_flag in enumerate(new_requests):
-            if request_flag == 1 and i < len(user_devices):
+            if request_flag == 1:
                 user = user_devices[i]
 
-                # Find closest available compute node
-                closest_compute = None
-                min_distance = float("inf")
+                # Create the request
+                request = user.create_request(self.current_step)
+                compute_nodes = self.network.get_compute_nodes(request)
 
+                # Find optimal compute node based on both compute and network delay
+                best_node = None
+                best_total_time = float("inf")
+                best_path = None
                 for compute_node in compute_nodes:
-                    if compute_node.state and compute_node.processing_frequency > 0:
-                        distance = user.position.distance_to(compute_node.position)
-                        if distance < min_distance:
-                            min_distance = distance
-                            closest_compute = compute_node
+                    # Estimate processing time based on node's compute capacity
+                    processing_time = compute_node.processing_time(request)
+                    path = self.network.generate_request_path(user, compute_node)
+                    network_delay = self.network.get_network_delay(request, path)
+                    total_time = processing_time + network_delay
 
-                # Create request to closest compute node if found
-                if closest_compute:
-                    request = user.spawn_request(self.current_step, closest_compute)
-                    self.debug_print(
-                        f"Created request from {user} to {closest_compute} (distance: {min_distance:.2f})"
-                    )
+                    if total_time < best_total_time:
+                        best_total_time = total_time
+                        best_node = compute_node
+                        best_path = path
 
-                    # Try to route the request through the network
-                    if self.network.route_request(request):
-                        self.debug_print(f"Request {request.id} routed successfully")
-                        self.total_requests += 1
-                    else:
-                        self.debug_print(f"Failed to route request {request.id}")
+                # If we found a suitable compute node, assign it and initialize routing
+                if best_node:
+                    user.assign_target_node(request, best_node)
+                    request.path = best_path
+                    request.path_index = 1
+                    request.status = RequestStatus.IN_TRANSIT
+
+                    # Add request to first transmission queue
+                    current_node = request.path[0]
+                    next_node = request.path[1]
+
+                    # Find the appropriate link
+                    for link in self.network.communication_links:
+                        if link.node_a == current_node and link.node_b == next_node:
+                            link.add_to_queue(request)
+                            request.next_node = next_node
+                            self.debug_print(
+                                f"Added request {request.id} to transmission queue: {current_node} -> {next_node}"
+                            )
+                            break
+
+                    self.total_requests += 1
                 else:
                     self.debug_print(f"No available compute nodes found for {user}")
 
-        # Update network state (transfer + processing)
+        # Update network state
         self.network.tick(self.time_step)
 
-        # Update assignment matrix and stats
+        # Update matrices and stats
         self.matrices.update_assignment_matrix(self.network)
         self.update_request_stats()
 
@@ -341,19 +370,37 @@ class Simulation:
         # Generate coverage matrix
         self.matrices.generate_coverage_matrix(self.network)
 
-        # Generate power matrix using the new counting method
-        num_devices = (
+        # Generate power matrix with the strategy
+        compute_nodes_count = (
             self.network.count_nodes_by_type(HAPS)
             + self.network.count_nodes_by_type(BaseStation)
             + self.network.count_nodes_by_type(LEO)
         )
+
+        # Set the strategy if not already set
+        if not self.strategy:
+            self.strategy = StaticRandomStrategy()
+
         self.matrices.generate_power_matrix(
-            num_devices=num_devices,
+            num_devices=compute_nodes_count,
             num_steps=matrix_size,
-            strategy=AllOnStrategy(),
+            strategy=self.strategy,
         )
 
     def debug_print(self, *args, **kwargs):
         """Print only if debug mode is enabled"""
         if self.debug:
             print(*args, **kwargs)
+
+    def apply_power_states(self):
+        """Apply power states from power matrix to network nodes"""
+        power_matrix = self.matrices.get_matrix(MatrixType.POWER_STATE)
+        compute_nodes = [
+            n for n in self.network.nodes if isinstance(n, (HAPS, BaseStation, LEO))
+        ]
+
+        current_power_states = power_matrix[:, self.current_step]
+
+        for node_idx, node in enumerate(compute_nodes):
+            if node_idx < len(current_power_states):
+                node.set_state(bool(current_power_states[node_idx]))
