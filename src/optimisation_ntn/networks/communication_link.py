@@ -68,10 +68,12 @@ class CommunicationLink:
     def noise_power(self) -> float:
         """Calculates noise power based on the receiver's spectral noise density."""
         # Assumes node_b is the receiver
-        spectral_noise_density = self.linear_scale_dbm(self.node_b.spectral_noise_density) 
+        spectral_noise_density = self.linear_scale_dbm(
+            self.node_b.spectral_noise_density
+        )
 
-        return spectral_noise_density * self.adjusted_bandwidth    
-    
+        return spectral_noise_density * self.adjusted_bandwidth
+
     def linear_scale_db(self, gain: float) -> float:
         """Linear scale the Gain in dB to apply in SNR."""
         return 10 ** (gain / 10)
@@ -83,7 +85,7 @@ class CommunicationLink:
     def calculate_free_space_path_loss(self) -> float:
         """Calculates Free Space Path Loss for (user-haps, haps-base station, haps-leo)."""
         return (
-            4 * np.pi * self.link_length * self.carrier_frequency / Earth.speed_of_light
+            Earth.speed_of_light / (4 * np.pi * self.link_length * self.carrier_frequency)
         )
 
     def calculate_gain(self) -> float:
@@ -95,7 +97,7 @@ class CommunicationLink:
             return (
                 path_loss
                 * (np.abs(self.node_a.attenuation_coefficient) ** 2)
-                / self.link_length ** self.node_a.path_loss_exponent
+                / self.link_length**self.node_a.path_loss_exponent
             )
             """Calculates Gain of the current channel that is different from user - bs."""
         else:
@@ -104,7 +106,7 @@ class CommunicationLink:
             rx_antenna = self.linear_scale_db(self.antenna_b.gain)
 
             return tx_antenna * rx_antenna * path_loss
-            
+
     def calculate_snr(self) -> float:
         """Calculates SNR (Signal to Noise Ratio) of the current channel."""
         gain = self.calculate_gain()
@@ -116,7 +118,7 @@ class CommunicationLink:
         """Calculates link capacity based on Shannon's formula using adjusted bandwidth."""
         snr = self.calculate_snr()
         return self.adjusted_bandwidth * np.log2(1 + snr)
-    
+
     def calculate_transmission_delay(self, request: Request) -> float:
         """Estimates the network delay for the link."""
         return request.size / self.calculate_capacity()
@@ -148,7 +150,6 @@ class CommunicationLink:
                     * time
                 )
             if self.debug:
-                
                 print(f"Capacity: {capacity} \n")
                 print(f"Request size: {current_request.size} \n")
                 print(f"Transmission time: {transmission_delay} \n")
@@ -163,7 +164,7 @@ class CommunicationLink:
                 self.debug_print(
                     f"Request {current_request.id} completed transmission from {self.node_a} to {self.node_b}"
                 )
-            
+
             # Add to completed requests instead of handling routing here
             self.completed_requests.append(current_request)
             self.transmission_queue.pop(0)

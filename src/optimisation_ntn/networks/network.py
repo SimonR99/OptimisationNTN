@@ -64,7 +64,7 @@ class Network:
                 link = CommunicationLink(
                     user,
                     haps,
-                    total_bandwidth=174e6,
+                    total_bandwidth=174e3,
                     signal_power=23,
                     carrier_frequency=2e9,
                     debug=self.debug,
@@ -90,7 +90,7 @@ class Network:
                     link = CommunicationLink(
                         user,
                         closest_bs,
-                        total_bandwidth=174e6,
+                        total_bandwidth=174e3,
                         signal_power=23,
                         carrier_frequency=2e9,
                         debug=self.debug,
@@ -107,7 +107,7 @@ class Network:
                 link = CommunicationLink(
                     bs,
                     haps,
-                    total_bandwidth=174e3,  # Higher bandwidth for BS-HAPS links
+                    total_bandwidth=174e6,  # Higher bandwidth for BS-HAPS links
                     signal_power=30,  # Higher power for BS-HAPS links
                     carrier_frequency=2e9,
                     debug=self.debug,
@@ -118,7 +118,7 @@ class Network:
                 link = CommunicationLink(
                     haps,
                     bs,
-                    total_bandwidth=174e6,
+                    total_bandwidth=174e3,
                     signal_power=33,
                     carrier_frequency=2e9,
                     debug=self.debug,
@@ -133,7 +133,7 @@ class Network:
                 link = CommunicationLink(
                     haps,
                     leo,
-                    total_bandwidth=174e6,
+                    total_bandwidth=174e3,
                     signal_power=33,
                     carrier_frequency=2e9,
                     debug=self.debug,
@@ -176,7 +176,7 @@ class Network:
         for i in range(len(path) - 1):
             for link in self.communication_links:
                 if link.node_a == path[i] and link.node_b == path[i + 1]:
-                    time += link.estimate_network_delay(request)
+                    time += link.calculate_transmission_delay(request)
         return time
 
     def tick(self, time: float = 0.1):
@@ -220,7 +220,7 @@ class Network:
                         f"Request {request.id} completed transmission to {current_node}, routing to {next_node}"
                     )
 
-               # Find next link and add request to its queue
+                    # Find next link and add request to its queue
                     for next_link in self.communication_links:
                         if (
                             next_link.node_a == current_node

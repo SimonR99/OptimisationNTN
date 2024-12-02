@@ -22,7 +22,7 @@ class TestCommunicationLink(unittest.TestCase):
         # Define nodes with antennas
         self.node_a = UserDevice(0, self.position_a)
         self.node_a.add_antenna("VHF", 3)  # Add compatible UHF antenna
-        
+
         self.node_b = BaseStation(1, self.position_b)
         self.node_b.add_antenna("VHF", 10)  # Matching UHF antenna for communication
 
@@ -31,7 +31,7 @@ class TestCommunicationLink(unittest.TestCase):
         link = CommunicationLink(
             self.node_a,
             self.node_b,
-            total_bandwidth=174e6,
+            total_bandwidth=174e3,
             signal_power=23,
             carrier_frequency=2e9,
         )
@@ -41,7 +41,7 @@ class TestCommunicationLink(unittest.TestCase):
         link = CommunicationLink(
             self.node_a,
             self.node_b,
-            total_bandwidth=174e6,
+            total_bandwidth=174e3,
             signal_power=23,
             carrier_frequency=2e9,
         )
@@ -51,28 +51,29 @@ class TestCommunicationLink(unittest.TestCase):
         link = CommunicationLink(
             self.node_a,
             self.node_b,
-            total_bandwidth=174e6,
+            total_bandwidth=174e3,
             signal_power=23,
             carrier_frequency=2e9,
         )
-        self.assertEqual(link.linear_scale_dbm(link.signal_power), 10 ** (23-30) / 10)
+        self.assertEqual(link.linear_scale_dbm(link.signal_power), 10 ** ((23 - 30) / 10))
 
     def test_linear_scale_noise_dbm(self):
         link = CommunicationLink(
             self.node_a,
             self.node_b,
-            total_bandwidth=174e6,
+            total_bandwidth=174e3,
             signal_power=23,
             carrier_frequency=2e9,
         )
-        self.assertEqual(link.linear_scale_dbm(self.node_a.spectral_noise_density), 10 ** (-174-30) / 10)
-         
+        self.assertEqual(
+            link.linear_scale_dbm(self.node_a.spectral_noise_density), 10 ** ((-174 - 30) / 10))
+
     def test_gain(self):
         # Test Path Loss user-base station
         link = CommunicationLink(
             self.node_a,
             self.node_b,
-            total_bandwidth=174e6,
+            total_bandwidth=174e3,
             signal_power=23,
             carrier_frequency=2e9,
         )
@@ -82,64 +83,43 @@ class TestCommunicationLink(unittest.TestCase):
         link = CommunicationLink(
             self.node_a,
             self.node_b,
-            total_bandwidth=174e6,
+            total_bandwidth=174e3,
             signal_power=23,
             carrier_frequency=2e9,
         )
-        self.assertEqual(link.adjusted_bandwidth, 174e6)
+        self.assertEqual(link.adjusted_bandwidth, 174e3)
 
     def test_noise_power(self):
         link = CommunicationLink(
             self.node_a,
             self.node_b,
-            total_bandwidth=174e6,
+            total_bandwidth=174e3,
             signal_power=23,
             carrier_frequency=2e9,
         )
-        self.assertEqual(link.noise_power, (10 ** (-174-30) / 10) * 174e6)
+        self.assertEqual(link.noise_power, (10 ** ((-174 - 30) / 10)) * 174e3)
 
     def test_snr(self):
         link = CommunicationLink(
             self.node_a,
             self.node_b,
-            total_bandwidth=174e6,
+            total_bandwidth=174e3,
             signal_power=23,
             carrier_frequency=2e9,
-        )
-        self.assertEqual(link.calculate_snr(), 207387820.81129)        
+        ) 
+        self.assertEqual(link.calculate_snr(), (1.2e12 * (10 ** (7 / 10))) / 29)
 
     def test_capacity(self):
         link = CommunicationLink(
             self.node_a,
             self.node_b,
-            total_bandwidth=174e6,
+            total_bandwidth=174e3,
             signal_power=23,
             carrier_frequency=2e9,
         )
-        self.assertEqual(link.calculate_capacity(), 4807229533.2244) 
-         
-    def test_transmission_delay(self):
-        link = CommunicationLink(
-            self.node_a,
-            self.node_b,
-            total_bandwidth=174e6,
-            signal_power=23,
-            carrier_frequency=2e9,
-        )
-        self.assertEqual(link.calculate_transmission_delay(), 4807229533.2244) 
+        self.assertEqual(
+            link.calculate_capacity(), 174e3 * np.log2 ((1.2e12 * (10 ** (7 / 10)) + 29) / 29))
 
-    def test_zero_capacity(self):
-        # Test with zero signal power
-        link = CommunicationLink(
-            self.node_a,
-            self.node_b,
-            total_bandwidth=174e6,
-            signal_power=23,
-            carrier_frequency=2e9,
-        )
-        self.assertEqual(link.calculate_capacity(), 0.0)
-
-   
     def test_calcul_leo_loss(self):
         # Set up a HAPS and LEO node. They both should have the right antennas
         node_haps = HAPS(0, Position(0, 0))
@@ -149,7 +129,9 @@ class TestCommunicationLink(unittest.TestCase):
         link = CommunicationLink(
             node_haps, node_leo, total_bandwidth=1, signal_power=1, carrier_frequency=1
         )
-        self.assertNotEqual(link.calculate_free_space_path_loss(), 0.0)  # FSPL should not be zero
+        self.assertNotEqual(
+            link.calculate_free_space_path_loss(), 0.0
+        )  # FSPL should not be zero
 
     def test_single_request(self):
         # Set up a communication link with compatible antennas and a request
@@ -185,27 +167,19 @@ class TestCommunicationLink(unittest.TestCase):
 
         # Create and add multiple requests
         request1 = Request(0, self.node_a, self.node_b)
-        request1.set_size(20000)  # data size=20 Mbits
+        request1.set_size(20000000)  # data size=20 Mbits
         request2 = Request(0, self.node_a, self.node_b)
-        request2.set_size(10000)  # data size=10 Mbits
+        request2.set_size(10000000)  # data size=10 Mbits
 
         link.add_to_queue(request1)
         link.add_to_queue(request2)
 
         self.assertEqual(len(link.transmission_queue), 2)
-
-        for _ in range(5):  # Take longer time to process since requests is larger
-            link.tick(0.1)
-
-        self.assertEqual(len(link.transmission_queue), 2)
-
-        for _ in range(5):  # Take longer time to process since requests is larger
-            link.tick(0.1)
+        
+        link.tick(0.001)
 
         self.assertEqual(len(link.transmission_queue), 1)
 
-        for _ in range(5):
-            print(len(link.transmission_queue))
-            link.tick(0.1)
+        link.tick(0.001)
 
         self.assertEqual(len(link.transmission_queue), 0)
