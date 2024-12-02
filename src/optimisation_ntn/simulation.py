@@ -35,7 +35,12 @@ class Simulation:
         time_step: float = DEFAULT_TICK_TIME,
         max_time: float = DEFAULT_MAX_SIMULATION_TIME,
         debug: bool = False,
+        seed: Optional[int] = None,
     ):
+        # Set the random seed if provided
+        if seed is not None:
+            random.seed(seed)
+
         self.current_step = 0
         self.current_time = 0.0
         self.time_step = time_step
