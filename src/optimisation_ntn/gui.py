@@ -651,7 +651,9 @@ class SimulationUI(QtWidgets.QMainWindow):
             axis_x.setTitleText("Time (s)")
             axis_y.setTitleText("Energy (J)")
             axis_x.setRange(0, self.simulation.max_time if self.simulation else 300)
-            axis_y.setRange(0, 200)
+            
+            # Store axis reference for dynamic updates
+            self.energy_y_axis = axis_y
 
         # Add axes to chart
         chart.addAxis(axis_x, Qt.AlignBottom)
@@ -697,10 +699,18 @@ class SimulationUI(QtWidgets.QMainWindow):
                 self.update_simulation_display()
                 # Update energy graph
                 if hasattr(self, "energy_series"):
+                    current_energy = self.simulation.system_energy_consumed
                     self.energy_series.append(
                         self.simulation.current_time,
-                        self.simulation.system_energy_consumed,
+                        current_energy
                     )
+                    
+                    # Auto-adjust y-axis range
+                    if hasattr(self, "energy_y_axis"):
+                        # Add 20% padding above the maximum value
+                        max_value = max(current_energy * 1.2, 200)
+                        self.energy_y_axis.setRange(0, max_value)
+                    
                 # Force scene update
                 self.load_close_up_view()
                 self.schematic_view.viewport().update()
