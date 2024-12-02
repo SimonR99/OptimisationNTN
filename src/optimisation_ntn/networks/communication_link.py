@@ -84,8 +84,8 @@ class CommunicationLink:
 
     def calculate_free_space_path_loss(self) -> float:
         """Calculates Free Space Path Loss for (user-haps, haps-base station, haps-leo)."""
-        return (
-            Earth.speed_of_light / (4 * np.pi * self.link_length * self.carrier_frequency)
+        return Earth.speed_of_light / (
+            4 * np.pi * self.link_length * self.carrier_frequency
         )
 
     def calculate_gain(self) -> float:

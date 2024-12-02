@@ -12,6 +12,7 @@ from optimisation_ntn.nodes.haps import HAPS
 from optimisation_ntn.nodes.leo import LEO
 from optimisation_ntn.utils.position import Position
 
+
 class TestCommunicationLink(unittest.TestCase):
     def setUp(self):
         # Define positions for nodes
@@ -21,7 +22,7 @@ class TestCommunicationLink(unittest.TestCase):
         # Define nodes with antennas
         self.node_a = BaseNode(0, self.position_a)
         self.node_a.add_antenna("VHF", 3)  # Add compatible UHF antenna
-        
+
         self.node_b = BaseNode(1, self.position_b)
         self.node_b.add_antenna("VHF", 15)  # Matching UHF antenna for communication
 
@@ -44,7 +45,9 @@ class TestCommunicationLink(unittest.TestCase):
             signal_power=23,
             carrier_frequency=2e9,
         )
-        self.assertEqual(link.linear_scale_db(self.node_a.antennas[0].gain), 10 ** (3/10))
+        self.assertEqual(
+            link.linear_scale_db(self.node_a.antennas[0].gain), 10 ** (3 / 10)
+        )
 
     def test_linear_scale_db_rx(self):
         link = CommunicationLink(
@@ -54,7 +57,9 @@ class TestCommunicationLink(unittest.TestCase):
             signal_power=23,
             carrier_frequency=2e9,
         )
-        self.assertEqual(link.linear_scale_db(self.node_b.antennas[0].gain), 10 * np.sqrt(10))
+        self.assertEqual(
+            link.linear_scale_db(self.node_b.antennas[0].gain), 10 * np.sqrt(10)
+        )
 
     def test_linear_scale_power_dbm(self):
         link = CommunicationLink(
@@ -64,7 +69,9 @@ class TestCommunicationLink(unittest.TestCase):
             signal_power=23,
             carrier_frequency=2e9,
         )
-        self.assertEqual(link.linear_scale_dbm(link.signal_power), 10 ** ((23-30) / 10)) 
+        self.assertEqual(
+            link.linear_scale_dbm(link.signal_power), 10 ** ((23 - 30) / 10)
+        )
 
     def test_linear_scale_noise_dbm(self):
         link = CommunicationLink(
@@ -74,7 +81,10 @@ class TestCommunicationLink(unittest.TestCase):
             signal_power=23,
             carrier_frequency=2e9,
         )
-        self.assertEqual(link.linear_scale_dbm(self.node_a.spectral_noise_density), 10 ** ((-174-30) / 10))
+        self.assertEqual(
+            link.linear_scale_dbm(self.node_a.spectral_noise_density),
+            10 ** ((-174 - 30) / 10),
+        )
 
     def test_fspl(self):
         link = CommunicationLink(
@@ -115,7 +125,7 @@ class TestCommunicationLink(unittest.TestCase):
             signal_power=23,
             carrier_frequency=2e9,
         )
-        self.assertEqual(link.noise_power, (10 ** ((-174-30) / 10)) * 174e3)
+        self.assertEqual(link.noise_power, (10 ** ((-174 - 30) / 10)) * 174e3)
 
     def test_snr(self):
         link = CommunicationLink(
@@ -125,7 +135,7 @@ class TestCommunicationLink(unittest.TestCase):
             signal_power=23,
             carrier_frequency=2e9,
         )
-        self.assertEqual(link.calculate_snr(), 433572362241.61)         
+        self.assertEqual(link.calculate_snr(), 433572362241.61)
 
     def test_calcul_leo_loss(self):
         # Set up a HAPS and LEO node. They both should have the right antennas
@@ -136,7 +146,9 @@ class TestCommunicationLink(unittest.TestCase):
         link = CommunicationLink(
             node_haps, node_leo, total_bandwidth=1, signal_power=1, carrier_frequency=1
         )
-        self.assertNotEqual(link.calculate_free_space_path_loss(), 0.0)  # FSPL should not be zero
+        self.assertNotEqual(
+            link.calculate_free_space_path_loss(), 0.0
+        )  # FSPL should not be zero
 
     def test_single_request(self):
         # Set up a communication link with compatible antennas and a request
@@ -180,7 +192,7 @@ class TestCommunicationLink(unittest.TestCase):
         link.add_to_queue(request2)
 
         self.assertEqual(len(link.transmission_queue), 2)
-        
+
         link.tick(0.001)
 
         self.assertEqual(len(link.transmission_queue), 1)
