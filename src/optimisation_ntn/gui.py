@@ -6,7 +6,8 @@ import sys
 
 import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
-from PySide6.QtCharts import QChart, QChartView, QLineSeries
+from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis
+from PySide6.QtCore import Qt
 
 from .nodes.base_station import BaseStation
 from .nodes.haps import HAPS
@@ -224,6 +225,11 @@ class SimulationUI(QtWidgets.QMainWindow):
         info_layout.addWidget(QtWidgets.QLabel("Current Step:"), 3, 0)
         self.current_step_label = QtWidgets.QLabel("0")
         info_layout.addWidget(self.current_step_label, 3, 1)
+
+        # Add energy consumption display to info layout
+        info_layout.addWidget(QtWidgets.QLabel("Energy Consumed:"), 4, 0)
+        self.current_energy_label = QtWidgets.QLabel("0.0 J")
+        info_layout.addWidget(self.current_energy_label, 4, 1)
 
         info_box.setLayout(info_layout)
         horizontal_layout.addWidget(info_box)
@@ -620,15 +626,34 @@ class SimulationUI(QtWidgets.QMainWindow):
             line.setOpacity(0.5)
 
     def create_live_graph(self, title):
+        """Create a live graph widget for energy or throughput monitoring"""
         series = QLineSeries()
-        series.append(0, random.uniform(50, 150))
         chart = QChart()
         chart.addSeries(series)
         chart.setTitle(title)
-        chart.createDefaultAxes()
+        
+        # Create axes explicitly
+        axis_x = QValueAxis()
+        axis_y = QValueAxis()
+        
+        # Store series reference if it's the energy graph
+        if title == "Energy":
+            self.energy_series = series
+            # Configure axes
+            axis_x.setTitleText("Time (s)")
+            axis_y.setTitleText("Energy (J)")
+            axis_x.setRange(0, self.simulation.max_time if self.simulation else 300)
+            axis_y.setRange(0, 200)
+        
+        # Add axes to chart
+        chart.addAxis(axis_x, Qt.AlignBottom)
+        chart.addAxis(axis_y, Qt.AlignLeft)
+        series.attachAxis(axis_x)
+        series.attachAxis(axis_y)
+        
         chart.setBackgroundBrush(QtGui.QColor("#2e2e2e"))
         chart_view = QChartView(chart)
-        chart_view.setRenderHint(QtGui.QPainter.Antialiasing)
+        chart_view.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
         return chart_view
 
     def create_results_tab(self):
@@ -661,6 +686,12 @@ class SimulationUI(QtWidgets.QMainWindow):
             # Update UI
             if can_continue:
                 self.update_simulation_display()
+                # Update energy graph
+                if hasattr(self, 'energy_series'):
+                    self.energy_series.append(
+                        self.simulation.current_time,
+                        self.simulation.system_energy_consumed
+                    )
                 # Force scene update
                 self.load_close_up_view()
                 self.schematic_view.viewport().update()
@@ -674,6 +705,12 @@ class SimulationUI(QtWidgets.QMainWindow):
             # Update time labels
             self.current_time_label.setText(f"{self.simulation.current_time:.1f}s")
             self.current_step_label.setText(str(self.simulation.current_step))
+            
+            # Add energy consumption display
+            if hasattr(self, 'current_energy_label'):
+                self.current_energy_label.setText(
+                    f"{self.simulation.system_energy_consumed:.2f} J"
+                )
 
     def reset_simulation(self):
         if self.simulation:
