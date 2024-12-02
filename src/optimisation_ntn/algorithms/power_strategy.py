@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import pygad
 
+
 class PowerStateStrategy(ABC):
     """Base class for optimization strategies"""
 
@@ -27,6 +28,7 @@ class PowerStateStrategy(ABC):
         """
         return self.__class__.__name__
 
+
 class AllOnStrategy(PowerStateStrategy):
     """Simple strategy that keeps all nodes powered on"""
 
@@ -44,6 +46,7 @@ class AllOnStrategy(PowerStateStrategy):
 
     def get_name(self) -> str:
         return "All On Strategy"
+
 
 class RandomStrategy(PowerStateStrategy):
     """Strategy that randomly turns nodes on/off with given probability"""
@@ -75,6 +78,7 @@ class RandomStrategy(PowerStateStrategy):
     def get_name(self) -> str:
         return f"Random Strategy (p={self.probability})"
 
+
 class StaticRandomStrategy(PowerStateStrategy):
     """Strategy that randomly turns nodes on/off at the start and maintains those states"""
 
@@ -101,10 +105,13 @@ class StaticRandomStrategy(PowerStateStrategy):
         """No parameter updates needed for static strategy"""
         pass
 
+
 class GeneticAlgorithmStrategy(PowerStateStrategy):
     """Strategy implementing a Genetic Algorithm to optimize power states."""
 
-    def __init__(self, population_size=10, generations=20, mutation_prob=0.1, crossover_prob=0.9):
+    def __init__(
+        self, population_size=10, generations=20, mutation_prob=0.1, crossover_prob=0.9
+    ):
         """Initialize the Genetic Algorithm parameters.
 
         Args:
@@ -149,7 +156,9 @@ class GeneticAlgorithmStrategy(PowerStateStrategy):
         num_genes = num_devices * num_steps
 
         # Initial population
-        initial_population = np.random.randint(0, 2, size=(self.population_size, num_genes))
+        initial_population = np.random.randint(
+            0, 2, size=(self.population_size, num_genes)
+        )
 
         # PyGAD setup
         ga_instance = pygad.GA(

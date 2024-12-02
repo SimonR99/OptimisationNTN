@@ -20,6 +20,7 @@ class MatrixType(Enum):
     REQUEST = "K"
     ASSIGNMENT = "X"
 
+
 class DecisionMatrices:
     def __init__(self, dimension: int = 0):
         """Initialize matrices used in network decision processes."""

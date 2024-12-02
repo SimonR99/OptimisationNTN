@@ -45,7 +45,7 @@ class Simulation:
         max_time: float = DEFAULT_MAX_SIMULATION_TIME,
         debug: bool = False,
         user_count: int = DEFAULT_USER_COUNT,
-        strategy = "StaticRandomStrategy",
+        strategy="StaticRandomStrategy",
     ):
         # Set the random seed if provided
         if seed is not None:
@@ -342,9 +342,7 @@ class Simulation:
         )
 
         self.matrices.generate_power_matrix(
-            compute_nodes_count,
-            matrix_size,
-            self.strategy
+            compute_nodes_count, matrix_size, self.strategy
         )
 
     def debug_print(self, *args, **kwargs):
