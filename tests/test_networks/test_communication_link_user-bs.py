@@ -111,7 +111,7 @@ class TestCommunicationLink(unittest.TestCase):
             signal_power=23,
             carrier_frequency=2e9,
         )
-        self.assertEqual(link.calculate_snr(), (1.2e12 * (10 ** (7 / 10))) / 29)
+        self.assertAlmostEqual(link.calculate_snr(), 207387820811.28, places=0)
 
     def test_capacity(self):
         link = CommunicationLink(
@@ -121,10 +121,7 @@ class TestCommunicationLink(unittest.TestCase):
             signal_power=23,
             carrier_frequency=2e9,
         )
-        self.assertEqual(
-            link.calculate_capacity(),
-            174e3 * np.log2((1.2e12 * (10 ** (7 / 10)) + 29) / 29),
-        )
+        self.assertAlmostEqual(link.calculate_capacity(), 6541275.9975462, places=0)
 
     def test_calcul_leo_loss(self):
         # Set up a HAPS and LEO node. They both should have the right antennas

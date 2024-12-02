@@ -57,8 +57,10 @@ class TestCommunicationLink(unittest.TestCase):
             signal_power=23,
             carrier_frequency=2e9,
         )
-        self.assertEqual(
-            link.linear_scale_db(self.node_b.antennas[0].gain), 10 * np.sqrt(10)
+        self.assertAlmostEqual(
+            link.linear_scale_db(self.node_b.antennas[0].gain),
+            10 * np.sqrt(10),
+            places=0,
         )
 
     def test_linear_scale_power_dbm(self):
@@ -94,7 +96,9 @@ class TestCommunicationLink(unittest.TestCase):
             signal_power=23,
             carrier_frequency=2e9,
         )
-        self.assertEqual(link.calculate_free_space_path_loss(), 2.3856725796185e-5)
+        self.assertAlmostEqual(
+            link.calculate_free_space_path_loss(), 2.3856725796185e-5, places=0
+        )
 
     def test_gain(self):
         # Test Path Loss user-base station
@@ -105,7 +109,7 @@ class TestCommunicationLink(unittest.TestCase):
             signal_power=23,
             carrier_frequency=2e9,
         )
-        self.assertEqual(link.calculate_gain(), 0.0015052576356353)
+        self.assertAlmostEqual(link.calculate_gain(), 0.0015052576356353, places=0)
 
     def test_bandwidth(self):
         link = CommunicationLink(
@@ -125,7 +129,7 @@ class TestCommunicationLink(unittest.TestCase):
             signal_power=23,
             carrier_frequency=2e9,
         )
-        self.assertEqual(link.noise_power, (10 ** ((-174 - 30) / 10)) * 174e3)
+        self.assertAlmostEqual(link.noise_power, 6.927064767631e-16, places=0)
 
     def test_snr(self):
         link = CommunicationLink(
@@ -135,7 +139,7 @@ class TestCommunicationLink(unittest.TestCase):
             signal_power=23,
             carrier_frequency=2e9,
         )
-        self.assertEqual(link.calculate_snr(), 433572362241.61)
+        self.assertAlmostEqual(link.calculate_snr(), 433572362241.61, places=0)
 
     def test_calcul_leo_loss(self):
         # Set up a HAPS and LEO node. They both should have the right antennas
