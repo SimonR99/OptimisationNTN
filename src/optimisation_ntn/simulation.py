@@ -42,6 +42,7 @@ class Simulation:
         max_time: float = DEFAULT_MAX_SIMULATION_TIME,
         debug: bool = False,
         user_count: int = DEFAULT_USER_COUNT,
+        strategy="StaticRandomStrategy",
     ):
         # Set the random seed if provided
         if seed is not None:
@@ -53,7 +54,7 @@ class Simulation:
         self.max_time = max_time
         self.network = Network(debug=debug)
         self.matrices = DecisionMatrices(dimension=user_count)
-        self.strategy: PowerStateStrategy | None = None
+        self.strategy = self.set_strategy(strategy)
         self.matrix_history: list[DecisionMatrices] = []
         self.total_requests = 0
         self.request_stats = {status: 0 for status in RequestStatus}
@@ -78,9 +79,15 @@ class Simulation:
         """Calculate the maximum number of simulation steps."""
         return int(self.max_time / self.time_step)
 
-    def set_strategy(self, strategy: PowerStateStrategy):
+    def set_strategy(self, strategy: str):
         """Set the optimization strategy to use"""
-        self.strategy = strategy
+        match strategy:
+            case "AllOn":
+                return AllOnStrategy()
+            case "Random":
+                return RandomStrategy()
+            case "StaticRandom":
+                return StaticRandomStrategy()
 
     def run(self) -> float:
         """Run simulation until self.max_time.
@@ -138,7 +145,6 @@ class Simulation:
 
         for user in [n for n in self.network.nodes if isinstance(n, UserDevice)]:
             for request in user.current_requests:
-
                 if request.satisfaction:
                     satisfied_requests += 1
 
@@ -382,6 +388,8 @@ class Simulation:
         # Set the strategy if not already set
         if not self.strategy:
             self.strategy = StaticRandomStrategy()
+
+        print(self.strategy.get_name())
 
         self.matrices.generate_power_matrix(
             num_devices=compute_nodes_count,

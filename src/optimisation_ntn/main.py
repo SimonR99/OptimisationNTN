@@ -55,7 +55,7 @@ def create_parser():
     parser.add_argument(
         "--algorithm",
         type=str,
-        choices=["Random", "AllOn"],
+        choices=["Random", "StaticRandom", "AllOn"],
         default="AllOn",
         help="Algorithm used for optimizing or running the simulation",
     )
@@ -89,6 +89,7 @@ def main(args):
             max_time=args.max_time,
             debug=args.debug,
             user_count=current_user_count,  # Use the computed user count
+            strategy=args.algorithm,
         )
 
         # Run the simulation

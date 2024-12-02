@@ -7,7 +7,6 @@ from .base_node import BaseNode
 
 
 class LEO(BaseNode):
-
     leo_altitude = 500e3
     leo_temperature = 200
 
