@@ -21,6 +21,127 @@ if platform.system() == "Windows":
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("optimisation_ntn")
 
 
+class EnlargedGraphDialog(QtWidgets.QDialog):
+    def __init__(self, chart_view, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Enlarged Graph View")
+        self.setModal(True)
+        
+        # Set initial size to 80% of screen size
+        screen = QtWidgets.QApplication.primaryScreen().geometry()
+        self.resize(int(screen.width() * 0.8), int(screen.height() * 0.8))
+        
+        # Create layout
+        layout = QtWidgets.QVBoxLayout()
+        
+        # Create a new chart with the same data
+        original_chart = chart_view.chart()
+        new_chart = QChart()
+        new_chart.setTitle(original_chart.title())
+        new_chart.setBackgroundBrush(original_chart.backgroundBrush())
+        
+        # Copy series data and preserve colors
+        for original_series in original_chart.series():
+            new_series = QLineSeries()
+            new_series.setName(original_series.name())  # Copy series name
+            for point in range(original_series.count()):
+                new_series.append(original_series.at(point))
+            new_chart.addSeries(new_series)
+            new_series.setColor(original_series.color())  # Copy series color
+            
+            # Copy axes
+            for axis in original_chart.axes():
+                new_axis = QValueAxis()
+                new_axis.setTitleText(axis.titleText())
+                new_axis.setRange(axis.min(), axis.max())
+                
+                if axis.orientation() == QtCore.Qt.Orientation.Horizontal:
+                    new_chart.addAxis(new_axis, QtCore.Qt.AlignBottom)
+                else:
+                    new_chart.addAxis(new_axis, QtCore.Qt.AlignLeft)
+                    
+                new_series.attachAxis(new_axis)
+        
+        # Create new chart view with zoom/pan support
+        self.chart_view = QChartView(new_chart)
+        self.chart_view.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        self.chart_view.setRubberBand(QChartView.RubberBand.RectangleRubberBand)
+        
+        # Add zoom controls
+        zoom_layout = QtWidgets.QHBoxLayout()
+        
+        zoom_in_btn = QtWidgets.QPushButton("Zoom In")
+        zoom_in_btn.clicked.connect(lambda: self.zoom(1.2))
+        zoom_layout.addWidget(zoom_in_btn)
+        
+        zoom_out_btn = QtWidgets.QPushButton("Zoom Out")
+        zoom_out_btn.clicked.connect(lambda: self.zoom(0.8))
+        zoom_layout.addWidget(zoom_out_btn)
+        
+        reset_zoom_btn = QtWidgets.QPushButton("Reset View")
+        reset_zoom_btn.clicked.connect(self.reset_view)
+        zoom_layout.addWidget(reset_zoom_btn)
+        
+        # Add stats panel
+        self.stats_table = QtWidgets.QTableWidget()
+        self.stats_table.setColumnCount(4)
+        self.stats_table.setHorizontalHeaderLabels(
+            ["Node", "Current Energy", "Peak Energy", "Average Energy"]
+        )
+        self.stats_table.horizontalHeader().setSectionResizeMode(
+            QtWidgets.QHeaderView.Stretch
+        )
+        self.update_stats(original_chart)
+        
+        # Add widgets to layout
+        layout.addWidget(self.chart_view)
+        layout.addLayout(zoom_layout)
+        layout.addWidget(self.stats_table)
+        
+        self.setLayout(layout)
+    
+    def zoom(self, factor):
+        self.chart_view.chart().zoom(factor)
+    
+    def reset_view(self):
+        self.chart_view.chart().zoomReset()
+    
+    def update_stats(self, original_chart):
+        """Update statistics for each series"""
+        self.stats_table.setRowCount(0)
+        
+        for series in original_chart.series():
+            row = self.stats_table.rowCount()
+            self.stats_table.insertRow(row)
+            
+            # Node name
+            self.stats_table.setItem(
+                row, 0, QtWidgets.QTableWidgetItem(series.name())
+            )
+            
+            # Calculate stats
+            values = [series.at(i).y() for i in range(series.count())]
+            if values:
+                current = values[-1]
+                peak = max(values)
+                avg = sum(values) / len(values)
+                
+                # Current energy
+                self.stats_table.setItem(
+                    row, 1, QtWidgets.QTableWidgetItem(f"{current:.2f}")
+                )
+                
+                # Peak energy
+                self.stats_table.setItem(
+                    row, 2, QtWidgets.QTableWidgetItem(f"{peak:.2f}")
+                )
+                
+                # Average energy
+                self.stats_table.setItem(
+                    row, 3, QtWidgets.QTableWidgetItem(f"{avg:.2f}")
+                )
+
+
 class SimulationUI(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
@@ -639,63 +760,230 @@ class SimulationUI(QtWidgets.QMainWindow):
 
     def create_live_graph(self, title):
         """Create a live graph widget for energy monitoring"""
-        series = QLineSeries()
         chart = QChart()
-        chart.addSeries(series)
-        chart.setTitle(title)
+        
+        # Update title and axis labels for energy consumption history
+        if title == "Node Energy":
+            chart.setTitle("Node Energy Consumption History")
+            axis_y = QValueAxis()
+            axis_y.setTitleText("Energy per tick (J)")
+            self.node_energy_series = {}  # Dictionary to store series for each node
+        else:  # Total Energy
+            series = QLineSeries()
+            chart.addSeries(series)
+            chart.setTitle(title)
+            axis_y = QValueAxis()
+            axis_y.setTitleText("Energy (J)")
+            self.total_energy_series = series
 
-        # Create axes explicitly
+        # Create x axis
         axis_x = QValueAxis()
-        axis_y = QValueAxis()
-
-        # Configure axes
         axis_x.setTitleText("Time (s)")
-        axis_y.setTitleText("Energy (J)")
         axis_x.setRange(0, self.simulation.max_time if self.simulation else 300)
 
-        # Store series and axis references based on graph type
+        # Store axis references
         if title == "Total Energy":
-            self.total_energy_series = series
             self.total_energy_y_axis = axis_y
         else:  # Node Energy
-            self.node_energy_series = series
             self.node_energy_y_axis = axis_y
-            self.node_energy_chart = chart  # Store reference to update title
+            self.node_energy_chart = chart
 
         # Add axes to chart
         chart.addAxis(axis_x, QtCore.Qt.AlignBottom)
         chart.addAxis(axis_y, QtCore.Qt.AlignLeft)
-        series.attachAxis(axis_x)
-        series.attachAxis(axis_y)
+        
+        if title == "Total Energy":
+            series.attachAxis(axis_x)
+            series.attachAxis(axis_y)
 
         chart.setBackgroundBrush(QtGui.QColor("#2e2e2e"))
         chart_view = QChartView(chart)
         chart_view.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        
+        # Make the chart view clickable
+        chart_view.mouseDoubleClickEvent = lambda event: self.show_enlarged_graph(chart_view)
+        
         return chart_view
+
+    def show_enlarged_graph(self, chart_view):
+        """Show the enlarged version of the clicked graph"""
+        dialog = EnlargedGraphDialog(chart_view, self)
+        dialog.exec()
 
     def create_results_tab(self):
         layout = QtWidgets.QVBoxLayout()
 
-        # Create a combo box for node selection
-        self.node_selector = QtWidgets.QComboBox()
-        self.node_selector.currentTextChanged.connect(self.update_selected_node)
-        layout.addWidget(QtWidgets.QLabel("Select Node:"))
-        layout.addWidget(self.node_selector)
-
-        # Create table for energy consumption details
-        self.energy_table = QtWidgets.QTableWidget()
-        self.energy_table.setColumnCount(3)
-        self.energy_table.setHorizontalHeaderLabels(
-            ["Node", "Type", "Energy Consumed (J)"]
-        )
-        self.energy_table.horizontalHeader().setSectionResizeMode(
+        # Create table for node statistics and selection
+        self.node_stats_table = QtWidgets.QTableWidget()
+        self.node_stats_table.setColumnCount(7)
+        self.node_stats_table.setHorizontalHeaderLabels([
+            "Show", "Node", "Current Energy", "Peak Energy", "Average Energy", 
+            "Cumulated Energy", "Remaining Battery"
+        ])
+        self.node_stats_table.horizontalHeader().setSectionResizeMode(
             QtWidgets.QHeaderView.Stretch
         )
-        layout.addWidget(self.energy_table)
+        
+        # Make the checkbox column smaller
+        self.node_stats_table.horizontalHeader().setSectionResizeMode(
+            0, QtWidgets.QHeaderView.ResizeToContents
+        )
+        
+        # Initialize signal connection flag
+        self.checkbox_signal_connected = False
+        
+        layout.addWidget(self.node_stats_table)
 
         container = QtWidgets.QWidget()
         container.setLayout(layout)
         return container
+
+    def update_node_stats_table(self):
+        """Update the node statistics table"""
+        if not self.simulation:
+            return
+
+        # Block signals during update
+        self.node_stats_table.blockSignals(True)
+
+        # Store currently checked states and preserve current selection
+        checked_nodes = set()
+        current_selection = self.node_stats_table.selectedItems()
+        selected_rows = set(item.row() for item in current_selection)
+        
+        for row in range(self.node_stats_table.rowCount()):
+            checkbox_item = self.node_stats_table.item(row, 0)
+            if checkbox_item and checkbox_item.checkState() == QtCore.Qt.Checked:
+                node_item = self.node_stats_table.item(row, 1)
+                if node_item:
+                    checked_nodes.add(node_item.text())
+
+        # Update table contents without clearing it
+        if self.node_stats_table.rowCount() != len(self.simulation.network.nodes):
+            self.node_stats_table.setRowCount(len(self.simulation.network.nodes))
+        
+        for row, node in enumerate(self.simulation.network.nodes):
+            node_text = f"{type(node).__name__} {node.node_id}"
+            
+            # Update checkbox if needed
+            checkbox_item = self.node_stats_table.item(row, 0)
+            if not checkbox_item:
+                checkbox_item = QtWidgets.QTableWidgetItem()
+                checkbox_item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+                self.node_stats_table.setItem(row, 0, checkbox_item)
+            
+            checkbox_item.setCheckState(
+                QtCore.Qt.Checked if node_text in checked_nodes else QtCore.Qt.Unchecked
+            )
+            
+            # Update node name if needed
+            name_item = self.node_stats_table.item(row, 1)
+            if not name_item or name_item.text() != node_text:
+                self.node_stats_table.setItem(
+                    row, 1, QtWidgets.QTableWidgetItem(node_text)
+                )
+            
+            # Update statistics
+            if len(node.energy_history) > 0:
+                current = node.energy_history[-1]
+                peak = max(node.energy_history)
+                avg = sum(node.energy_history) / len(node.energy_history)
+                cumulated = node.energy_consumed
+                
+                # Calculate remaining battery
+                if node.battery_capacity > 0:
+                    remaining = node.battery_capacity - node.energy_consumed
+                    remaining_str = f"{remaining:.2f}"
+                else:
+                    remaining_str = "∞"
+                
+                # Update values
+                self.update_table_cell(row, 2, f"{current:.2f}")
+                self.update_table_cell(row, 3, f"{peak:.2f}")
+                self.update_table_cell(row, 4, f"{avg:.2f}")
+                self.update_table_cell(row, 5, f"{cumulated:.2f}")
+                self.update_table_cell(row, 6, remaining_str)
+            else:
+                # Fill with zeros if no history yet
+                for col in range(2, 6):
+                    self.update_table_cell(row, col, "0.00")
+                # Set remaining battery
+                if node.battery_capacity > 0:
+                    self.update_table_cell(row, 6, f"{node.battery_capacity:.2f}")
+                else:
+                    self.update_table_cell(row, 6, "∞")
+
+        # Restore selection
+        for row in selected_rows:
+            self.node_stats_table.selectRow(row)
+
+        # Unblock signals and ensure connection
+        self.node_stats_table.blockSignals(False)
+        
+        # Connect signal if not already connected
+        if not self.checkbox_signal_connected:
+            self.node_stats_table.itemChanged.connect(self.handle_checkbox_change)
+            self.checkbox_signal_connected = True
+
+    def update_table_cell(self, row, col, value):
+        """Helper method to update table cell only if value changed"""
+        current_item = self.node_stats_table.item(row, col)
+        if not current_item or current_item.text() != value:
+            self.node_stats_table.setItem(row, col, QtWidgets.QTableWidgetItem(value))
+
+    def handle_checkbox_change(self, item):
+        """Handle checkbox state changes in the stats table"""
+        if not item or item.column() != 0:  # Only handle checkbox column
+            return
+        
+        # Process the change without blocking signals
+        row = item.row()
+        node_item = self.node_stats_table.item(row, 1)
+        if node_item:
+            node_text = node_item.text()
+            if item.checkState() == QtCore.Qt.Checked:
+                # Add series if not exists
+                if node_text not in self.node_energy_series:
+                    series = QLineSeries()
+                    series.setName(node_text)
+                    self.node_energy_chart.addSeries(series)
+                    series.attachAxis(self.node_energy_chart.axes()[0])
+                    series.attachAxis(self.node_energy_chart.axes()[1])
+                    self.node_energy_series[node_text] = series
+                    
+                    # Assign a color to the series
+                    color = QtGui.QColor(
+                        random.randint(50, 255),
+                        random.randint(50, 255),
+                        random.randint(50, 255)
+                    )
+                    series.setColor(color)
+                    
+                    # Update series data
+                    for node in self.simulation.network.nodes:
+                        if f"{type(node).__name__} {node.node_id}" == node_text:
+                            series.clear()
+                            for i, energy in enumerate(node.energy_history):
+                                time_point = i * self.simulation.time_step
+                                series.append(time_point, energy)
+                            break
+            else:
+                # Remove series if exists
+                if node_text in self.node_energy_series:
+                    series = self.node_energy_series[node_text]
+                    self.node_energy_chart.removeSeries(series)
+                    del self.node_energy_series[node_text]
+
+            # Update y-axis range
+            max_energy = 0
+            for series in self.node_energy_series.values():
+                for i in range(series.count()):
+                    max_energy = max(max_energy, series.at(i).y())
+            if max_energy > 0:
+                self.node_energy_y_axis.setRange(0, max_energy * 1.2)
+
+            # Show/hide legend based on number of series
+            self.node_energy_chart.legend().setVisible(len(self.node_energy_series) > 1)
 
     def start_simulation(self):
         if self.simulation:
@@ -726,24 +1014,9 @@ class SimulationUI(QtWidgets.QMainWindow):
                 self.total_energy_series.append(current_time, total_energy)
                 self.total_energy_y_axis.setRange(0, max(total_energy * 1.2, 200))
 
-                # Update selected node energy graph
-                selected_node_text = self.node_selector.currentText()
-                if selected_node_text:
-                    for node in self.simulation.network.nodes:
-                        if (
-                            f"{type(node).__name__} {node.node_id}"
-                            == selected_node_text
-                        ):
-                            self.node_energy_series.append(
-                                current_time, node.energy_consumed
-                            )
-                            self.node_energy_y_axis.setRange(
-                                0, max(node.energy_consumed * 1.2, 100)
-                            )
-                            break
-
-                # Update energy table in results tab
-                self.update_energy_table()
+                # Update node statistics and graphs
+                self.update_node_stats_table()
+                self.update_checked_nodes_graphs(current_time)
 
                 # Update view based on current view mode
                 if self.current_view == "close":
@@ -755,6 +1028,23 @@ class SimulationUI(QtWidgets.QMainWindow):
             else:
                 self.timer.stop()
                 self.run_pause_btn.setText("Run")
+
+    def update_checked_nodes_graphs(self, current_time):
+        """Update graphs for checked nodes"""
+        for row in range(self.node_stats_table.rowCount()):
+            checkbox_item = self.node_stats_table.item(row, 0)
+            if checkbox_item and checkbox_item.checkState() == QtCore.Qt.Checked:
+                node_item = self.node_stats_table.item(row, 1)
+                if node_item:
+                    node_text = node_item.text()
+                    if node_text in self.node_energy_series:
+                        # Find corresponding node and update its series
+                        for node in self.simulation.network.nodes:
+                            if f"{type(node).__name__} {node.node_id}" == node_text:
+                                series = self.node_energy_series[node_text]
+                                if node.energy_history.size > 0:
+                                    series.append(current_time, node.energy_history[-1])
+                                break
 
     def update_simulation_display(self):
         """Update UI elements showing simulation state"""
@@ -819,17 +1109,11 @@ class SimulationUI(QtWidgets.QMainWindow):
             self.sim_list.addItem(simulation_name)
             self.sim_list.setCurrentRow(self.sim_list.count() - 1)
 
-            # Update node selector
-            self.node_selector.clear()
-            for node in simulation.network.nodes:
-                self.node_selector.addItem(f"{type(node).__name__} {node.node_id}")
-
-            # Select first node by default
-            if self.node_selector.count() > 0:
-                self.node_selector.setCurrentIndex(0)
-
             # Update UI parameters
             self.update_ui_parameters()
+
+            # Initialize node statistics table
+            self.update_node_stats_table()
 
             # Update views
             self.load_close_up_view()
@@ -841,10 +1125,9 @@ class SimulationUI(QtWidgets.QMainWindow):
             if hasattr(self, "total_energy_series"):
                 self.total_energy_series.clear()
             if hasattr(self, "node_energy_series"):
+                for series in self.node_energy_series.values():
+                    self.node_energy_chart.removeSeries(series)
                 self.node_energy_series.clear()
-
-            # Update energy table
-            self.update_energy_table()
 
             # Reset time labels
             self.current_time_label.setText("0.0s")
@@ -1024,21 +1307,6 @@ class SimulationUI(QtWidgets.QMainWindow):
                     y - request_pixmap.height() - 15,
                 )
 
-    def update_selected_node(self, node_text):
-        """Update the node energy graph when a new node is selected"""
-        if self.simulation and node_text:
-            # Clear previous data
-            self.node_energy_series.clear()
-
-            # Find the selected node
-            for node in self.simulation.network.nodes:
-                if f"{type(node).__name__} {node.node_id}" == node_text:
-                    # Update graph title
-                    self.node_energy_chart.setTitle(
-                        f"{type(node).__name__} {node.node_id} Energy"
-                    )
-                    break
-
     def update_energy_table(self):
         """Update the energy consumption table in the results tab"""
         if self.simulation:
@@ -1072,3 +1340,4 @@ app.setWindowIcon(QtGui.QIcon("images/logo.png"))  # Taskbar icon
 window = SimulationUI()
 window.show()
 sys.exit(app.exec())
+

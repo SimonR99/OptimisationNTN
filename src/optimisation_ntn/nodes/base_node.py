@@ -1,6 +1,6 @@
 from abc import ABC
 from typing import Dict, List, Optional, Tuple
-
+import numpy as np
 
 from ..networks.antenna import Antenna
 from ..networks.request import Request, RequestStatus
@@ -43,6 +43,7 @@ class BaseNode(ABC):
         self.attenuation_coefficient = 0.0
         self.reference_lenght = 0.0
         self.destinations: List["BaseNode"] = []
+        self.energy_history = np.array([])
 
     def get_name(self) -> str:
         return self.name
@@ -196,6 +197,7 @@ class BaseNode(ABC):
 
     def tick(self, time: float):
         """Update node state including request processing"""
+        initial_energy = self.energy_consumed
 
         if (
             self.battery_capacity != -1
@@ -207,6 +209,13 @@ class BaseNode(ABC):
 
         if self.state:
             self.energy_consumed += self.standby_energy * time
+
+        # Store energy consumed during this time step
+        energy_this_tick = self.energy_consumed - initial_energy
+
+        self.energy_history = np.append(self.energy_history, energy_this_tick)
+
+       
 
     def debug_print(self, *args, **kwargs):
         """Print only if debug mode is enabled"""
