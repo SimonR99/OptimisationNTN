@@ -22,9 +22,8 @@ class UserDevice(BaseNode):
         self.transmission_power = 23
         self.name = "USER DEVICE"
 
-    def create_request(self, tick: int) -> Request:
+    def add_request(self, request) -> Request:
         """Create a new request without specifying target node yet"""
-        request = Request(tick, self, None, debug=self.debug)
         self.current_requests.append(request)
         self.debug_print(
             f"User {self.node_id} created request {request.id} with status {request.status.name}"

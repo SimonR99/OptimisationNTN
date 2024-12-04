@@ -3,11 +3,11 @@ from typing import List
 import numpy as np
 
 from ..nodes.base_node import BaseNode
+from ..nodes.base_station import BaseStation
+from ..nodes.haps import HAPS
+from ..nodes.user_device import UserDevice
 from ..utils.earth import Earth
 from .request import Request, RequestStatus
-from ..nodes.base_station import BaseStation
-from ..nodes.user_device import UserDevice
-from ..nodes.haps import HAPS
 
 
 class CommunicationLink:
@@ -25,10 +25,8 @@ class CommunicationLink:
         self.signal_power = signal_power
         self.carrier_frequency = carrier_frequency
         self.total_bandwidth = total_bandwidth
-        self.transmission_queue: List[Request] = (
-            []
-        )  # FIFO queue        self.request_progress = 0  # Track bits transmitted for the current request
-        self.request_progress = 0
+        self.transmission_queue: List[Request] = []  # FIFO queue
+        self.request_progress = 0.0
         self.debug = debug
         self.completed_requests = []
 
@@ -142,13 +140,11 @@ class CommunicationLink:
             capacity = self.calculate_capacity()
             transmission_delay = self.calculate_transmission_delay(current_request)
             bits_transmitted = capacity * time
-            if self.node_a.get_name() == "HAPS":
-                self.node_a.energy_consumed += (
-                    self.node_a.transmission_energy(
-                        current_request, self.adjusted_bandwidth
-                    )
-                    * time
-                )
+            if isinstance(
+                self.node_a, HAPS
+            ):  # Only HAPS->LEO transmission energy need to be taken into account
+                self.node_a.energy_consumed += self.node_a.transmission_energy() * time
+
             if self.debug:
                 print(f"Capacity: {capacity} \n")
                 print(f"Request size: {current_request.size} \n")
@@ -168,4 +164,4 @@ class CommunicationLink:
             # Add to completed requests instead of handling routing here
             self.completed_requests.append(current_request)
             self.transmission_queue.pop(0)
-            self.request_progress = 0
+            self.request_progress = 0.0

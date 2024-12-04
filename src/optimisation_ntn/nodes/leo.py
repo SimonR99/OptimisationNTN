@@ -34,11 +34,11 @@ class LEO(BaseNode):
         super().__init__(
             node_id, Earth.global_coordinate_to_local(global_position), debug=debug
         )
-        self.add_antenna("VHF", 8)
+        self.add_antenna("UHF", 8)
         self.state = True
-        self.battery_capacity = 5000
+        self.battery_capacity = 1e5  # J
         self.current_angle = start_angle
-        self.processing_frequency = 10e9
+        self.processing_frequency = 10e9  # Hz
         self.k_const = 10e-28
         self.name = "LEO"
 
