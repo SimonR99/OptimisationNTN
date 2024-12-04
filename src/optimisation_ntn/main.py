@@ -71,7 +71,7 @@ def create_parser():
 
 def main(args):
     all_iterations_data = []
-    current_user_count = 50
+    current_user_count = Simulation.DEFAULT_USER_COUNT
 
     for i in range(args.iteration_count):
         if i != 0:
