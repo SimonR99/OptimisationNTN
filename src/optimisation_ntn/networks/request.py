@@ -61,12 +61,6 @@ class Request:
         if self.debug:
             print(*args, **kwargs)
 
-    def set_id(self, row: int, col: int):
-        self.id = int(f"{row}{col}")
-
-    def get_id(self):
-        return self.id
-
     def set_size(self, size: int):
         self.size = size
 
@@ -85,9 +79,6 @@ class Request:
             f"Request {self.id} created with size {self.size / 1000} kilo bytes"
         )
 
-    def __str__(self):
-        return f"Priority: {self.priority} + \nAppearing time: {self.tick} + \Status:{self.status}"
-
     def update_status(self, new_status: RequestStatus):
         """Update request status and track timing"""
         self.status_history.append((new_status, self.get_tick()))
@@ -104,4 +95,4 @@ class Request:
             self.status = RequestStatus.FAILED
 
     def __str__(self):
-        return f"Priority: {self.priority}, Appearing time: {self.tick}, Satisfaction: {self.satisfaction}"
+        return f"Priority: {self.priority} + \nAppearing time: {self.tick} + \Status:{self.status}"

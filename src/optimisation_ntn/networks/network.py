@@ -1,7 +1,6 @@
-import math
 from typing import List
 
-from optimisation_ntn.networks.request import Request, RequestStatus
+from optimisation_ntn.networks.request import Request
 from optimisation_ntn.nodes.base_node import BaseNode
 
 from ..nodes.base_station import BaseStation

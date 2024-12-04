@@ -7,7 +7,7 @@ from ..nodes.base_station import BaseStation
 from ..nodes.haps import HAPS
 from ..nodes.user_device import UserDevice
 from ..utils.earth import Earth
-from .request import Request, RequestStatus
+from .request import Request
 
 
 class CommunicationLink:

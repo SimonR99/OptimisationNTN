@@ -1,21 +1,12 @@
 from abc import ABC
-from itertools import cycle
 from typing import Dict, List, Optional, Tuple
-
-from optimisation_ntn.utils.earth import Earth
+import numpy as np
 
 from ..networks.antenna import Antenna
 from ..networks.request import Request, RequestStatus
 from ..utils.position import Position
 
-
-def transmission_delay(request: Request, link_bandwidth):
-    return request.size / link_bandwidth
-
-
-def convert_dbm_watt(transmission_power) -> float:
-    """Convert signal_power from dBm to Watt."""
-    return (10 ** (transmission_power / 10)) / 1000
+from ..utils.conversion import convert_dbm_watt
 
 
 class BaseNode(ABC):
@@ -52,6 +43,7 @@ class BaseNode(ABC):
         self.attenuation_coefficient = 0.0
         self.reference_lenght = 0.0
         self.destinations: List["BaseNode"] = []
+        self.energy_history = np.array([])
 
     def get_name(self) -> str:
         return self.name
@@ -171,7 +163,8 @@ class BaseNode(ABC):
 
         # Process each request in queue
         completed = []
-        for request in self.processing_queue:
+        if self.processing_queue:
+            request = self.processing_queue[0]
             request.processing_progress += (
                 self.processing_frequency * time / self.cycle_per_bit
             )
@@ -204,6 +197,7 @@ class BaseNode(ABC):
 
     def tick(self, time: float):
         """Update node state including request processing"""
+        initial_energy = self.energy_consumed
 
         if (
             self.battery_capacity != -1
@@ -215,6 +209,11 @@ class BaseNode(ABC):
 
         if self.state:
             self.energy_consumed += self.standby_energy * time
+
+        # Store energy consumed during this time step
+        energy_this_tick = self.energy_consumed - initial_energy
+
+        self.energy_history = np.append(self.energy_history, energy_this_tick)
 
     def debug_print(self, *args, **kwargs):
         """Print only if debug mode is enabled"""
