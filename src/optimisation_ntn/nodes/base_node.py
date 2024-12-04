@@ -215,8 +215,6 @@ class BaseNode(ABC):
 
         self.energy_history = np.append(self.energy_history, energy_this_tick)
 
-       
-
     def debug_print(self, *args, **kwargs):
         """Print only if debug mode is enabled"""
         if self.debug:

@@ -26,20 +26,20 @@ class EnlargedGraphDialog(QtWidgets.QDialog):
         super().__init__(parent)
         self.setWindowTitle("Enlarged Graph View")
         self.setModal(True)
-        
+
         # Set initial size to 80% of screen size
         screen = QtWidgets.QApplication.primaryScreen().geometry()
         self.resize(int(screen.width() * 0.8), int(screen.height() * 0.8))
-        
+
         # Create layout
         layout = QtWidgets.QVBoxLayout()
-        
+
         # Create a new chart with the same data
         original_chart = chart_view.chart()
         new_chart = QChart()
         new_chart.setTitle(original_chart.title())
         new_chart.setBackgroundBrush(original_chart.backgroundBrush())
-        
+
         # Copy series data and preserve colors
         for original_series in original_chart.series():
             new_series = QLineSeries()
@@ -48,40 +48,40 @@ class EnlargedGraphDialog(QtWidgets.QDialog):
                 new_series.append(original_series.at(point))
             new_chart.addSeries(new_series)
             new_series.setColor(original_series.color())  # Copy series color
-            
+
             # Copy axes
             for axis in original_chart.axes():
                 new_axis = QValueAxis()
                 new_axis.setTitleText(axis.titleText())
                 new_axis.setRange(axis.min(), axis.max())
-                
+
                 if axis.orientation() == QtCore.Qt.Orientation.Horizontal:
                     new_chart.addAxis(new_axis, QtCore.Qt.AlignBottom)
                 else:
                     new_chart.addAxis(new_axis, QtCore.Qt.AlignLeft)
-                    
+
                 new_series.attachAxis(new_axis)
-        
+
         # Create new chart view with zoom/pan support
         self.chart_view = QChartView(new_chart)
         self.chart_view.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
         self.chart_view.setRubberBand(QChartView.RubberBand.RectangleRubberBand)
-        
+
         # Add zoom controls
         zoom_layout = QtWidgets.QHBoxLayout()
-        
+
         zoom_in_btn = QtWidgets.QPushButton("Zoom In")
         zoom_in_btn.clicked.connect(lambda: self.zoom(1.2))
         zoom_layout.addWidget(zoom_in_btn)
-        
+
         zoom_out_btn = QtWidgets.QPushButton("Zoom Out")
         zoom_out_btn.clicked.connect(lambda: self.zoom(0.8))
         zoom_layout.addWidget(zoom_out_btn)
-        
+
         reset_zoom_btn = QtWidgets.QPushButton("Reset View")
         reset_zoom_btn.clicked.connect(self.reset_view)
         zoom_layout.addWidget(reset_zoom_btn)
-        
+
         # Add stats panel
         self.stats_table = QtWidgets.QTableWidget()
         self.stats_table.setColumnCount(4)
@@ -92,50 +92,48 @@ class EnlargedGraphDialog(QtWidgets.QDialog):
             QtWidgets.QHeaderView.Stretch
         )
         self.update_stats(original_chart)
-        
+
         # Add widgets to layout
         layout.addWidget(self.chart_view)
         layout.addLayout(zoom_layout)
         layout.addWidget(self.stats_table)
-        
+
         self.setLayout(layout)
-    
+
     def zoom(self, factor):
         self.chart_view.chart().zoom(factor)
-    
+
     def reset_view(self):
         self.chart_view.chart().zoomReset()
-    
+
     def update_stats(self, original_chart):
         """Update statistics for each series"""
         self.stats_table.setRowCount(0)
-        
+
         for series in original_chart.series():
             row = self.stats_table.rowCount()
             self.stats_table.insertRow(row)
-            
+
             # Node name
-            self.stats_table.setItem(
-                row, 0, QtWidgets.QTableWidgetItem(series.name())
-            )
-            
+            self.stats_table.setItem(row, 0, QtWidgets.QTableWidgetItem(series.name()))
+
             # Calculate stats
             values = [series.at(i).y() for i in range(series.count())]
             if values:
                 current = values[-1]
                 peak = max(values)
                 avg = sum(values) / len(values)
-                
+
                 # Current energy
                 self.stats_table.setItem(
                     row, 1, QtWidgets.QTableWidgetItem(f"{current:.2f}")
                 )
-                
+
                 # Peak energy
                 self.stats_table.setItem(
                     row, 2, QtWidgets.QTableWidgetItem(f"{peak:.2f}")
                 )
-                
+
                 # Average energy
                 self.stats_table.setItem(
                     row, 3, QtWidgets.QTableWidgetItem(f"{avg:.2f}")
@@ -761,7 +759,7 @@ class SimulationUI(QtWidgets.QMainWindow):
     def create_live_graph(self, title):
         """Create a live graph widget for energy monitoring"""
         chart = QChart()
-        
+
         # Update title and axis labels for energy consumption history
         if title == "Node Energy":
             chart.setTitle("Node Energy Consumption History")
@@ -791,7 +789,7 @@ class SimulationUI(QtWidgets.QMainWindow):
         # Add axes to chart
         chart.addAxis(axis_x, QtCore.Qt.AlignBottom)
         chart.addAxis(axis_y, QtCore.Qt.AlignLeft)
-        
+
         if title == "Total Energy":
             series.attachAxis(axis_x)
             series.attachAxis(axis_y)
@@ -799,10 +797,12 @@ class SimulationUI(QtWidgets.QMainWindow):
         chart.setBackgroundBrush(QtGui.QColor("#2e2e2e"))
         chart_view = QChartView(chart)
         chart_view.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
-        
+
         # Make the chart view clickable
-        chart_view.mouseDoubleClickEvent = lambda event: self.show_enlarged_graph(chart_view)
-        
+        chart_view.mouseDoubleClickEvent = lambda event: self.show_enlarged_graph(
+            chart_view
+        )
+
         return chart_view
 
     def show_enlarged_graph(self, chart_view):
@@ -816,22 +816,29 @@ class SimulationUI(QtWidgets.QMainWindow):
         # Create table for node statistics and selection
         self.node_stats_table = QtWidgets.QTableWidget()
         self.node_stats_table.setColumnCount(7)
-        self.node_stats_table.setHorizontalHeaderLabels([
-            "Show", "Node", "Current Energy", "Peak Energy", "Average Energy", 
-            "Cumulated Energy", "Remaining Battery"
-        ])
+        self.node_stats_table.setHorizontalHeaderLabels(
+            [
+                "Show",
+                "Node",
+                "Current Energy",
+                "Peak Energy",
+                "Average Energy",
+                "Cumulated Energy",
+                "Remaining Battery",
+            ]
+        )
         self.node_stats_table.horizontalHeader().setSectionResizeMode(
             QtWidgets.QHeaderView.Stretch
         )
-        
+
         # Make the checkbox column smaller
         self.node_stats_table.horizontalHeader().setSectionResizeMode(
             0, QtWidgets.QHeaderView.ResizeToContents
         )
-        
+
         # Initialize signal connection flag
         self.checkbox_signal_connected = False
-        
+
         layout.addWidget(self.node_stats_table)
 
         container = QtWidgets.QWidget()
@@ -850,7 +857,7 @@ class SimulationUI(QtWidgets.QMainWindow):
         checked_nodes = set()
         current_selection = self.node_stats_table.selectedItems()
         selected_rows = set(item.row() for item in current_selection)
-        
+
         for row in range(self.node_stats_table.rowCount()):
             checkbox_item = self.node_stats_table.item(row, 0)
             if checkbox_item and checkbox_item.checkState() == QtCore.Qt.Checked:
@@ -861,42 +868,44 @@ class SimulationUI(QtWidgets.QMainWindow):
         # Update table contents without clearing it
         if self.node_stats_table.rowCount() != len(self.simulation.network.nodes):
             self.node_stats_table.setRowCount(len(self.simulation.network.nodes))
-        
+
         for row, node in enumerate(self.simulation.network.nodes):
             node_text = f"{type(node).__name__} {node.node_id}"
-            
+
             # Update checkbox if needed
             checkbox_item = self.node_stats_table.item(row, 0)
             if not checkbox_item:
                 checkbox_item = QtWidgets.QTableWidgetItem()
-                checkbox_item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+                checkbox_item.setFlags(
+                    QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled
+                )
                 self.node_stats_table.setItem(row, 0, checkbox_item)
-            
+
             checkbox_item.setCheckState(
                 QtCore.Qt.Checked if node_text in checked_nodes else QtCore.Qt.Unchecked
             )
-            
+
             # Update node name if needed
             name_item = self.node_stats_table.item(row, 1)
             if not name_item or name_item.text() != node_text:
                 self.node_stats_table.setItem(
                     row, 1, QtWidgets.QTableWidgetItem(node_text)
                 )
-            
+
             # Update statistics
             if len(node.energy_history) > 0:
                 current = node.energy_history[-1]
                 peak = max(node.energy_history)
                 avg = sum(node.energy_history) / len(node.energy_history)
                 cumulated = node.energy_consumed
-                
+
                 # Calculate remaining battery
                 if node.battery_capacity > 0:
                     remaining = node.battery_capacity - node.energy_consumed
                     remaining_str = f"{remaining:.2f}"
                 else:
                     remaining_str = "∞"
-                
+
                 # Update values
                 self.update_table_cell(row, 2, f"{current:.2f}")
                 self.update_table_cell(row, 3, f"{peak:.2f}")
@@ -919,7 +928,7 @@ class SimulationUI(QtWidgets.QMainWindow):
 
         # Unblock signals and ensure connection
         self.node_stats_table.blockSignals(False)
-        
+
         # Connect signal if not already connected
         if not self.checkbox_signal_connected:
             self.node_stats_table.itemChanged.connect(self.handle_checkbox_change)
@@ -935,7 +944,7 @@ class SimulationUI(QtWidgets.QMainWindow):
         """Handle checkbox state changes in the stats table"""
         if not item or item.column() != 0:  # Only handle checkbox column
             return
-        
+
         # Process the change without blocking signals
         row = item.row()
         node_item = self.node_stats_table.item(row, 1)
@@ -950,15 +959,15 @@ class SimulationUI(QtWidgets.QMainWindow):
                     series.attachAxis(self.node_energy_chart.axes()[0])
                     series.attachAxis(self.node_energy_chart.axes()[1])
                     self.node_energy_series[node_text] = series
-                    
+
                     # Assign a color to the series
                     color = QtGui.QColor(
                         random.randint(50, 255),
                         random.randint(50, 255),
-                        random.randint(50, 255)
+                        random.randint(50, 255),
                     )
                     series.setColor(color)
-                    
+
                     # Update series data
                     for node in self.simulation.network.nodes:
                         if f"{type(node).__name__} {node.node_id}" == node_text:
@@ -1340,4 +1349,3 @@ app.setWindowIcon(QtGui.QIcon("images/logo.png"))  # Taskbar icon
 window = SimulationUI()
 window.show()
 sys.exit(app.exec())
-
