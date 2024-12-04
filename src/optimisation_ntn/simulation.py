@@ -6,7 +6,7 @@ from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
-
+import pandas as pd
 from optimisation_ntn.networks.request import Request, RequestStatus
 
 from .algorithms.power_strategy import (
@@ -136,6 +136,15 @@ class Simulation:
         self.total_energy_bs = self.network.get_energy_bs()
         self.total_energy_haps = self.network.get_energy_haps()
         self.total_energy_leo = self.network.get_energy_leo()
+
+        # combine all nodes energy history into df and save to csv using name of the node as column (self.__str__())
+        # each row it a tick
+        # each node has a column, the column name is the node name (self.__str__())
+        # the value is the energy consumed by the node at that tick
+        energy_history = pd.DataFrame(
+            {node.__str__(): node.energy_history for node in self.network.nodes}
+        )
+        energy_history.to_csv("energy_history.csv", index=False)
 
         return self.system_energy_consumed
 

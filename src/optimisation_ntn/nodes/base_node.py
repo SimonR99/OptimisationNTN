@@ -43,6 +43,7 @@ class BaseNode(ABC):
         self.attenuation_coefficient = 0.0
         self.reference_lenght = 0.0
         self.destinations: List["BaseNode"] = []
+        self.last_tick_energy = 0.0
         self.energy_history = np.array([])
 
     def get_name(self) -> str:
@@ -197,8 +198,6 @@ class BaseNode(ABC):
 
     def tick(self, time: float):
         """Update node state including request processing"""
-        initial_energy = self.energy_consumed
-
         if (
             self.battery_capacity != -1
             and self.battery_capacity - self.energy_consumed <= 0
@@ -211,7 +210,8 @@ class BaseNode(ABC):
             self.energy_consumed += self.standby_energy * time
 
         # Store energy consumed during this time step
-        energy_this_tick = self.energy_consumed - initial_energy
+        energy_this_tick = self.energy_consumed - self.last_tick_energy
+        self.last_tick_energy = self.energy_consumed
 
         self.energy_history = np.append(self.energy_history, energy_this_tick)
 
