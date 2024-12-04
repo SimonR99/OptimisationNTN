@@ -1,4 +1,5 @@
 from abc import ABC
+from itertools import cycle
 from typing import Dict, List, Optional, Tuple
 
 from optimisation_ntn.utils.earth import Earth
@@ -31,19 +32,19 @@ class BaseNode(ABC):
         self.active_links: Dict[Tuple[type, type], int] = (
             {}
         )  # Track active links by node type pair
-        self.current_load = 0.0
-        self.cycle_per_bit = 500  # 500 cycles per each bit
+        self.current_load = 0.0  # bits
+        self.cycle_per_bit = 200  # cycle/bit
         self.processing_queue: List[Request] = []
-        self.battery_capacity = 0
-        self.energy_consumed = 0.0
-        self.processing_frequency = 0
-        self.transmission_power = 0
-        self.k_const = 0
+        self.battery_capacity = -1  # J
+        self.energy_consumed = 0.0  # J
+        self.processing_frequency = 0  # Hz
+        self.transmission_power = 0  # dBm
+        self.k_const = 0  #
         """Défini dans des études"""
-        self.spectral_noise_density = -174
+        self.spectral_noise_density = -174  # dBm/Hz
         """Ce peak d'énergie est une constante déterminée sans sources scientifiques."""
-        self.turn_on_energy_peak = 0.03
-        self.turn_on_standby_energy = 0.01
+        self.turn_on_energy_peak = 2500  # J
+        self.standby_energy = 500  # J/s
         self.recently_turned_on = False
         self.debug = debug
         self.name = ""
@@ -88,15 +89,19 @@ class BaseNode(ABC):
         if link_type in self.active_links and self.active_links[link_type] > 0:
             self.active_links[link_type] -= 1
 
-    def processing_time(self, request: Request) -> float:
+    def estimated_processing_time(self, request: Request) -> float:
         """Calculate processing time for a request"""
         total_load = self.current_load + request.size
-        return self.cycle_per_bit * total_load / self.processing_frequency
+        return self.processing_time(total_load)
+
+    def processing_time(self, size: float) -> float:
+        """Calculate processing time for a request of a given size"""
+        return self.cycle_per_bit * size / self.processing_frequency
 
     def _turn_on(self):
         """Turn node on and add energy consumed."""
 
-        if self.battery_capacity <= 0:
+        if self.battery_capacity - self.energy_consumed <= 0:
             return
         self.energy_consumed += self.turn_on_energy_peak
         self.state = True
@@ -141,14 +146,14 @@ class BaseNode(ABC):
             return True
 
         # Calculate processing time for the new total load
-        return self.processing_time(request) <= request.qos_limit
+        return self.estimated_processing_time(request) <= request.qos_limit
 
     def add_request_to_process(self, request: Request):
         """Add request to processing queue"""
         if self.can_process(request):
             self.processing_queue.append(request)
             self.current_load += request.size
-            request.status = RequestStatus.PROCESSING
+            request.update_status(RequestStatus.PROCESSING)
             request.current_node = self
             request.processing_progress = 0
             self.debug_print(
@@ -170,21 +175,26 @@ class BaseNode(ABC):
             request.processing_progress += (
                 self.processing_frequency * time / self.cycle_per_bit
             )
+            print(f"Energy before : {self.energy_consumed}")
             self.energy_consumed += self.processing_energy() * time
-
+            print(f"Energy after : {self.energy_consumed}")
             self.debug_print(
                 f"Node {self}: Processing request {request.id} "
                 f"({request.processing_progress:.1f}/{request.size} units)\n"
                 f"Energy consumed up to now: {self.energy_consumed:.1f} joules"
             )
 
-            if request.processing_progress >= request.size:
-                request.update_status(RequestStatus.COMPLETED)
-                request.satisfaction = True
+            if (
+                self.energy_consumed >= self.battery_capacity
+                and self.battery_capacity != -1
+            ):
+                request.update_status(RequestStatus.FAILED)
                 completed.append(request)
                 self.current_load -= request.size
-                request.status = RequestStatus.COMPLETED
-                request.satisfaction = True
+            elif request.processing_progress >= request.size:
+                request.update_status(RequestStatus.COMPLETED)
+                completed.append(request)
+                self.current_load -= request.size
                 self.debug_print(
                     f"Request {request.id} status changed to {request.status.name} at {self}"
                 )
@@ -195,14 +205,24 @@ class BaseNode(ABC):
 
     def tick(self, time: float):
         """Update node state including request processing"""
+
+        if (
+            self.battery_capacity != -1
+            and self.battery_capacity - self.energy_consumed <= 0
+        ):
+            self._turn_off()
+
         self.process_requests(time)
+
+        if self.state:
+            self.energy_consumed += self.standby_energy * time
 
     def debug_print(self, *args, **kwargs):
         """Print only if debug mode is enabled"""
         if self.debug:
             print(*args, **kwargs)
 
-    def transmission_energy(self, request: Request, link_bandwidth: float):
+    def transmission_energy(self):
         """Calculates the transmission energy consumed from the haps to the next node (bs or Leo) and turns off the node
         if the battery is depleted.
         :param link_bandwidth:
@@ -210,33 +230,12 @@ class BaseNode(ABC):
         :return: energy consumed in joules
         """
         # transmission power has to go from dBm to Watt
-        transmission_energy = convert_dbm_watt(
-            self.transmission_power
-        ) * transmission_delay(request, link_bandwidth)
-        self.battery_capacity -= transmission_energy
-        if self.battery_capacity <= 0 and self.get_name() != "BS":
-            self._turn_off()
+        transmission_energy = convert_dbm_watt(self.transmission_power)
         return transmission_energy
 
-    def processing_delay(self, request: Request):
-        return (request.size * 1000) / self.processing_frequency
-
     def processing_energy(self):
-        """Calculates the processing energy consumed and turn off the node if the battery is depleted.
-        :return: energy consumed in joules
+        """Calculates the processing energy consumed.
+        :return: energy in Joules
         """
-        processing_energy = (
-            self.k_const
-            * (self.processing_frequency**3)
-            * self.processing_delay(self.processing_queue[0])
-        )
-        self.battery_capacity -= processing_energy
-        if self.battery_capacity <= 0 and self.get_name() != "BS":
-            self._turn_off()
+        processing_energy = self.k_const * (self.processing_frequency**3)
         return processing_energy
-
-    def consume_standby_energy(self):
-        if self.state:
-            self.energy_consumed += self.turn_on_standby_energy
-            if self.battery_capacity <= 0 and self.get_name() != "BS":
-                self._turn_off()

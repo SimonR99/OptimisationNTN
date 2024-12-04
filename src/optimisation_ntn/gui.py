@@ -52,15 +52,15 @@ class SimulationUI(QtWidgets.QMainWindow):
         # Center display with tabs
         center_layout = QtWidgets.QVBoxLayout()
         tabs = QtWidgets.QTabWidget()
-        tabs.addTab(self.create_real_time_view(), "Real-time")
-        tabs.addTab(self.create_results_tab(), "Result")
+        tabs.addTab(self.create_real_time_view(), "Animation view")
+        tabs.addTab(self.create_results_tab(), "Graph selection")
         center_layout.addWidget(tabs)
         upper_content.addLayout(center_layout, 2)
 
         # Right panel for graphs
         right_panel = QtWidgets.QVBoxLayout()
-        right_panel.addWidget(self.create_live_graph("Throughput"))
-        right_panel.addWidget(self.create_live_graph("Energy"))
+        right_panel.addWidget(self.create_live_graph("Node Energy"), 1)  # Larger graph for selected node
+        right_panel.addWidget(self.create_live_graph("Total Energy"), 1)  # Smaller graph for total
         upper_content.addLayout(right_panel, 1)
 
         # Add upper content to center-right layout
@@ -634,7 +634,7 @@ class SimulationUI(QtWidgets.QMainWindow):
             line.setOpacity(0.5)
 
     def create_live_graph(self, title):
-        """Create a live graph widget for energy or throughput monitoring"""
+        """Create a live graph widget for energy monitoring"""
         series = QLineSeries()
         chart = QChart()
         chart.addSeries(series)
@@ -644,20 +644,23 @@ class SimulationUI(QtWidgets.QMainWindow):
         axis_x = QValueAxis()
         axis_y = QValueAxis()
 
-        # Store series reference if it's the energy graph
-        if title == "Energy":
-            self.energy_series = series
-            # Configure axes
-            axis_x.setTitleText("Time (s)")
-            axis_y.setTitleText("Energy (J)")
-            axis_x.setRange(0, self.simulation.max_time if self.simulation else 300)
+        # Configure axes
+        axis_x.setTitleText("Time (s)")
+        axis_y.setTitleText("Energy (J)")
+        axis_x.setRange(0, self.simulation.max_time if self.simulation else 300)
 
-            # Store axis reference for dynamic updates
-            self.energy_y_axis = axis_y
+        # Store series and axis references based on graph type
+        if title == "Total Energy":
+            self.total_energy_series = series
+            self.total_energy_y_axis = axis_y
+        else:  # Node Energy
+            self.node_energy_series = series
+            self.node_energy_y_axis = axis_y
+            self.node_energy_chart = chart  # Store reference to update title
 
         # Add axes to chart
-        chart.addAxis(axis_x, Qt.AlignBottom)
-        chart.addAxis(axis_y, Qt.AlignLeft)
+        chart.addAxis(axis_x, QtCore.Qt.AlignBottom)
+        chart.addAxis(axis_y, QtCore.Qt.AlignLeft)
         series.attachAxis(axis_x)
         series.attachAxis(axis_y)
 
@@ -668,9 +671,20 @@ class SimulationUI(QtWidgets.QMainWindow):
 
     def create_results_tab(self):
         layout = QtWidgets.QVBoxLayout()
-        self.results_list = QtWidgets.QListWidget()
-        layout.addWidget(QtWidgets.QLabel("Previous Simulation Results"))
-        layout.addWidget(self.results_list)
+        
+        # Create a combo box for node selection
+        self.node_selector = QtWidgets.QComboBox()
+        self.node_selector.currentTextChanged.connect(self.update_selected_node)
+        layout.addWidget(QtWidgets.QLabel("Select Node:"))
+        layout.addWidget(self.node_selector)
+        
+        # Create table for energy consumption details
+        self.energy_table = QtWidgets.QTableWidget()
+        self.energy_table.setColumnCount(3)
+        self.energy_table.setHorizontalHeaderLabels(["Node", "Type", "Energy Consumed (J)"])
+        self.energy_table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+        layout.addWidget(self.energy_table)
+        
         container = QtWidgets.QWidget()
         container.setLayout(layout)
         return container
@@ -697,21 +711,31 @@ class SimulationUI(QtWidgets.QMainWindow):
             # Update UI
             if can_continue:
                 self.update_simulation_display()
-                # Update energy graph
-                if hasattr(self, "energy_series"):
-                    current_energy = self.simulation.system_energy_consumed
-                    self.energy_series.append(
-                        self.simulation.current_time, current_energy
-                    )
+                current_time = self.simulation.current_time
+                
+                # Update total energy graph
+                total_energy = self.simulation.system_energy_consumed
+                self.total_energy_series.append(current_time, total_energy)
+                self.total_energy_y_axis.setRange(0, max(total_energy * 1.2, 200))
+                
+                # Update selected node energy graph
+                selected_node_text = self.node_selector.currentText()
+                if selected_node_text:
+                    for node in self.simulation.network.nodes:
+                        if f"{type(node).__name__} {node.node_id}" == selected_node_text:
+                            self.node_energy_series.append(current_time, node.energy_consumed)
+                            self.node_energy_y_axis.setRange(0, max(node.energy_consumed * 1.2, 100))
+                            break
+                
+                # Update energy table in results tab
+                self.update_energy_table()
 
-                    # Auto-adjust y-axis range
-                    if hasattr(self, "energy_y_axis"):
-                        # Add 20% padding above the maximum value
-                        max_value = max(current_energy * 1.2, 200)
-                        self.energy_y_axis.setRange(0, max_value)
-
-                # Force scene update
-                self.load_close_up_view()
+                # Update view based on current view mode
+                if self.current_view == "close":
+                    self.load_close_up_view()
+                else:
+                    self.load_far_view()
+                    
                 self.schematic_view.viewport().update()
             else:
                 self.timer.stop()
@@ -772,26 +796,45 @@ class SimulationUI(QtWidgets.QMainWindow):
         """Create a new simulation and add it to the list"""
         try:
             simulation_name = f"Simulation {self.sim_list.count() + 1}"
-
-            # Create new simulation instance with debug mode
             simulation = Simulation(debug=False)
-
-            # Store simulation
             self.simulations[simulation_name] = simulation
             self.simulation = simulation
-
-            # Ensure step duration input is enabled for new simulation
-            self.step_duration_input.setEnabled(True)
-
+            
             # Add to list and select it
             self.sim_list.addItem(simulation_name)
             self.sim_list.setCurrentRow(self.sim_list.count() - 1)
-
-            # Update view
-            self.load_close_up_view()
-
-            # Update UI with simulation parameters
+            
+            # Update node selector
+            self.node_selector.clear()
+            for node in simulation.network.nodes:
+                self.node_selector.addItem(f"{type(node).__name__} {node.node_id}")
+            
+            # Select first node by default
+            if self.node_selector.count() > 0:
+                self.node_selector.setCurrentIndex(0)
+            
+            # Update UI parameters
             self.update_ui_parameters()
+            
+            # Update views
+            self.load_close_up_view()
+            
+            # Enable step duration input
+            self.step_duration_input.setEnabled(True)
+            
+            # Reset energy graphs
+            if hasattr(self, 'total_energy_series'):
+                self.total_energy_series.clear()
+            if hasattr(self, 'node_energy_series'):
+                self.node_energy_series.clear()
+            
+            # Update energy table
+            self.update_energy_table()
+            
+            # Reset time labels
+            self.current_time_label.setText("0.0s")
+            self.current_step_label.setText("0")
+            self.current_energy_label.setText("0.0 J")
 
         except Exception as e:
             print(f"Error creating simulation: {str(e)}")
@@ -965,6 +1008,41 @@ class SimulationUI(QtWidgets.QMainWindow):
                     x - text.boundingRect().width() / 2,
                     y - request_pixmap.height() - 15,
                 )
+
+    def update_selected_node(self, node_text):
+        """Update the node energy graph when a new node is selected"""
+        if self.simulation and node_text:
+            # Clear previous data
+            self.node_energy_series.clear()
+            
+            # Find the selected node
+            for node in self.simulation.network.nodes:
+                if f"{type(node).__name__} {node.node_id}" == node_text:
+                    # Update graph title
+                    self.node_energy_chart.setTitle(f"{type(node).__name__} {node.node_id} Energy")
+                    break
+
+    def update_energy_table(self):
+        """Update the energy consumption table in the results tab"""
+        if self.simulation:
+            self.energy_table.setRowCount(0)  # Clear existing rows
+            
+            # Add a row for each node
+            for node in self.simulation.network.nodes:
+                row = self.energy_table.rowCount()
+                self.energy_table.insertRow(row)
+                
+                # Node identifier
+                self.energy_table.setItem(row, 0, 
+                    QtWidgets.QTableWidgetItem(f"{type(node).__name__} {node.node_id}"))
+                
+                # Node type
+                self.energy_table.setItem(row, 1, 
+                    QtWidgets.QTableWidgetItem(type(node).__name__))
+                
+                # Energy consumed
+                self.energy_table.setItem(row, 2, 
+                    QtWidgets.QTableWidgetItem(f"{node.energy_consumed:.2f}"))
 
 
 app = QtWidgets.QApplication(sys.argv)
