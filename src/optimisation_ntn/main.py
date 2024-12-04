@@ -56,6 +56,7 @@ def create_parser():
         "--algorithm",
         type=str,
         choices=["Random", "StaticRandom", "AllOn", "Genetic"],
+        default="AllOn",
         help="Algorithm used for optimizing or running the simulation",
     )
 

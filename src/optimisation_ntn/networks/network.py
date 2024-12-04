@@ -54,7 +54,7 @@ class Network:
         base_stations = [node for node in self.nodes if isinstance(node, BaseStation)]
         leo_nodes = [node for node in self.nodes if isinstance(node, LEO)]
 
-        self.debug_print("\nCreating communication links:")
+        """self.debug_print("\nCreating communication links:")"""
 
         # Connect each user to all HAPS and closest base station (bidirectional)
         for user in user_nodes:
@@ -64,9 +64,9 @@ class Network:
                 link = CommunicationLink(
                     user,
                     haps,
-                    total_bandwidth=1,
-                    signal_power=1,
-                    carrier_frequency=1,
+                    total_bandwidth=100e6,
+                    signal_power=23,
+                    carrier_frequency=2e9,
                     debug=self.debug,
                 )
                 self.communication_links.append(link)
@@ -90,9 +90,9 @@ class Network:
                     link = CommunicationLink(
                         user,
                         closest_bs,
-                        total_bandwidth=1,
-                        signal_power=1,
-                        carrier_frequency=1,
+                        total_bandwidth=100e6,
+                        signal_power=23,
+                        carrier_frequency=2e9,
                         debug=self.debug,
                     )
                     self.communication_links.append(link)
@@ -107,9 +107,9 @@ class Network:
                 link = CommunicationLink(
                     bs,
                     haps,
-                    total_bandwidth=2,  # Higher bandwidth for BS-HAPS links
-                    signal_power=2,  # Higher power for BS-HAPS links
-                    carrier_frequency=1,
+                    total_bandwidth=100e6,  # Higher bandwidth for BS-HAPS links
+                    signal_power=30,  # Higher power for BS-HAPS links
+                    carrier_frequency=2e9,
                     debug=self.debug,
                 )
                 self.communication_links.append(link)
@@ -118,9 +118,9 @@ class Network:
                 link = CommunicationLink(
                     haps,
                     bs,
-                    total_bandwidth=2,
-                    signal_power=2,
-                    carrier_frequency=1,
+                    total_bandwidth=100e6,
+                    signal_power=33,
+                    carrier_frequency=2e9,
                     debug=self.debug,
                 )
                 self.communication_links.append(link)
@@ -133,9 +133,9 @@ class Network:
                 link = CommunicationLink(
                     haps,
                     leo,
-                    total_bandwidth=2,
-                    signal_power=2,
-                    carrier_frequency=1,
+                    total_bandwidth=1e9,
+                    signal_power=33,
+                    carrier_frequency=2e9,
                     debug=self.debug,
                 )
                 self.communication_links.append(link)
@@ -146,10 +146,6 @@ class Network:
     ) -> List[BaseNode]:
         """Get all nodes with processing capability"""
         return [node for node in self.nodes if node.can_process(request, check_state)]
-
-    def compute_path_time(self, path: List[BaseNode], request: Request) -> float:
-        """Calculate the total compute time for a path"""
-        return sum(node.processing_time(request) for node in path)
 
     def generate_request_path(
         self, source: BaseNode, target: BaseNode
@@ -176,17 +172,14 @@ class Network:
         for i in range(len(path) - 1):
             for link in self.communication_links:
                 if link.node_a == path[i] and link.node_b == path[i + 1]:
-                    time += link.estimate_network_delay(request)
+                    time += link.calculate_transmission_delay(request)
+
         return time
 
     def tick(self, time: float = 0.1):
         """Update network state including request routing"""
         # Update all compute nodes
         for node in self.nodes:
-            # consume basic standby energy
-            if not node.recently_turned_on:
-                node.consume_standby_energy()
-                node.recently_turned_on = False
             node.tick(time)
 
         # Update all communication links and handle completed transmissions

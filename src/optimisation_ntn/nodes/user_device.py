@@ -9,19 +9,21 @@ from .base_node import BaseNode
 
 
 class UserDevice(BaseNode):
-
     REQUEST_LIMIT = 1
 
     def __init__(self, node_id: int, initial_position: Position, debug: bool = False):
         super().__init__(node_id, initial_position, debug=debug)
-        self.add_antenna("VHF", 1.5)
+        self.add_antenna("VHF", 3)
+        self.transmission_power = 23
+        self.path_loss_exponent = 3
+        self.attenuation_coefficient = 3
+        self.reference_lenght = 1
         self.current_requests: list[Request] = []
         self.transmission_power = 23
         self.name = "USER DEVICE"
 
-    def create_request(self, tick: int) -> Request:
+    def add_request(self, request) -> Request:
         """Create a new request without specifying target node yet"""
-        request = Request(tick, self, None, debug=self.debug)
         self.current_requests.append(request)
         self.debug_print(
             f"User {self.node_id} created request {request.id} with status {request.status.name}"

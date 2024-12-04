@@ -2,14 +2,12 @@
 
 import random
 import time
-import numpy as np
-import matplotlib.pyplot as plt
-
 from typing import Optional
 
-from sympy.strategies.core import switch
+import matplotlib.pyplot as plt
+import numpy as np
 
-from optimisation_ntn.networks.request import RequestStatus
+from optimisation_ntn.networks.request import Request, RequestStatus
 
 from .algorithms.power_strategy import (
     AllOnStrategy,
@@ -45,7 +43,7 @@ class Simulation:
         max_time: float = DEFAULT_MAX_SIMULATION_TIME,
         debug: bool = False,
         user_count: int = DEFAULT_USER_COUNT,
-        strategy="StaticRandomStrategy",
+        strategy="AllOn",
     ):
         # Set the random seed if provided
         if seed is not None:
@@ -150,8 +148,7 @@ class Simulation:
 
         for user in [n for n in self.network.nodes if isinstance(n, UserDevice)]:
             for request in user.current_requests:
-
-                if request.satisfaction:
+                if request.status == RequestStatus.COMPLETED:
                     satisfied_requests += 1
 
         if self.total_requests == 0:
@@ -159,6 +156,9 @@ class Simulation:
 
         success_rate = (satisfied_requests / self.total_requests) * 100
         return success_rate
+
+    def get_current_tick(self):
+        return self.current_step
 
     def step(self) -> bool:
         """Run simulation for a single step."""
@@ -179,7 +179,14 @@ class Simulation:
                 user = user_devices[i]
 
                 # Create the request
-                request = user.create_request(self.current_step)
+                request = Request(
+                    tick=self.current_step,
+                    tick_time=self.time_step,
+                    initial_node=user,
+                    get_tick=self.get_current_tick,
+                    debug=self.debug,
+                )
+                request = user.add_request(request)
                 compute_nodes = self.network.get_compute_nodes(request)
 
                 # Find optimal compute node based on both compute and network delay
@@ -188,7 +195,7 @@ class Simulation:
                 best_path = None
                 for compute_node in compute_nodes:
                     # Estimate processing time based on node's compute capacity
-                    processing_time = compute_node.processing_time(request)
+                    processing_time = compute_node.estimated_processing_time(request)
                     path = self.network.generate_request_path(user, compute_node)
                     network_delay = self.network.get_network_delay(request, path)
                     total_time = processing_time + network_delay
@@ -203,7 +210,7 @@ class Simulation:
                     user.assign_target_node(request, best_node)
                     request.path = best_path
                     request.path_index = 1
-                    request.status = RequestStatus.IN_TRANSIT
+                    request.update_status(RequestStatus.IN_TRANSIT)
 
                     # Add request to first transmission queue
                     current_node = request.path[0]
@@ -221,6 +228,7 @@ class Simulation:
 
                     self.total_requests += 1
                 else:
+                    request.update_status(RequestStatus.FAILED)
                     self.debug_print(f"No available compute nodes found for {user}")
 
         # Update network state
