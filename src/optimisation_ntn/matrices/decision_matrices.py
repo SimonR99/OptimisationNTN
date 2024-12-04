@@ -3,11 +3,6 @@ from typing import Dict
 
 import numpy as np
 
-from ..algorithms.power_strategy import PowerStateStrategy
-from ..algorithms.power_strategy import GeneticAlgorithmStrategy
-from ..algorithms.power_strategy import AllOnStrategy
-from ..algorithms.power_strategy import RandomStrategy
-from ..algorithms.power_strategy import StaticRandomStrategy
 from ..networks.request import RequestStatus
 from ..nodes.base_station import BaseStation
 from ..nodes.user_device import UserDevice
@@ -84,21 +79,27 @@ class DecisionMatrices:
                 break
 
     def generate_power_matrix(
-        self, num_devices: int, num_steps: int, strategy: PowerStateStrategy
+        self, num_devices: int, num_steps: int, strategy, power_matrice_genetic
     ):
         """Generate power state matrix based on a given strategy.
 
         Args:
             num_devices: Number of devices
             num_steps: Number of time steps
-            strategy: PowerStateStrategy object
-
+            strategy: Strategy used
+            power_matrice_genetic: Argument used only for genetic strategy
         Returns:
             np.ndarray: Power state matrix
         """
-        print(strategy.get_name())
-        power_matrix = strategy.generate_power_matrix(num_devices, num_steps)
-        self.matrices[MatrixType.POWER_STATE] = power_matrix
+        if hasattr(strategy, "generate_power_matrix") and callable(strategy.generate_power_matrix):
+            # If `strategy` has a `generate_power_matrix` method, treat it as an object
+            power_matrix = strategy.generate_power_matrix(num_devices, num_steps)
+            self.matrices[MatrixType.POWER_STATE] = power_matrix
+        elif isinstance(strategy, str) and strategy == "Genetic":
+            # If `strategy` is a string and matches "Genetic"
+            self.matrices[MatrixType.POWER_STATE] = power_matrice_genetic
+        else:
+            raise TypeError("Invalid strategy type. Must be an object with `PowerStateStrategy` or 'Genetic'.")
 
     def update_assignment_matrix(self, network: Network):
         """Update real-time request assignment matrix"""

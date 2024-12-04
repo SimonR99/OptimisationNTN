@@ -9,13 +9,6 @@ import numpy as np
 
 from optimisation_ntn.networks.request import Request, RequestStatus
 
-from .algorithms.power_strategy import (
-    AllOnStrategy,
-    PowerStateStrategy,
-    RandomStrategy,
-    StaticRandomStrategy,
-    GeneticAlgorithmStrategy,
-)
 from .matrices.decision_matrices import DecisionMatrices, MatrixType
 from .networks.network import Network
 from .nodes.base_station import BaseStation
@@ -31,6 +24,7 @@ class Simulation:
     DEFAULT_BS_COUNT = 4
     DEFAULT_HAPS_COUNT = 1
     DEFAULT_LEO_COUNT = 1
+    DEFAULT_COMPUTE_NODES = DEFAULT_BS_COUNT + DEFAULT_HAPS_COUNT + DEFAULT_LEO_COUNT
     DEFAULT_USER_COUNT = 50
 
     DEFAULT_TICK_TIME = 0.1
@@ -38,12 +32,12 @@ class Simulation:
 
     def __init__(
         self,
+        strategy,
         seed: Optional[int] = None,
         time_step: float = DEFAULT_TICK_TIME,
         max_time: float = DEFAULT_MAX_SIMULATION_TIME,
         debug: bool = False,
         user_count: int = DEFAULT_USER_COUNT,
-        strategy="AllOn",
     ):
         # Set the random seed if provided
         if seed is not None:
@@ -55,7 +49,7 @@ class Simulation:
         self.max_time = max_time
         self.network = Network(debug=debug)
         self.matrices = DecisionMatrices(dimension=user_count)
-        self.strategy = self.set_strategy(strategy)
+        self.strategy = strategy
         self.matrix_history: list[DecisionMatrices] = []
         self.total_requests = 0
         self.request_stats = {status: 0 for status in RequestStatus}
@@ -68,6 +62,7 @@ class Simulation:
         self.total_energy_bs = 0
         self.total_energy_haps = 0
         self.total_energy_leo = 0
+        self.power_matrice_genetic = np.zeros(self.DEFAULT_COMPUTE_NODES, MatrixType)
 
         # Initialize with default values
         self.initialize_default_nodes()
@@ -80,25 +75,16 @@ class Simulation:
         """Calculate the maximum number of simulation steps."""
         return int(self.max_time / self.time_step)
 
-    def set_strategy(self, strategy: str):
-        """Set the optimization strategy to use"""
-        match strategy:
-            case "AllOn":
-                return AllOnStrategy()
-            case "Random":
-                return RandomStrategy()
-            case "StaticRandom":
-                return StaticRandomStrategy()
-            case "Genetic":
-                return GeneticAlgorithmStrategy()
-
-    def run(self) -> float:
+    def run(self, power_matrice_genetic) -> float:
         """Run simulation until self.max_time.
         Returns:
             float: Total energy consumed during simulation
         """
-        start_time = time.time()
 
+        if self.strategy == "Genetic":
+            self.power_matrice_genetic = power_matrice_genetic
+
+        start_time = time.time()
         # Print simulation parameters (always show these)
         print("\nStarting simulation with parameters:")
         print(f"Time step: {self.time_step}s")
@@ -349,10 +335,17 @@ class Simulation:
             + self.network.count_nodes_by_type(BaseStation)
             + self.network.count_nodes_by_type(LEO)
         )
-
-        self.matrices.generate_power_matrix(
-            compute_nodes_count, matrix_size, self.strategy
-        )
+        if self.strategy == "Genetic":
+            self.matrices.generate_power_matrix(
+                compute_nodes_count,
+                matrix_size,
+                self.strategy,
+                self.power_matrice_genetic,
+            )
+        else:
+            self.matrices.generate_power_matrix(
+                compute_nodes_count, matrix_size, self.strategy, None
+            )
 
     def debug_print(self, *args, **kwargs):
         """Print only if debug mode is enabled"""
@@ -361,7 +354,10 @@ class Simulation:
 
     def apply_power_states(self):
         """Apply power states from power matrix to network nodes"""
-        power_matrix = self.matrices.get_matrix(MatrixType.POWER_STATE)
+        if self.strategy == "Genetic":
+            power_matrix = self.power_matrice_genetic
+        else:
+            power_matrix = self.matrices.get_matrix(MatrixType.POWER_STATE)
         compute_nodes = [
             n for n in self.network.nodes if isinstance(n, (HAPS, BaseStation, LEO))
         ]

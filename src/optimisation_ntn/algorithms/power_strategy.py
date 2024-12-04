@@ -1,7 +1,11 @@
+import random
 from abc import ABC, abstractmethod
 
 import numpy as np
 import pygad
+
+from optimisation_ntn.simulation import Simulation
+from optimisation_ntn.utils import config
 
 
 class PowerStateStrategy(ABC):
@@ -106,78 +110,61 @@ class StaticRandomStrategy(PowerStateStrategy):
         pass
 
 
-class GeneticAlgorithmStrategy(PowerStateStrategy):
-    """Strategy implementing a Genetic Algorithm to optimize power states."""
+class GeneticAlgorithmStrategy:
+    """Optimizes power state configuration using Genetic Algorithm."""
+    def __init__(self):
+        self.population_size = config.POPULATION_SIZE
+        self.generations = config.GENERATIONS
+        self.mutation_rate = config.MUTATION_RATE
+        self.crossover_rate = config.CROSSOVER_RATE
+        self.num_nodes = Simulation.DEFAULT_COMPUTE_NODES
+        self.num_steps = int(Simulation.DEFAULT_MAX_SIMULATION_TIME/Simulation.DEFAULT_TICK_TIME) + 1
 
-    def __init__(
-        self, population_size=10, generations=20, mutation_prob=0.1, crossover_prob=0.9
-    ):
-        """Initialize the Genetic Algorithm parameters.
+    @property
+    def matrix_size(self):
+        """Returns the total size of the matrix (flattened for use with PyGAD)."""
+        return self.num_nodes * self.num_steps
 
-        Args:
-            population_size: Number of individuals in the population.
-            generations: Number of generations for the genetic algorithm.
-            mutation_prob: Probability of mutating a gene.
-            crossover_prob: Probability of crossover during mating.
+    @staticmethod
+    def evaluate_solution(power_matrice_genetic):
         """
-        self.population_size = population_size
-        self.generations = generations
-        self.mutation_prob = mutation_prob
-        self.crossover_prob = crossover_prob
+        Evaluates a power state matrix using the simulation.
+        """
+        simulation = Simulation(
+            seed=42,
+            time_step=Simulation.DEFAULT_TICK_TIME,
+            max_time=Simulation.DEFAULT_MAX_SIMULATION_TIME,
+            debug=False,
+            user_count=Simulation.DEFAULT_USER_COUNT,
+            strategy="Genetic",
+        )
+        # Run the simulation with the provided power state matrix
+        energy_consumed = simulation.run(power_matrice_genetic)
 
-    def fitness_function(self, individual, num_devices, num_steps):
-        """Evaluate the fitness of an individual solution.
+        # Calculate energy consumption and QoS satisfaction
+        qos_satisfaction = simulation.evaluate_qos_satisfaction()
+        # Combine the two metrics into a single fitness score
+        return (1 / (1 + energy_consumed)) + qos_satisfaction
+
+    def fitness_function(self, ga_instance, solution, solution_idx):
+        """
+        Fitness function for PyGAD.
 
         Args:
-            individual: Flattened matrix representing on/off states of nodes.
-            num_devices: Number of devices in the system.
-            num_steps: Number of time steps in the system.
+            ga_instance: The PyGAD instance.
+            solution: The current solution being evaluated.
+            solution_idx: The index of the solution in the population.
 
         Returns:
-            Fitness score (higher is better).
+            The fitness score of the solution.
         """
-        # Reshape individual into power matrix
-        power_matrix = np.array(individual).reshape((num_devices, num_steps))
-
-        # Calculate total energy consumption per node
-        energy_per_node = np.sum(power_matrix, axis=1)  # Sum over time steps
-
-        # Fitness is higher when energy is evenly distributed across nodes
-        energy_variance = np.var(energy_per_node)
-        return -energy_variance  # Minimize variance for balance
-
-    def generate_power_matrix(self, num_devices: int, num_steps: int) -> np.ndarray:
-        """Generate power state matrix optimized using Genetic Algorithm."""
-
-        def fitness_wrapper(solution, _):
-            return self.fitness_function(solution, num_devices, num_steps)
-
-        # Total genes = num_devices * num_steps
-        num_genes = num_devices * num_steps
-
-        # Initial population
-        initial_population = np.random.randint(
-            0, 2, size=(self.population_size, num_genes)
-        )
-
-        # PyGAD setup
-        ga_instance = pygad.GA(
-            num_generations=self.generations,
-            num_parents_mating=self.population_size // 2,
-            fitness_func=fitness_wrapper,
-            sol_per_pop=self.population_size,
-            num_genes=num_genes,
-            mutation_probability=self.mutation_prob,
-            crossover_probability=self.crossover_prob,
-            gene_space=[0, 1],  # Binary genes
-        )
-
-        # Run the genetic algorithm
-        ga_instance.run()
-
-        # Get the best solution
-        best_solution, _, _ = ga_instance.best_solution()
-        return np.array(best_solution).reshape((num_devices, num_steps))
-
-    def get_name(self) -> str:
-        return f"Genetic Algorithm Strategy (pop={self.population_size}, gen={self.generations})"
+        # Reshape the solution into the original power matrix dimensions
+        power_state_matrix = np.reshape(solution, (self.num_nodes, self.num_steps))
+        fitness = self.evaluate_solution(power_state_matrix)
+        print("******************************************************")
+        print(f"Solution Index {solution_idx}:")
+        print(f"Power State Matrix: {power_state_matrix}")
+        print(f"Fitness: {fitness}")
+        print("******************************************************")
+        # Evaluate the solution
+        return fitness
