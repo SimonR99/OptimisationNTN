@@ -112,13 +112,17 @@ class StaticRandomStrategy(PowerStateStrategy):
 
 class GeneticAlgorithmStrategy:
     """Optimizes power state configuration using Genetic Algorithm."""
+
     def __init__(self):
         self.population_size = config.POPULATION_SIZE
         self.generations = config.GENERATIONS
         self.mutation_rate = config.MUTATION_RATE
         self.crossover_rate = config.CROSSOVER_RATE
         self.num_nodes = Simulation.DEFAULT_COMPUTE_NODES
-        self.num_steps = int(Simulation.DEFAULT_MAX_SIMULATION_TIME/Simulation.DEFAULT_TICK_TIME) + 1
+        self.num_steps = (
+            int(Simulation.DEFAULT_MAX_SIMULATION_TIME / Simulation.DEFAULT_TICK_TIME)
+            + 1
+        )
 
     @property
     def matrix_size(self):

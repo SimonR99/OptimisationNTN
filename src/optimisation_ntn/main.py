@@ -4,14 +4,19 @@ import math
 import numpy as np
 from pygad import pygad
 
-from optimisation_ntn.algorithms.power_strategy import GeneticAlgorithmStrategy, AllOnStrategy, RandomStrategy, \
-    StaticRandomStrategy
+from optimisation_ntn.algorithms.power_strategy import (
+    GeneticAlgorithmStrategy,
+    AllOnStrategy,
+    RandomStrategy,
+    StaticRandomStrategy,
+)
 from optimisation_ntn.algorithms.power_strategy import PowerStateStrategy
 from optimisation_ntn.simulation import Simulation
 from optimisation_ntn.utils import config
 from optimisation_ntn.utils.data_export import collect_graph_data
 
 previous_population = None
+
 
 def create_parser():
     parser = argparse.ArgumentParser(
@@ -108,7 +113,15 @@ def main(args):
 
         # Reshape the best solution back to a 2D matrix
         best_power_state_matrix = np.reshape(
-            best_solution, (Simulation.DEFAULT_COMPUTE_NODES, int(Simulation.DEFAULT_MAX_SIMULATION_TIME/Simulation.DEFAULT_TICK_TIME) + 1)
+            best_solution,
+            (
+                Simulation.DEFAULT_COMPUTE_NODES,
+                int(
+                    Simulation.DEFAULT_MAX_SIMULATION_TIME
+                    / Simulation.DEFAULT_TICK_TIME
+                )
+                + 1,
+            ),
         )
 
         print("Best solution (flattened):", best_solution)
@@ -158,6 +171,7 @@ def main(args):
     if args.debug:
         collect_graph_data(all_iterations_data)
 
+
 def set_strategy(strategy: str):
     """Set the optimization strategy to use"""
     match strategy:
@@ -168,10 +182,12 @@ def set_strategy(strategy: str):
         case "StaticRandom":
             return StaticRandomStrategy()
 
+
 def on_generation(ga_instance):
     # Access the latest best fitness value from the list of best_solutions_fitness
     best_fitness_so_far = ga_instance.best_solutions_fitness[-1]
     print(f"Best Fitness so far: {best_fitness_so_far}")
+
 
 if __name__ == "__main__":
     parser = create_parser()

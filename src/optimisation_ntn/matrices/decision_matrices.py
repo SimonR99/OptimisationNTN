@@ -91,7 +91,9 @@ class DecisionMatrices:
         Returns:
             np.ndarray: Power state matrix
         """
-        if hasattr(strategy, "generate_power_matrix") and callable(strategy.generate_power_matrix):
+        if hasattr(strategy, "generate_power_matrix") and callable(
+            strategy.generate_power_matrix
+        ):
             # If `strategy` has a `generate_power_matrix` method, treat it as an object
             power_matrix = strategy.generate_power_matrix(num_devices, num_steps)
             self.matrices[MatrixType.POWER_STATE] = power_matrix
@@ -99,7 +101,9 @@ class DecisionMatrices:
             # If `strategy` is a string and matches "Genetic"
             self.matrices[MatrixType.POWER_STATE] = power_matrice_genetic
         else:
-            raise TypeError("Invalid strategy type. Must be an object with `PowerStateStrategy` or 'Genetic'.")
+            raise TypeError(
+                "Invalid strategy type. Must be an object with `PowerStateStrategy` or 'Genetic'."
+            )
 
     def update_assignment_matrix(self, network: Network):
         """Update real-time request assignment matrix"""
