@@ -99,6 +99,7 @@ def main(args):
         iteration_data = {
             "total_requests": simulation.total_requests,
             "success_rate": simulation.evaluate_qos_satisfaction(),
+            "energy_consummed": simulation.energy_consummed,
             "total_energy_bs": simulation.total_energy_bs,
             "total_energy_haps": simulation.total_energy_haps,
             "total_energy_leo": simulation.total_energy_leo,

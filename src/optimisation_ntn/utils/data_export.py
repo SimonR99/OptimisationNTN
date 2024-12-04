@@ -21,6 +21,7 @@ def export_to_csv(filename, data, headers):
 
 def collect_graph_data(all_iterations_data):
     """Aggregate data from all iterations for different plots."""
+    energy_consummed_per_node = {}
     success_rate_vs_total_requests = []
     energy_consumed_data = []
     completed_requests_data = []
@@ -28,11 +29,13 @@ def collect_graph_data(all_iterations_data):
     for iteration_data in all_iterations_data:
         total_requests = iteration_data["total_requests"]
         success_rate = iteration_data["success_rate"]
+        energy_consummed = iteration_data["energy_consummed"]
         total_energy_bs = iteration_data["total_energy_bs"]
         total_energy_haps = iteration_data["total_energy_haps"]
         total_energy_leo = iteration_data["total_energy_leo"]
 
         success_rate_vs_total_requests.append([total_requests, success_rate])
+        energy_consummed_per_node = energy_consummed.copy()
         energy_consumed_data.append([total_requests, total_energy_bs, "BS"])
         energy_consumed_data.append([total_requests, total_energy_haps, "HAPS"])
         energy_consumed_data.append([total_requests, total_energy_leo, "LEO"])
@@ -44,6 +47,11 @@ def collect_graph_data(all_iterations_data):
     if not os.path.exists(base_directory):
         os.makedirs(base_directory)
 
+    export_to_csv(
+        os.path.join(base_directory, "energy_consummed_per_node.csv"),
+        energy_consummed_per_node,
+        ["Node Name", "Energy Consummed"],
+    )
     export_to_csv(
         os.path.join(base_directory, "success_rate_vs_request.csv"),
         success_rate_vs_total_requests,

@@ -67,6 +67,7 @@ class Simulation:
         self.total_energy_bs = 0
         self.total_energy_haps = 0
         self.total_energy_leo = 0
+        self.energy_consummed = {}
 
         # Initialize with default values
         self.initialize_default_nodes()
@@ -136,6 +137,8 @@ class Simulation:
         self.total_energy_bs = self.network.get_energy_bs()
         self.total_energy_haps = self.network.get_energy_haps()
         self.total_energy_leo = self.network.get_energy_leo()
+        self.energy_consummed = self.network.get_energy_consummed().copy()
+        print(f"energy consummed per node: {self.network.get_energy_consummed()}")
 
         return self.system_energy_consumed
 

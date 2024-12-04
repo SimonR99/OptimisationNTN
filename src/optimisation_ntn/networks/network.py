@@ -249,3 +249,10 @@ class Network:
             if node.get_name() == "LEO":
                 total_energy_leo += node.energy_consumed
         return total_energy_leo
+    
+    def get_energy_consummed(self):
+        energy_per_node = {node.get_name(): node.energy_consumed for node in self.nodes}
+        """for node in self.nodes:
+            energy_per_node[node.get_name()] = node.energy_consumed"""
+        print(f"energy per node : {energy_per_node}")
+        return energy_per_node
