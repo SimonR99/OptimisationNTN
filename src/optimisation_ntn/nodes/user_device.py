@@ -1,10 +1,6 @@
-from multiprocessing import set_forkserver_preload
-
-from optimisation_ntn.networks.request import Request, RequestStatus
-from optimisation_ntn.utils.earth import Earth
+from optimisation_ntn.networks.request import Request
 from optimisation_ntn.utils.position import Position
 
-from ..networks.antenna import Antenna
 from .base_node import BaseNode
 
 
@@ -19,14 +15,13 @@ class UserDevice(BaseNode):
         self.attenuation_coefficient = 3
         self.reference_lenght = 1
         self.current_requests: list[Request] = []
-        self.transmission_power = 23
         self.name = "USER DEVICE"
 
     def add_request(self, request) -> Request:
         """Create a new request without specifying target node yet"""
         self.current_requests.append(request)
         self.debug_print(
-            f"User {self.node_id} created request {request.id} with status {request.status.name}"
+            f"User {self.node_id} created request {request.id} with status {request.status}"
         )
         return request
 
