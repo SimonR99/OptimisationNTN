@@ -120,7 +120,7 @@ class Simulation:
         # Calculate total energy consumed
         self.system_energy_consumed = self.network.get_total_energy_consumed()
         print("\nSimulation completed:")
-        print(f"Total requests: {self.total_requests}")
+        print(f"Total requests: {self.user_count}")
         print(f"Execution time: {execution_time:.2f} seconds")
         print(f"Simulation steps: {self.current_step}")
         print(f"Simulated time: {self.current_time:.2f} seconds")
@@ -151,10 +151,10 @@ class Simulation:
                 if request.status == RequestStatus.COMPLETED:
                     satisfied_requests += 1
 
-        if self.total_requests == 0:
+        if self.user_count == 0:
             return 100.0  # No requests, success rate is 100%
 
-        success_rate = (satisfied_requests / self.total_requests) * 100
+        success_rate = (satisfied_requests / self.user_count) * 100
         return success_rate
 
     def get_current_tick(self):
