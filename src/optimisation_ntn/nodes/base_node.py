@@ -1,21 +1,12 @@
 from abc import ABC
-from itertools import cycle
 from typing import Dict, List, Optional, Tuple
 
-from optimisation_ntn.utils.earth import Earth
 
 from ..networks.antenna import Antenna
 from ..networks.request import Request, RequestStatus
 from ..utils.position import Position
 
-
-def transmission_delay(request: Request, link_bandwidth):
-    return request.size / link_bandwidth
-
-
-def convert_dbm_watt(transmission_power) -> float:
-    """Convert signal_power from dBm to Watt."""
-    return (10 ** (transmission_power / 10)) / 1000
+from ..utils.conversion import convert_dbm_watt
 
 
 class BaseNode(ABC):

@@ -117,7 +117,7 @@ class Simulation:
         # Calculate total energy consumed
         self.system_energy_consumed = self.network.get_total_energy_consumed()
         print("\nSimulation completed:")
-        print(f"Total requests: {self.user_count}")
+        print(f"Total requests: {self.total_requests}")
         print(f"Execution time: {execution_time:.2f} seconds")
         print(f"Simulation steps: {self.current_step}")
         print(f"Simulated time: {self.current_time:.2f} seconds")
@@ -148,10 +148,10 @@ class Simulation:
                 if request.status == RequestStatus.COMPLETED:
                     satisfied_requests += 1
 
-        if self.user_count == 0:
+        if self.total_requests == 0:
             return 100.0  # No requests, success rate is 100%
 
-        success_rate = (satisfied_requests / self.user_count) * 100
+        success_rate = (satisfied_requests / self.total_requests) * 100
         return success_rate
 
     def get_current_tick(self):
@@ -223,10 +223,11 @@ class Simulation:
                             )
                             break
 
-                    self.total_requests += 1
                 else:
                     request.update_status(RequestStatus.FAILED)
                     self.debug_print(f"No available compute nodes found for {user}")
+
+                self.total_requests += 1
 
         # Update network state
         self.network.tick(self.time_step)
@@ -340,18 +341,6 @@ class Simulation:
         print(f"Best energy found: {best_energy}")
 
         return best_energy, energy_history
-
-    def calculate_total_energy(self) -> float:
-        """Calculate total energy consumed during simulation.
-
-        Returns:
-            float: Total energy consumption
-        """
-        total_energy = 0.0
-        for matrix in self.matrix_history:
-            # Sum energy consumption from each matrix snapshot
-            total_energy += matrix.calculate_energy()
-        return total_energy
 
     def consumed_energy_graph(self):
         plt.plot(
