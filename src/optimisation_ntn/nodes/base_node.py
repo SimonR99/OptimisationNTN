@@ -162,7 +162,8 @@ class BaseNode(ABC):
 
         # Process each request in queue
         completed = []
-        for request in self.processing_queue:
+        if self.processing_queue:
+            request = self.processing_queue[0]
             request.processing_progress += (
                 self.processing_frequency * time / self.cycle_per_bit
             )
