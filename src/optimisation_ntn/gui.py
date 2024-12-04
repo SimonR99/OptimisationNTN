@@ -59,8 +59,12 @@ class SimulationUI(QtWidgets.QMainWindow):
 
         # Right panel for graphs
         right_panel = QtWidgets.QVBoxLayout()
-        right_panel.addWidget(self.create_live_graph("Node Energy"), 1)  # Larger graph for selected node
-        right_panel.addWidget(self.create_live_graph("Total Energy"), 1)  # Smaller graph for total
+        right_panel.addWidget(
+            self.create_live_graph("Node Energy"), 1
+        )  # Larger graph for selected node
+        right_panel.addWidget(
+            self.create_live_graph("Total Energy"), 1
+        )  # Smaller graph for total
         upper_content.addLayout(right_panel, 1)
 
         # Add upper content to center-right layout
@@ -671,20 +675,24 @@ class SimulationUI(QtWidgets.QMainWindow):
 
     def create_results_tab(self):
         layout = QtWidgets.QVBoxLayout()
-        
+
         # Create a combo box for node selection
         self.node_selector = QtWidgets.QComboBox()
         self.node_selector.currentTextChanged.connect(self.update_selected_node)
         layout.addWidget(QtWidgets.QLabel("Select Node:"))
         layout.addWidget(self.node_selector)
-        
+
         # Create table for energy consumption details
         self.energy_table = QtWidgets.QTableWidget()
         self.energy_table.setColumnCount(3)
-        self.energy_table.setHorizontalHeaderLabels(["Node", "Type", "Energy Consumed (J)"])
-        self.energy_table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+        self.energy_table.setHorizontalHeaderLabels(
+            ["Node", "Type", "Energy Consumed (J)"]
+        )
+        self.energy_table.horizontalHeader().setSectionResizeMode(
+            QtWidgets.QHeaderView.Stretch
+        )
         layout.addWidget(self.energy_table)
-        
+
         container = QtWidgets.QWidget()
         container.setLayout(layout)
         return container
@@ -712,21 +720,28 @@ class SimulationUI(QtWidgets.QMainWindow):
             if can_continue:
                 self.update_simulation_display()
                 current_time = self.simulation.current_time
-                
+
                 # Update total energy graph
                 total_energy = self.simulation.system_energy_consumed
                 self.total_energy_series.append(current_time, total_energy)
                 self.total_energy_y_axis.setRange(0, max(total_energy * 1.2, 200))
-                
+
                 # Update selected node energy graph
                 selected_node_text = self.node_selector.currentText()
                 if selected_node_text:
                     for node in self.simulation.network.nodes:
-                        if f"{type(node).__name__} {node.node_id}" == selected_node_text:
-                            self.node_energy_series.append(current_time, node.energy_consumed)
-                            self.node_energy_y_axis.setRange(0, max(node.energy_consumed * 1.2, 100))
+                        if (
+                            f"{type(node).__name__} {node.node_id}"
+                            == selected_node_text
+                        ):
+                            self.node_energy_series.append(
+                                current_time, node.energy_consumed
+                            )
+                            self.node_energy_y_axis.setRange(
+                                0, max(node.energy_consumed * 1.2, 100)
+                            )
                             break
-                
+
                 # Update energy table in results tab
                 self.update_energy_table()
 
@@ -735,7 +750,7 @@ class SimulationUI(QtWidgets.QMainWindow):
                     self.load_close_up_view()
                 else:
                     self.load_far_view()
-                    
+
                 self.schematic_view.viewport().update()
             else:
                 self.timer.stop()
@@ -799,38 +814,38 @@ class SimulationUI(QtWidgets.QMainWindow):
             simulation = Simulation(debug=False)
             self.simulations[simulation_name] = simulation
             self.simulation = simulation
-            
+
             # Add to list and select it
             self.sim_list.addItem(simulation_name)
             self.sim_list.setCurrentRow(self.sim_list.count() - 1)
-            
+
             # Update node selector
             self.node_selector.clear()
             for node in simulation.network.nodes:
                 self.node_selector.addItem(f"{type(node).__name__} {node.node_id}")
-            
+
             # Select first node by default
             if self.node_selector.count() > 0:
                 self.node_selector.setCurrentIndex(0)
-            
+
             # Update UI parameters
             self.update_ui_parameters()
-            
+
             # Update views
             self.load_close_up_view()
-            
+
             # Enable step duration input
             self.step_duration_input.setEnabled(True)
-            
+
             # Reset energy graphs
-            if hasattr(self, 'total_energy_series'):
+            if hasattr(self, "total_energy_series"):
                 self.total_energy_series.clear()
-            if hasattr(self, 'node_energy_series'):
+            if hasattr(self, "node_energy_series"):
                 self.node_energy_series.clear()
-            
+
             # Update energy table
             self.update_energy_table()
-            
+
             # Reset time labels
             self.current_time_label.setText("0.0s")
             self.current_step_label.setText("0")
@@ -1014,35 +1029,42 @@ class SimulationUI(QtWidgets.QMainWindow):
         if self.simulation and node_text:
             # Clear previous data
             self.node_energy_series.clear()
-            
+
             # Find the selected node
             for node in self.simulation.network.nodes:
                 if f"{type(node).__name__} {node.node_id}" == node_text:
                     # Update graph title
-                    self.node_energy_chart.setTitle(f"{type(node).__name__} {node.node_id} Energy")
+                    self.node_energy_chart.setTitle(
+                        f"{type(node).__name__} {node.node_id} Energy"
+                    )
                     break
 
     def update_energy_table(self):
         """Update the energy consumption table in the results tab"""
         if self.simulation:
             self.energy_table.setRowCount(0)  # Clear existing rows
-            
+
             # Add a row for each node
             for node in self.simulation.network.nodes:
                 row = self.energy_table.rowCount()
                 self.energy_table.insertRow(row)
-                
+
                 # Node identifier
-                self.energy_table.setItem(row, 0, 
-                    QtWidgets.QTableWidgetItem(f"{type(node).__name__} {node.node_id}"))
-                
+                self.energy_table.setItem(
+                    row,
+                    0,
+                    QtWidgets.QTableWidgetItem(f"{type(node).__name__} {node.node_id}"),
+                )
+
                 # Node type
-                self.energy_table.setItem(row, 1, 
-                    QtWidgets.QTableWidgetItem(type(node).__name__))
-                
+                self.energy_table.setItem(
+                    row, 1, QtWidgets.QTableWidgetItem(type(node).__name__)
+                )
+
                 # Energy consumed
-                self.energy_table.setItem(row, 2, 
-                    QtWidgets.QTableWidgetItem(f"{node.energy_consumed:.2f}"))
+                self.energy_table.setItem(
+                    row, 2, QtWidgets.QTableWidgetItem(f"{node.energy_consumed:.2f}")
+                )
 
 
 app = QtWidgets.QApplication(sys.argv)

@@ -97,9 +97,6 @@ class Request:
         )
         self.status = new_status
         self.last_status_change = self.get_tick()
-        print(
-            f"test : {(self.get_tick() - self.creation_time) * self.tick_time}, qos_limit : {self.qos_limit}"
-        )
         if (
             not ((self.get_tick() - self.creation_time) * self.tick_time)
             <= self.qos_limit

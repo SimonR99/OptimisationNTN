@@ -1,6 +1,7 @@
 from optimisation_ntn.utils.earth import Earth
-from .base_node import BaseNode
+
 from ..utils.position import Position
+from .base_node import BaseNode
 
 
 class HAPS(BaseNode):
@@ -20,7 +21,7 @@ class HAPS(BaseNode):
         self.state = True
         self.battery_capacity = 10000
         self.processing_frequency = 5e9
-        self.k_const = 10e-25
+        self.k_const = 10e-28
         self.transmission_power = 33
         self.name = "HAPS"
 

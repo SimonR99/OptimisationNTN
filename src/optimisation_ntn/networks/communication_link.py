@@ -144,7 +144,7 @@ class CommunicationLink:
                 self.node_a, HAPS
             ):  # Only HAPS->LEO transmission energy need to be taken into account
                 self.node_a.energy_consumed += self.node_a.transmission_energy() * time
-                
+
             if self.debug:
                 print(f"Capacity: {capacity} \n")
                 print(f"Request size: {current_request.size} \n")

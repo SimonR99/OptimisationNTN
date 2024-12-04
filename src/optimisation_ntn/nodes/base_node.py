@@ -175,9 +175,8 @@ class BaseNode(ABC):
             request.processing_progress += (
                 self.processing_frequency * time / self.cycle_per_bit
             )
-            print(f"Energy before : {self.energy_consumed}")
             self.energy_consumed += self.processing_energy() * time
-            print(f"Energy after : {self.energy_consumed}")
+
             self.debug_print(
                 f"Node {self}: Processing request {request.id} "
                 f"({request.processing_progress:.1f}/{request.size} units)\n"
