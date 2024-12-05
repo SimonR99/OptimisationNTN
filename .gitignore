@@ -170,3 +170,4 @@ cython_debug/
 statistic_csv/*
 .idea/*
 output/*
+!output/.gitkeep
