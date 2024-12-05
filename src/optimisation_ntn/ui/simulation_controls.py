@@ -36,7 +36,7 @@ class SimulationControls:
         self.num_haps_input.valueChanged.connect(self._on_haps_value_changed)
 
         self.num_users_input = QtWidgets.QSpinBox()
-        self.num_users_input.setRange(0, 20)
+        self.num_users_input.setRange(0, 200)
         self.num_users_input.valueChanged.connect(self._on_users_value_changed)
 
         # Create step duration input
