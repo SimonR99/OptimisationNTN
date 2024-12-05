@@ -5,16 +5,19 @@ from optimisation_ntn.nodes.haps import HAPS
 from optimisation_ntn.nodes.leo import LEO
 from optimisation_ntn.nodes.user_device import UserDevice
 from optimisation_ntn.ui.node_visualizer import NodeVisualizer
+from optimisation_ntn.ui.theme_manager import ThemeManager
 
 
 class CloseUpView:
     @staticmethod
-    def load(view, simulation, show_links=True):
+    def load(view, simulation, show_links=True, is_dark_theme=True):
         """Load the close-up view of the network"""
         scene = QtWidgets.QGraphicsScene(-200, 0, 400, 400)
         if not simulation:
             view.setScene(scene)
             return
+
+        theme = ThemeManager.DARK_THEME if is_dark_theme else ThemeManager.LIGHT_THEME
 
         # Add green floor
         scene.addRect(
@@ -27,13 +30,14 @@ class CloseUpView:
         )
 
         # Add sky
+        sky_color = "#1e1e1e" if is_dark_theme else "#87CEEB"  # Dark blue or light blue
         scene.addRect(
             -800,
             0,
             1600,
             270,
-            QtGui.QPen(QtGui.QColor("skyblue")),
-            QtGui.QBrush(QtGui.QColor("skyblue")),
+            QtGui.QPen(QtGui.QColor(sky_color)),
+            QtGui.QBrush(QtGui.QColor(sky_color)),
         )
 
         # Load node images
@@ -171,7 +175,7 @@ class CloseUpView:
 
 class FarView:
     @staticmethod
-    def load(view, simulation):
+    def load(view, simulation, is_dark_theme=True):
         """Load the far view of the network"""
         view_width = view.width()
         view_height = view.height()
@@ -180,14 +184,16 @@ class FarView:
             -view_width / 2, -view_height / 2, view_width, view_height
         )
 
-        # Add night sky background
+        theme = ThemeManager.DARK_THEME if is_dark_theme else ThemeManager.LIGHT_THEME
+
+        # Add background
         scene.addRect(
             -view_width / 2,
             -view_height / 2,
             view_width,
             view_height,
-            QtGui.QPen(QtGui.QColor("black")),
-            QtGui.QBrush(QtGui.QColor("black")),
+            QtGui.QPen(QtGui.QColor(theme["app_background"])),
+            QtGui.QBrush(QtGui.QColor(theme["app_background"])),
         )
 
         # Calculate radii

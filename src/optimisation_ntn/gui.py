@@ -9,6 +9,7 @@ from optimisation_ntn.ui.dialogs.enlarged_graph import EnlargedGraphDialog
 from optimisation_ntn.ui.graphs import EnergyGraph
 from optimisation_ntn.ui.simulation_controls import SimulationControls
 from optimisation_ntn.ui.stats_table import NodeStatsTable
+from optimisation_ntn.ui.theme_manager import ThemeManager
 from optimisation_ntn.ui.views import CloseUpView, FarView
 
 # Task bar Icon on Windows
@@ -21,11 +22,12 @@ class SimulationUI(QtWidgets.QMainWindow):
         super().__init__()
         self.setWindowTitle("Optimisation NTN")
         self.setGeometry(100, 100, 1200, 700)
-        self.setStyleSheet("background-color: #2e2e2e; color: white;")
         self.current_view = "close"
         self.show_links = True
+        self.is_dark_theme = True
         self.setWindowIcon(QtGui.QIcon("images/logo.png"))
         self.initUI()
+        self.apply_theme()
 
     def initUI(self):
         main_layout = QtWidgets.QHBoxLayout()
@@ -35,6 +37,12 @@ class SimulationUI(QtWidgets.QMainWindow):
         left_panel = QtWidgets.QVBoxLayout()
         left_panel.addWidget(self.create_simulation_list())
         left_panel.addWidget(self.create_simulation_control())
+
+        # Add theme toggle button
+        self.theme_toggle = QtWidgets.QPushButton("Toggle Theme")
+        self.theme_toggle.clicked.connect(self.toggle_theme)
+        left_panel.addWidget(self.theme_toggle)
+
         main_layout.addLayout(left_panel, 1)
 
         # Center and Right content
@@ -75,6 +83,32 @@ class SimulationUI(QtWidgets.QMainWindow):
         central_widget = QtWidgets.QWidget()
         central_widget.setLayout(main_layout)
         self.setCentralWidget(central_widget)
+
+    def toggle_theme(self):
+        """Toggle between light and dark themes"""
+        self.is_dark_theme = not self.is_dark_theme
+        self.apply_theme()
+
+    def apply_theme(self):
+        """Apply the current theme to all components"""
+        # Apply stylesheet
+        self.setStyleSheet(ThemeManager.get_theme_stylesheet(self.is_dark_theme))
+
+        # Update chart themes
+        ThemeManager.apply_theme_to_chart(
+            self.node_energy_graph.chart, self.is_dark_theme
+        )
+        ThemeManager.apply_theme_to_chart(
+            self.total_energy_graph.chart, self.is_dark_theme
+        )
+
+        # Update button text
+        self.theme_toggle.setText(
+            "Switch to Light Theme" if self.is_dark_theme else "Switch to Dark Theme"
+        )
+
+        # Force update of the view
+        self.update_view()
 
     def create_simulation_list(self):
         sim_list_box = QtWidgets.QGroupBox("Simulations")
@@ -207,9 +241,14 @@ class SimulationUI(QtWidgets.QMainWindow):
                 self.schematic_view,
                 self.sim_controls.current_simulation,
                 self.show_links,
+                self.is_dark_theme,
             )
         else:
-            FarView.load(self.schematic_view, self.sim_controls.current_simulation)
+            FarView.load(
+                self.schematic_view,
+                self.sim_controls.current_simulation,
+                self.is_dark_theme,
+            )
 
     def toggle_links(self, state):
         self.show_links = bool(state)

@@ -2,6 +2,7 @@ import random
 from PySide6 import QtCore, QtGui
 from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis
 from optimisation_ntn.ui.dialogs.enlarged_graph import EnlargedGraphDialog
+from optimisation_ntn.ui.theme_manager import ThemeManager
 
 
 class EnergyGraph:
@@ -9,7 +10,9 @@ class EnergyGraph:
         self.parent = parent
         self.chart = QChart()
         self.chart.setTitle(title)
-        self.chart.setBackgroundBrush(QtGui.QColor("#2e2e2e"))
+
+        # Set initial theme (dark by default)
+        ThemeManager.apply_theme_to_chart(self.chart, True)
 
         # Create axes
         self.axis_x = QValueAxis()

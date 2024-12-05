@@ -29,15 +29,15 @@ class SimulationControls:
         # Create spinboxes for node counts
         self.num_bs_input = QtWidgets.QSpinBox()
         self.num_bs_input.setRange(1, 10)
-        self.num_bs_input.valueChanged.connect(self.update_base_stations)
+        self.num_bs_input.valueChanged.connect(self._on_bs_value_changed)
 
         self.num_haps_input = QtWidgets.QSpinBox()
         self.num_haps_input.setRange(1, 5)
-        self.num_haps_input.valueChanged.connect(self.update_haps)
+        self.num_haps_input.valueChanged.connect(self._on_haps_value_changed)
 
         self.num_users_input = QtWidgets.QSpinBox()
         self.num_users_input.setRange(0, 20)
-        self.num_users_input.valueChanged.connect(self.update_users)
+        self.num_users_input.valueChanged.connect(self._on_users_value_changed)
 
         # Create step duration input
         self.step_duration_input = QtWidgets.QDoubleSpinBox()
@@ -45,13 +45,13 @@ class SimulationControls:
         self.step_duration_input.setDecimals(5)
         self.step_duration_input.setSingleStep(0.0001)
         self.step_duration_input.setValue(0.001)
-        self.step_duration_input.valueChanged.connect(self.update_step_duration)
+        self.step_duration_input.valueChanged.connect(self._on_step_duration_changed)
 
         # Create time step input for UI updates
         self.time_step_input = QtWidgets.QSpinBox()
         self.time_step_input.setRange(1, 100)
         self.time_step_input.setValue(100)
-        self.time_step_input.valueChanged.connect(self.update_time_step)
+        self.time_step_input.valueChanged.connect(self._on_time_step_changed)
 
     def create_new_simulation(self):
         """Create a new simulation and add it to the list"""
@@ -202,34 +202,30 @@ class SimulationControls:
                 self.simulations[new_name] = self.simulations.pop(old_name)
                 current_item.setText(new_name)
 
-    def update_base_stations(self):
-        """Update the number of base stations"""
+    def _on_bs_value_changed(self, value):
+        """Handle base station count changes"""
         if self.current_simulation:
-            num_bs = self.num_bs_input.value()
-            self.current_simulation.set_nodes(BaseStation, num_bs)
+            self.current_simulation.set_nodes(BaseStation, value)
             self.parent.on_nodes_updated()
 
-    def update_haps(self):
-        """Update the number of HAPS"""
+    def _on_haps_value_changed(self, value):
+        """Handle HAPS count changes"""
         if self.current_simulation:
-            num_haps = self.num_haps_input.value()
-            self.current_simulation.set_nodes(HAPS, num_haps)
+            self.current_simulation.set_nodes(HAPS, value)
             self.parent.on_nodes_updated()
 
-    def update_users(self):
-        """Update the number of users"""
+    def _on_users_value_changed(self, value):
+        """Handle user count changes"""
         if self.current_simulation:
-            num_users = self.num_users_input.value()
-            self.current_simulation.set_nodes(UserDevice, num_users)
+            self.current_simulation.set_nodes(UserDevice, value)
             self.parent.on_nodes_updated()
 
-    def update_step_duration(self):
-        """Update simulation time step"""
+    def _on_step_duration_changed(self, value):
+        """Handle step duration changes"""
         if self.current_simulation:
-            self.current_simulation.time_step = self.step_duration_input.value()
+            self.current_simulation.time_step = value
 
-    def update_time_step(self):
-        """Update UI update interval"""
+    def _on_time_step_changed(self, value):
+        """Handle UI update interval changes"""
         if hasattr(self, "timer") and self.timer.isActive():
-            update_interval = self.time_step_input.value()
-            self.timer.setInterval(update_interval)
+            self.timer.setInterval(value)
