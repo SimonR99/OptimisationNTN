@@ -3,6 +3,7 @@ from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis
 
 from PySide6.QtCore import Qt
 
+
 class EnlargedGraphDialog(QtWidgets.QDialog):
     def __init__(self, chart_view, parent=None):
         super().__init__(parent)
@@ -119,4 +120,4 @@ class EnlargedGraphDialog(QtWidgets.QDialog):
                 # Average energy
                 self.stats_table.setItem(
                     row, 3, QtWidgets.QTableWidgetItem(f"{avg:.2f}")
-                ) 
+                )
