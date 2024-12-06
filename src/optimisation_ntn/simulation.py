@@ -31,6 +31,7 @@ from .algorithms.assignment import (
     RandomAssignment,
 )
 
+
 class Simulation:
     """Class to run the simulation."""
 
