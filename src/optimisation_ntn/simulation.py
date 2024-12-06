@@ -96,6 +96,7 @@ class Simulation:
 
     def set_assignment_strategy(self, strategy: str) -> AssignmentStrategy:
         """Set the assignment strategy to use"""
+        print(strategy + "==================================")
         match strategy:
             case "TimeGreedy":
                 return TimeGreedyAssignment(self.network)
@@ -168,14 +169,16 @@ class Simulation:
             {node.__str__(): node.energy_history for node in self.network.nodes}
         )
         energy_history.to_csv(
-            f"output/energy_history_{self.power_strategy.get_name()}_{self.user_count}.csv",
+            f"output/energy_history_{self.power_strategy.get_name()}_"
+            f"{self.assignment_strategy.get_name()}_{self.user_count}.csv",
             index=False,
         )
 
         # Save request stats to csv
         request_stats = pd.DataFrame(request_list)
         request_stats.to_csv(
-            f"output/request_stats_{self.power_strategy.get_name()}_{self.user_count}.csv",
+            f"output/request_stats_{self.power_strategy.get_name()}_"
+            f"{self.assignment_strategy.get_name()}_{self.user_count}.csv",
             index=False,
         )
 

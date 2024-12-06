@@ -97,7 +97,7 @@ def main(args):
             debug=args.debug,
             user_count=current_user_count,  # Use the computed user count
             power_strategy=args.algorithm,
-            assignment_strategy=args.algorithm,
+            assignment_strategy=args.assignment_strategy,
         )
 
         # Run the simulation
