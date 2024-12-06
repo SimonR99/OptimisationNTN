@@ -5,7 +5,7 @@ import numpy as np
 import pygad
 
 from optimisation_ntn.simulation import Simulation
-from optimisation_ntn.utils import config
+from optimisation_ntn.utils import genetic_config
 
 
 class PowerStateStrategy(ABC):
@@ -114,10 +114,10 @@ class GeneticAlgorithmStrategy:
     """Optimizes power state configuration using Genetic Algorithm."""
 
     def __init__(self):
-        self.population_size = config.POPULATION_SIZE
-        self.generations = config.GENERATIONS
-        self.mutation_rate = config.MUTATION_RATE
-        self.crossover_rate = config.CROSSOVER_RATE
+        self.population_size = genetic_config.POPULATION_SIZE
+        self.generations = genetic_config.GENERATIONS
+        self.mutation_rate = genetic_config.MUTATION_RATE
+        self.crossover_rate = genetic_config.CROSSOVER_RATE
         self.num_nodes = Simulation.DEFAULT_COMPUTE_NODES
         self.num_steps = (
             int(Simulation.DEFAULT_MAX_SIMULATION_TIME / Simulation.DEFAULT_TICK_TIME)
@@ -130,7 +130,7 @@ class GeneticAlgorithmStrategy:
         return self.num_nodes * self.num_steps
 
     @staticmethod
-    def evaluate_solution(power_matrice_genetic):
+    def evaluate_solution(power_matrice_genetic, energy_weight=0.5, qos_weight=0.5):
         """
         Evaluates a power state matrix using the simulation.
         """
@@ -147,8 +147,16 @@ class GeneticAlgorithmStrategy:
 
         # Calculate energy consumption and QoS satisfaction
         qos_satisfaction = simulation.evaluate_qos_satisfaction()
-        # Combine the two metrics into a single fitness score
-        return (1 / (1 + energy_consumed)) + qos_satisfaction
+
+        # Normalize metrics to [0, 1]
+        normalized_energy = energy_consumed / 600000
+        normalized_qos = qos_satisfaction / 100
+
+        fitness_score = (energy_weight * normalized_energy) + (qos_weight * normalized_qos)
+
+        fitness_score = round(fitness_score * 100, 6)
+
+        return fitness_score
 
     def fitness_function(self, ga_instance, solution, solution_idx):
         """
@@ -165,10 +173,10 @@ class GeneticAlgorithmStrategy:
         # Reshape the solution into the original power matrix dimensions
         power_state_matrix = np.reshape(solution, (self.num_nodes, self.num_steps))
         fitness = self.evaluate_solution(power_state_matrix)
-        print("******************************************************")
+        print("***********************************************")
         print(f"Solution Index {solution_idx}:")
         print(f"Power State Matrix: {power_state_matrix}")
-        print(f"Fitness: {fitness}")
-        print("******************************************************")
+        print(f"Fitness: {round(fitness,2)}")
+        print("***********************************************")
         # Evaluate the solution
         return fitness
