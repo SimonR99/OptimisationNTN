@@ -65,6 +65,14 @@ def create_parser():
         help="Enable debug printing",
     )
 
+    parser.add_argument(
+        "--assignment_strategy",
+        type=str,
+        choices=["TimeGreedy", "ClosestNode", "EnergyGreedy", "HAPSOnly", "Random"],
+        default="TimeGreedy",
+        help="Strategy for assigning requests to compute nodes",
+    )
+
     return parser
 
 
@@ -88,7 +96,8 @@ def main(args):
             max_time=args.max_time,
             debug=args.debug,
             user_count=current_user_count,  # Use the computed user count
-            strategy=args.algorithm,
+            power_strategy=args.algorithm,
+            assignment_strategy=args.assignment_strategy,
         )
 
         # Run the simulation

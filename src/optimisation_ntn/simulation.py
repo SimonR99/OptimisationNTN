@@ -22,6 +22,14 @@ from .nodes.haps import HAPS
 from .nodes.leo import LEO
 from .nodes.user_device import UserDevice
 from .utils.position import Position
+from .algorithms.assignment import (
+    AssignmentStrategy,
+    TimeGreedyAssignment,
+    ClosestNodeAssignment,
+    EnergyGreedyAssignment,
+    HAPSOnlyAssignment,
+    RandomAssignment,
+)
 
 
 class Simulation:
@@ -42,7 +50,8 @@ class Simulation:
         max_time: float = DEFAULT_MAX_SIMULATION_TIME,
         debug: bool = False,
         user_count: int = DEFAULT_USER_COUNT,
-        strategy="AllOn",
+        power_strategy: str = "AllOn",
+        assignment_strategy: str = "TimeGreedy",
     ):
         # Set the random seed if provided
         if seed is not None:
@@ -54,7 +63,8 @@ class Simulation:
         self.max_time = max_time
         self.network = Network(debug=debug)
         self.matrices = DecisionMatrices(dimension=user_count)
-        self.strategy = self.set_strategy(strategy)
+        self.power_strategy = self.set_power_strategy(power_strategy)
+        self.assignment_strategy = self.set_assignment_strategy(assignment_strategy)
         self.matrix_history: list[DecisionMatrices] = []
         self.total_requests = 0
         self.is_paused = False
@@ -74,8 +84,8 @@ class Simulation:
         """Calculate the maximum number of simulation steps."""
         return int(self.max_time / self.time_step)
 
-    def set_strategy(self, strategy: str):
-        """Set the optimization strategy to use"""
+    def set_power_strategy(self, strategy: str) -> PowerStateStrategy:
+        """Set the power optimization strategy to use"""
         match strategy:
             case "AllOn":
                 return AllOnStrategy()
@@ -83,6 +93,23 @@ class Simulation:
                 return RandomStrategy()
             case "StaticRandom":
                 return StaticRandomStrategy()
+
+    def set_assignment_strategy(self, strategy: str) -> AssignmentStrategy:
+        """Set the assignment strategy to use"""
+        print(strategy + "==================================")
+        match strategy:
+            case "TimeGreedy":
+                return TimeGreedyAssignment(self.network)
+            case "ClosestNode":
+                return ClosestNodeAssignment(self.network)
+            case "EnergyGreedy":
+                return EnergyGreedyAssignment(self.network)
+            case "HAPSOnly":
+                return HAPSOnlyAssignment(self.network)
+            case "Random":
+                return RandomAssignment(self.network)
+            case _:
+                return TimeGreedyAssignment(self.network)  # Default strategy
 
     def run(self) -> float:
         """Run simulation until self.max_time.
@@ -142,14 +169,16 @@ class Simulation:
             {node.__str__(): node.energy_history for node in self.network.nodes}
         )
         energy_history.to_csv(
-            f"output/energy_history_{self.strategy.get_name()}_{self.user_count}.csv",
+            f"output/energy_history_{self.power_strategy.get_name()}_"
+            f"{self.assignment_strategy.get_name()}_{self.user_count}.csv",
             index=False,
         )
 
         # Save request stats to csv
         request_stats = pd.DataFrame(request_list)
         request_stats.to_csv(
-            f"output/request_stats_{self.strategy.get_name()}_{self.user_count}.csv",
+            f"output/request_stats_{self.power_strategy.get_name()}_"
+            f"{self.assignment_strategy.get_name()}_{self.user_count}.csv",
             index=False,
         )
 
@@ -200,23 +229,14 @@ class Simulation:
                     debug=self.debug,
                 )
                 user.add_request(request)
+
+                # Get available compute nodes
                 compute_nodes = self.network.get_compute_nodes(request)
 
-                # Find optimal compute node based on both compute and network delay
-                best_node = None
-                best_total_time = float("inf")
-                best_path = None
-                for compute_node in compute_nodes:
-                    # Estimate processing time based on node's compute capacity
-                    processing_time = compute_node.estimated_processing_time(request)
-                    path = self.network.generate_request_path(user, compute_node)
-                    network_delay = self.network.get_network_delay(request, path)
-                    total_time = processing_time + network_delay
-
-                    if total_time < best_total_time:
-                        best_total_time = total_time
-                        best_node = compute_node
-                        best_path = path
+                # Use assignment strategy to select node
+                best_node, best_path, _ = self.assignment_strategy.select_compute_node(
+                    request, compute_nodes
+                )
 
                 # If we found a suitable compute node, assign it and initialize routing
                 if best_node:
@@ -352,15 +372,15 @@ class Simulation:
         )
 
         # Set the strategy if not already set
-        if not self.strategy:
-            self.strategy = StaticRandomStrategy()
+        if not self.power_strategy:
+            self.power_strategy = StaticRandomStrategy()
 
-        print(self.strategy.get_name())
+        print(self.power_strategy.get_name())
 
         self.matrices.generate_power_matrix(
             num_devices=compute_nodes_count,
             num_steps=matrix_size,
-            strategy=self.strategy,
+            strategy=self.power_strategy,
         )
 
     def debug_print(self, *args, **kwargs):
