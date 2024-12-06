@@ -141,9 +141,9 @@ class TestCommunicationLink(unittest.TestCase):
         link = CommunicationLink(
             self.node_a,
             self.node_b,
-            total_bandwidth=1,
-            signal_power=1,
-            carrier_frequency=1,
+            total_bandwidth=100e6,
+            signal_power=23,
+            carrier_frequency=2e9,
         )
 
         # Create and add a request
@@ -163,26 +163,26 @@ class TestCommunicationLink(unittest.TestCase):
         link = CommunicationLink(
             self.node_a,
             self.node_b,
-            total_bandwidth=2,
-            signal_power=1,
-            carrier_frequency=1,
+            total_bandwidth=100e6,
+            signal_power=23,
+            carrier_frequency=2e9,
         )
 
         # Create and add multiple requests
         request1 = Request(0, self.node_a, self.node_b)
-        request1.set_size(20000000)  # data size=20 Mbits
+        request1.set_size(20e6)  # data size=20 Mbits
         request2 = Request(0, self.node_a, self.node_b)
-        request2.set_size(10000000)  # data size=10 Mbits
+        request2.set_size(10e6)  # data size=10 Mbits
 
         link.add_to_queue(request1)
         link.add_to_queue(request2)
 
         self.assertEqual(len(link.transmission_queue), 2)
 
-        link.tick(0.001)
+        link.tick(0.1)
 
         self.assertEqual(len(link.transmission_queue), 1)
 
-        link.tick(0.001)
+        link.tick(0.1)
 
         self.assertEqual(len(link.transmission_queue), 0)

@@ -61,7 +61,7 @@ class Request:
         if self.debug:
             print(*args, **kwargs)
 
-    def set_size(self, size: int):
+    def set_size(self, size: int | float):
         self.size = size
 
     def set_priority_type(self, priority):
