@@ -15,7 +15,6 @@ class Simulation {
   + set_strategy(strategy: PowerStateStrategy)
   + initialize_default_nodes()
   + set_nodes(node_type: type, count: int)
-  + optimize(num_iterations: int) -> tuple[float, list[float]]
 }
 
 class DecisionMatrices {
@@ -24,38 +23,27 @@ class DecisionMatrices {
   + generate_request_matrix(num_requests: int, num_steps: int)
   + generate_power_matrix(num_devices: int, num_steps: int, strategy: PowerStateStrategy)
   + update_assignment_matrix(network: Network)
-  + get_matrix(name: MatrixType) -> ndarray
-  + set_matrix(name: MatrixType, matrix: ndarray)
-  + get_snapshot() -> Dict[MatrixType, ndarray]
 }
 
 abstract class PowerStateStrategy {
   + {abstract} generate_power_matrix(num_devices: int, num_steps: int) -> ndarray
-  + {abstract} get_name() -> str
-}
-
-class AllOnStrategy extends PowerStateStrategy {
-  + generate_power_matrix(num_devices: int, num_steps: int) -> ndarray
   + get_name() -> str
 }
 
-class RandomStrategy extends PowerStateStrategy {
-  - probability: float
-  + generate_power_matrix(num_devices: int, num_steps: int) -> ndarray
-  + get_name() -> str
-}
+class AllOnStrategy extends PowerStateStrategy
+class RandomStrategy extends PowerStateStrategy
+class StaticRandomStrategy extends PowerStateStrategy
 
 enum MatrixType {
-  COVERAGE_ZONE = "A"
-  POWER_STATE = "B"
-  REQUEST = "K"
-  ASSIGNMENT = "X"
+  COVERAGE_ZONE
+  POWER_STATE
+  REQUEST
+  ASSIGNMENT
 }
 
 class Network {
   - nodes: List[BaseNode]
   - communication_links: List[CommunicationLink]
-  + count_nodes_by_type(node_type: type) -> int
   + add_node(node: BaseNode)
   + get_compute_nodes() -> List[BaseNode]
   + route_request(request: Request) -> bool
@@ -63,22 +51,19 @@ class Network {
 }
 
 abstract class BaseNode {
-  # id: int
+  # node_id: int
   # position: Position
   # state: bool
   # antennas: List[Antenna]
-  # processing_power: float
+  # energy_consumed: float
   # processing_queue: List[Request]
-  + turn_on()
-  + turn_off()
+  + set_state(state: bool)
   + add_antenna(type: str, gain: float)
-  + get_compatible_antenna(other: Antenna) -> Optional[Antenna]
   + can_process(request: Request) -> bool
-  + process_requests(time: float)
+  + tick(time: float)
 }
 
 class Position {
-  + coords: ndarray
   + x: float
   + y: float
   + distance_to(other: Position) -> float
@@ -91,32 +76,30 @@ class Antenna {
 }
 
 class BaseStation extends BaseNode {
-  - processing_power: float = 50.0
+  - processing_frequency: float
 }
 
 class HAPS extends BaseNode {
-  - battery_capacity: float = 1000
-  - processing_power: float = 40.0
+  - battery_capacity: float
+  - processing_frequency: float
+  - transmission_power: float
 }
 
 class LEO extends BaseNode {
   - current_angle: float
   - angular_speed: float
-  - processing_power: float = 30.0
+  - battery_capacity: float
   + update_position(time: float)
 }
 
 class UserDevice extends BaseNode {
   - current_requests: List[Request]
-  + spawn_request(tick: int, target: BaseNode) -> Request
+  + add_request(request: Request)
 }
 
 class CommunicationLink {
   - node_a: BaseNode
   - node_b: BaseNode
-  - total_bandwidth: float
-  - signal_power: float
-  - carrier_frequency: float
   - transmission_queue: List[Request]
   + calculate_capacity() -> float
   + add_to_queue(request: Request)
@@ -131,7 +114,6 @@ class Request {
   - size: float
   - priority: Priority
   - path: List[BaseNode]
-  - path_index: int
   + update_status(new_status: RequestStatus)
 }
 
@@ -141,6 +123,24 @@ enum RequestStatus {
   IN_PROCESSING_QUEUE
   PROCESSING
   COMPLETED
+  FAILED
+}
+
+' GUI Components
+class SimulationUI {
+  - sim_controls: SimulationControls
+  - node_energy_graph: EnergyGraph
+  - total_energy_graph: EnergyGraph
+  + toggle_theme()
+  + update_view()
+}
+
+class SimulationControls {
+  - simulations: Dict[str, Simulation]
+  - current_simulation: Simulation
+  + create_new_simulation()
+  + toggle_simulation()
+  + reset_simulation()
 }
 
 ' Relationships
@@ -158,5 +158,8 @@ BaseNode o-- "1..*" Antenna
 BaseNode o-- "0..*" Request
 
 CommunicationLink o-- "0..*" Request
+
+SimulationUI *-- SimulationControls
+SimulationControls o-- "0..*" Simulation
 
 @enduml
