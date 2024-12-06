@@ -93,14 +93,21 @@ def main(args):
         # Initialize PyGAD
         ga_instance = pygad.GA(
             num_generations=genetic_config.GENERATIONS,  # Number of generations
-            num_parents_mating=int(math.ceil(genetic_config.POPULATION_SIZE/3)), # Number of parents mating (typically a fraction of population)
+            num_parents_mating=int(
+                math.ceil(genetic_config.POPULATION_SIZE / 3)
+            ),  # Number of parents mating (typically a fraction of population)
             parent_selection_type="rank",
             fitness_func=genetic_algorithm.fitness_function,  # Fitness function
             sol_per_pop=genetic_config.POPULATION_SIZE,  # Population size
-            num_genes=int(genetic_algorithm.matrix_size),  # Chromosome length (size of matrix)
+            num_genes=int(
+                genetic_algorithm.matrix_size
+            ),  # Chromosome length (size of matrix)
             gene_space=[0, 1],  # Genes can be either 0 (OFF) or 1 (ON)
             mutation_type="adaptive",  # Mutation type (adaptive mutation)
-            mutation_percent_genes=[80, 7],  # Initial mutation rate is 95%, final mutation rate is 5%
+            mutation_percent_genes=[
+                15,
+                2,
+            ],  # Initial mutation rate is 95%, final mutation rate is 5%
             crossover_type="two_points",  # Crossover type (two-point crossover)
             on_generation=on_generation,  # Callback function after each generation
         )

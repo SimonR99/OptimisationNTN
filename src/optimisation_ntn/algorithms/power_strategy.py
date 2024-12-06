@@ -130,7 +130,7 @@ class GeneticAlgorithmStrategy:
         return self.num_nodes * self.num_steps
 
     @staticmethod
-    def evaluate_solution(power_matrice_genetic, energy_weight=0.5, qos_weight=0.5):
+    def evaluate_solution(power_matrice_genetic, energy_weight=0.8, qos_weight=0.2):
         """
         Evaluates a power state matrix using the simulation.
         """
@@ -152,9 +152,11 @@ class GeneticAlgorithmStrategy:
         normalized_energy = energy_consumed / 600000
         normalized_qos = qos_satisfaction / 100
 
-        fitness_score = (energy_weight * normalized_energy) + (qos_weight * normalized_qos)
+        fitness_score = (qos_weight * normalized_qos) - (
+            energy_weight * normalized_energy
+        )
 
-        fitness_score = round(fitness_score * 100, 6)
+        fitness_score = max(fitness_score, 0)
 
         return fitness_score
 

@@ -34,8 +34,8 @@ class BaseNode(ABC):
         """Défini dans des études"""
         self.spectral_noise_density = -174  # dBm/Hz
         """Ce peak d'énergie est une constante déterminée sans sources scientifiques."""
-        self.turn_on_energy_peak = 150  # J
-        self.standby_energy = 50  # J/s
+        self.turn_on_energy_peak = 250  # J
+        self.standby_energy = 30  # J/s
         self.recently_turned_on = False
         self.debug = debug
         self.name = ""
