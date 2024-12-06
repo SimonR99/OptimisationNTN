@@ -44,7 +44,7 @@ class BaseNode(ABC):
         self.reference_lenght = 0.0
         self.destinations: List["BaseNode"] = []
         self.last_tick_energy = 0.0
-        self.energy_history = np.array([])
+        self.energy_history = []
 
     def get_name(self) -> str:
         return self.name
@@ -212,7 +212,7 @@ class BaseNode(ABC):
         energy_this_tick = self.energy_consumed - self.last_tick_energy
         self.last_tick_energy = self.energy_consumed
 
-        self.energy_history = np.append(self.energy_history, energy_this_tick)
+        self.energy_history.append(energy_this_tick)
 
     def debug_print(self, *args, **kwargs):
         """Print only if debug mode is enabled"""

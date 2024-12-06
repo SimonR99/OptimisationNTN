@@ -351,7 +351,7 @@ class SimulationUI(QtWidgets.QMainWindow):
                     node_text = node_item.text()
                     for node in self.sim_controls.current_simulation.network.nodes:
                         if f"{type(node).__name__} {node.node_id}" == node_text:
-                            if node.energy_history.size > 0:
+                            if len(node.energy_history) > 0:
                                 self.node_energy_graph.add_node_point(
                                     node_text, current_time, node.energy_history[-1]
                                 )
