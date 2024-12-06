@@ -95,4 +95,4 @@ class Request:
             self.status = RequestStatus.FAILED
 
     def __str__(self):
-        return f"Priority: {self.priority} + \nAppearing time: {self.tick} + \Status:{self.status}"
+        return f"Priority: {self.priority} + \nAppearing time: {self.tick} + \nStatus:{self.status}"
