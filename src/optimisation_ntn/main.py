@@ -93,7 +93,7 @@ def main(args):
 
         # Run the simulation
         total_energy = simulation.run()
-        
+
         print(f"Iteration {i + 1} - Total energy consumed: {total_energy} joules")
 
 
