@@ -145,7 +145,7 @@ class Simulation:
 
         # Save request stats to csv
         request_list = []
-        for user in [n for n in self.network.nodes if isinstance(n, UserDevice)]:
+        for user in self.network.user_nodes:
             requests = user.current_requests
             for request in requests:
                 request_list.append(request.__dict__)
@@ -420,9 +420,7 @@ class Simulation:
     def apply_power_states(self):
         """Apply power states from power matrix to network nodes"""
         power_matrix = self.matrices.get_matrix(MatrixType.POWER_STATE)
-        compute_nodes = [
-            n for n in self.network.nodes if isinstance(n, (HAPS, BaseStation, LEO))
-        ]
+        compute_nodes = self.network.compute_nodes
 
         current_power_states = power_matrix[:, self.current_step]
 
