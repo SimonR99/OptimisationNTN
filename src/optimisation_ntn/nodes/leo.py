@@ -7,7 +7,6 @@ from .base_node import BaseNode
 
 
 class LEO(BaseNode):
-
     leo_altitude = 500e3
     leo_temperature = 200
 
@@ -35,12 +34,11 @@ class LEO(BaseNode):
         super().__init__(
             node_id, Earth.global_coordinate_to_local(global_position), debug=debug
         )
-        self.add_antenna("VHF", 1.5)
+        self.add_antenna("UHF", 8)
         self.state = True
-        self.battery_capacity = 5000
+        self.battery_capacity = 1e4  # J
         self.current_angle = start_angle
-        self.processing_power = 30.0
-        self.processing_frequency = 10e9
+        self.processing_frequency = 10e9  # Hz
         self.k_const = 10e-28
         self.name = "LEO"
 

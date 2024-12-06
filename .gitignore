@@ -165,3 +165,9 @@ cython_debug/
 /.idea/OptimisationNTN.iml
 /.idea/inspectionProfiles/profiles_settings.xml
 .vscode/settings.json
+
+
+statistic_csv/*
+.idea/*
+output/*
+!output/.gitkeep

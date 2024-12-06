@@ -1,4 +1,5 @@
 import argparse
+import math
 
 from optimisation_ntn.simulation import Simulation
 
@@ -37,11 +38,25 @@ def create_parser():
     )
 
     parser.add_argument(
+        "--iteration_count",
+        type=int,
+        default=1,
+        help="Number of iterations",
+    )
+
+    parser.add_argument(
+        "--user_count_multiplier",
+        type=float,
+        default=1.0,
+        help="Number of users",
+    )
+
+    parser.add_argument(
         "--algorithm",
         type=str,
-        choices=["Random", "AllOn"],
+        choices=["Random", "StaticRandom", "AllOn"],
         default="AllOn",
-        help="Algorithm used for optimizating or running the simulation",
+        help="Algorithm used for optimizing or running the simulation",
     )
 
     parser.add_argument(
@@ -50,23 +65,45 @@ def create_parser():
         help="Enable debug printing",
     )
 
+    parser.add_argument(
+        "--assignment_strategy",
+        type=str,
+        choices=["TimeGreedy", "ClosestNode", "EnergyGreedy", "HAPSOnly", "Random"],
+        default="TimeGreedy",
+        help="Strategy for assigning requests to compute nodes",
+    )
+
     return parser
 
 
 def main(args):
-    simulation = Simulation(
-        time_step=args.tick_time, max_time=args.max_time, debug=args.debug
-    )
+    all_iterations_data = []
+    current_user_count = Simulation.DEFAULT_USER_COUNT
 
-    if args.algorithm not in ["Random", "AllOn"]:
-        # Run optimization mode
-        best_energy, energy_history = simulation.optimize(num_iterations=10)
-        print(f"Best energy consumption: {best_energy}")
-        print(f"Energy history: {energy_history}")
-    else:
-        # Run normal simulation mode
+    for i in range(args.iteration_count):
+        if i != 0:
+            current_user_count = math.ceil(
+                current_user_count * args.user_count_multiplier
+            )
+        print(
+            f"Starting iteration {i + 1}/{args.iteration_count} with {current_user_count} users..."
+        )
+
+        # Create a new simulation instance for each iteration
+        simulation = Simulation(
+            seed=42,
+            time_step=args.tick_time,
+            max_time=args.max_time,
+            debug=args.debug,
+            user_count=current_user_count,  # Use the computed user count
+            power_strategy=args.algorithm,
+            assignment_strategy=args.assignment_strategy,
+        )
+
+        # Run the simulation
         total_energy = simulation.run()
-        print(f"Total energy consumed: {total_energy} joules")
+
+        print(f"Iteration {i + 1} - Total energy consumed: {total_energy} joules")
 
 
 if __name__ == "__main__":

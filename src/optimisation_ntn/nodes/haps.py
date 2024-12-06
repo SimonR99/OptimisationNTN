@@ -1,6 +1,7 @@
 from optimisation_ntn.utils.earth import Earth
-from .base_node import BaseNode
+
 from ..utils.position import Position
+from .base_node import BaseNode
 
 
 class HAPS(BaseNode):
@@ -15,12 +16,12 @@ class HAPS(BaseNode):
         debug: bool = False,
     ):
         super().__init__(node_id, initial_position, debug=debug)
-        self.add_antenna("UHF", 2.0)
-        self.add_antenna("VHF", 2.0)
+        self.add_antenna("UHF", 15.0)
+        self.add_antenna("VHF", 15.0)
         self.state = True
-        self.battery_capacity = 1000
-        self.processing_frequency = 2.5e9
-        self.k_const = 10e-25
+        self.battery_capacity = 1e4
+        self.processing_frequency = 5e9
+        self.k_const = 10e-28
         self.transmission_power = 33
         self.name = "HAPS"
 
