@@ -13,7 +13,6 @@ from optimisation_ntn.algorithms.power_strategy import (
 
 from optimisation_ntn.simulation import Simulation
 from optimisation_ntn.utils import genetic_config
-from optimisation_ntn.utils.data_export import collect_graph_data
 
 previous_population = None
 
@@ -156,21 +155,7 @@ def main(args):
             # Run the simulation
             total_energy = simulation.run(np.zeros(2))
 
-            # Collect data for the current iteration
-            iteration_data = {
-                "total_requests": simulation.total_requests,
-                "success_rate": simulation.evaluate_qos_satisfaction(),
-                "total_energy_bs": simulation.total_energy_bs,
-                "total_energy_haps": simulation.total_energy_haps,
-                "total_energy_leo": simulation.total_energy_leo,
-            }
-            all_iterations_data.append(iteration_data)
-
-            print(f"Iteration {i + 1} - Total energy consumed: {total_energy} joules")
-
-    # Compile and export data for all iterations
-    if args.debug:
-        collect_graph_data(all_iterations_data)
+        print(f"Iteration {i + 1} - Total energy consumed: {total_energy} joules")
 
 
 def set_strategy(strategy: str):

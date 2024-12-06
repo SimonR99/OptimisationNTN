@@ -6,7 +6,7 @@ from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
-
+import pandas as pd
 from optimisation_ntn.networks.request import Request, RequestStatus
 
 from .matrices.decision_matrices import DecisionMatrices, MatrixType
@@ -52,16 +52,11 @@ class Simulation:
         self.strategy = strategy
         self.matrix_history: list[DecisionMatrices] = []
         self.total_requests = 0
-        self.request_stats = {status: 0 for status in RequestStatus}
         self.is_paused = False
         self.debug = debug
-        """This value is will be positive, however, it is to be minimised; as a greater value, means greater energy consumption"""
         self.system_energy_consumed = 0
         self.energy_consumption_graph_x = []
         self.energy_consumption_graph_y = np.arange(0, 300.1, 0.1)
-        self.total_energy_bs = 0
-        self.total_energy_haps = 0
-        self.total_energy_leo = 0
         self.power_matrice_genetic = np.zeros(self.DEFAULT_COMPUTE_NODES, MatrixType)
 
         # Initialize with default values
@@ -105,6 +100,16 @@ class Simulation:
 
         # Calculate total energy consumed
         self.system_energy_consumed = self.network.get_total_energy_consumed()
+        request_list = []
+        for user in self.network.user_nodes:
+            requests = user.current_requests
+            for request in requests:
+                request_list.append(request.__dict__)
+
+        self.request_state_stats = {status: 0 for status in RequestStatus}
+        for request in request_list:
+            self.request_state_stats[request["status"]] += 1
+
         print("\nSimulation completed:")
         print(f"Total requests: {self.total_requests}")
         print(f"Execution time: {execution_time:.2f} seconds")
@@ -115,16 +120,27 @@ class Simulation:
 
         # Print request statistics (always show these)
         print("\nRequest Statistics:")
-        for status, count in self.request_stats.items():
+        for status, count in self.request_state_stats.items():
             print(f"{status.name}: {count}")
 
         if self.debug:
             self.consumed_energy_graph()
 
-        # Statistics gathering for total energy consumed for each group of node
-        self.total_energy_bs = self.network.get_energy_bs()
-        self.total_energy_haps = self.network.get_energy_haps()
-        self.total_energy_leo = self.network.get_energy_leo()
+        # Save energy history to csv
+        energy_history = pd.DataFrame(
+            {node.__str__(): node.energy_history for node in self.network.nodes}
+        )
+        energy_history.to_csv(
+            f"output/energy_history_{self.strategy.get_name()}_{self.user_count}.csv",
+            index=False,
+        )
+
+        # Save request stats to csv
+        request_stats = pd.DataFrame(request_list)
+        request_stats.to_csv(
+            f"output/request_stats_{self.strategy.get_name()}_{self.user_count}.csv",
+            index=False,
+        )
 
         return self.system_energy_consumed
 
@@ -157,7 +173,7 @@ class Simulation:
         ]
 
         # Get user devices and compute nodes
-        user_devices = [n for n in self.network.nodes if isinstance(n, UserDevice)]
+        user_devices = self.network.user_nodes
 
         # Create new requests for users
         for i, request_flag in enumerate(new_requests):
@@ -172,7 +188,7 @@ class Simulation:
                     get_tick=self.get_current_tick,
                     debug=self.debug,
                 )
-                request = user.add_request(request)
+                user.add_request(request)
                 compute_nodes = self.network.get_compute_nodes(request)
 
                 # Find optimal compute node based on both compute and network delay
@@ -223,7 +239,6 @@ class Simulation:
 
         # Update matrices and stats
         self.matrices.update_assignment_matrix(self.network)
-        self.update_request_stats()
 
         # Update time and step counter
         self.current_time += self.time_step
@@ -239,7 +254,6 @@ class Simulation:
         self.network = Network()
         self.matrix_history.clear()
         self.total_requests = 0
-        self.request_stats = {status: 0 for status in RequestStatus}
         self.system_energy_consumed = 0
         self.initialize_default_nodes()
         self.initialize_matrices()  # Re-initialize matrices after reset
@@ -305,16 +319,6 @@ class Simulation:
         plt.ylabel("Cumulative system energy consumed")
         plt.show()
 
-    def update_request_stats(self):
-        """Update statistics for all requests in the network"""
-        # Reset stats
-        self.request_stats = {status: 0 for status in RequestStatus}
-
-        # Count requests in each state
-        for user in [n for n in self.network.nodes if isinstance(n, UserDevice)]:
-            for request in user.current_requests:
-                self.request_stats[request.status] += 1
-
     def initialize_matrices(self):
         """Initialize all matrices needed for simulation"""
         # Calculate required matrix size based on simulation parameters
@@ -358,9 +362,8 @@ class Simulation:
             power_matrix = self.power_matrice_genetic
         else:
             power_matrix = self.matrices.get_matrix(MatrixType.POWER_STATE)
-        compute_nodes = [
-            n for n in self.network.nodes if isinstance(n, (HAPS, BaseStation, LEO))
-        ]
+
+        compute_nodes = self.network.compute_nodes
 
         current_power_states = power_matrix[:, self.current_step]
 

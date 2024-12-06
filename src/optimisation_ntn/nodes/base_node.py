@@ -43,7 +43,8 @@ class BaseNode(ABC):
         self.attenuation_coefficient = 0.0
         self.reference_lenght = 0.0
         self.destinations: List["BaseNode"] = []
-        self.energy_history = np.array([])
+        self.last_tick_energy = 0.0
+        self.energy_history = []
 
     def get_name(self) -> str:
         return self.name
@@ -165,9 +166,8 @@ class BaseNode(ABC):
         completed = []
         if self.processing_queue:
             request = self.processing_queue[0]
-            request.processing_progress += (
-                self.processing_frequency * time / self.cycle_per_bit
-            )
+            bits_processed = self.processing_frequency * time / self.cycle_per_bit
+            request.processing_progress += bits_processed
             self.energy_consumed += self.processing_energy() * time
 
             self.debug_print(
@@ -176,29 +176,27 @@ class BaseNode(ABC):
                 f"Energy consumed up to now: {self.energy_consumed:.1f} joules"
             )
 
-            if (
-                self.energy_consumed >= self.battery_capacity
-                and self.battery_capacity != -1
-            ):
-                request.update_status(RequestStatus.FAILED)
-                completed.append(request)
-                self.current_load -= request.size
-            elif request.processing_progress >= request.size:
-                request.update_status(RequestStatus.COMPLETED)
+            # Only complete processing at the end of a tick if enough bits were processed
+            if request.processing_progress >= request.size:
+                if (
+                    self.energy_consumed >= self.battery_capacity
+                    and self.battery_capacity != -1
+                ):
+                    request.update_status(RequestStatus.FAILED)
+                else:
+                    request.update_status(RequestStatus.COMPLETED)
                 completed.append(request)
                 self.current_load -= request.size
                 self.debug_print(
                     f"Request {request.id} status changed to {request.status.name} at {self}"
                 )
 
-        # Remove completed requests
+        # Remove completed requests at the end of the tick
         for request in completed:
             self.processing_queue.remove(request)
 
     def tick(self, time: float):
         """Update node state including request processing"""
-        initial_energy = self.energy_consumed
-
         if (
             self.battery_capacity != -1
             and self.battery_capacity - self.energy_consumed <= 0
@@ -211,9 +209,10 @@ class BaseNode(ABC):
             self.energy_consumed += self.standby_energy * time
 
         # Store energy consumed during this time step
-        energy_this_tick = self.energy_consumed - initial_energy
+        energy_this_tick = self.energy_consumed - self.last_tick_energy
+        self.last_tick_energy = self.energy_consumed
 
-        self.energy_history = np.append(self.energy_history, energy_this_tick)
+        self.energy_history.append(energy_this_tick)
 
     def debug_print(self, *args, **kwargs):
         """Print only if debug mode is enabled"""

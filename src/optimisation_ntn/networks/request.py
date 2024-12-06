@@ -61,7 +61,7 @@ class Request:
         if self.debug:
             print(*args, **kwargs)
 
-    def set_size(self, size: int):
+    def set_size(self, size: int | float):
         self.size = size
 
     def set_priority_type(self, priority):
@@ -95,4 +95,4 @@ class Request:
             self.status = RequestStatus.FAILED
 
     def __str__(self):
-        return f"Priority: {self.priority} + \nAppearing time: {self.tick} + \Status:{self.status}"
+        return f"Priority: {self.priority} + \nAppearing time: {self.tick} + \nStatus:{self.status}"
