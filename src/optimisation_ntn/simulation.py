@@ -137,10 +137,20 @@ class Simulation:
         self.total_energy_haps = self.network.get_energy_haps()
         self.total_energy_leo = self.network.get_energy_leo()
 
+        # Save energy history to csv
         energy_history = pd.DataFrame(
             {node.__str__(): node.energy_history for node in self.network.nodes}
         )
         energy_history.to_csv("output/energy_history.csv", index=False)
+
+        # Save request stats to csv
+        request_list = []
+        for user in [n for n in self.network.nodes if isinstance(n, UserDevice)]:
+            requests = user.current_requests
+            for request in requests:
+                request_list.append(request.__dict__)
+        request_stats = pd.DataFrame(request_list)
+        request_stats.to_csv("output/request_stats.csv", index=False)
 
         return self.system_energy_consumed
 

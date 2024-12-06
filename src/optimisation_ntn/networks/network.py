@@ -175,13 +175,13 @@ class Network:
 
         return time
 
-    def tick(self, time: float = 0.1):
+    def tick(self, time: float):
         """Update network state including request routing"""
         # Update all compute nodes
         for node in self.nodes:
             node.tick(time)
 
-        # Update all communication links and handle completed transmissions
+        # Update all communication links
         for link in self.communication_links:
             if link.transmission_queue:
                 self.debug_print(
@@ -193,7 +193,8 @@ class Network:
 
             link.tick(time)
 
-            # Handle completed transmissions
+        # Handle completed transmissions at the end of the tick
+        for link in self.communication_links:
             for request in link.completed_requests:
                 current_node = request.path[request.path_index]
                 request.path_index += 1

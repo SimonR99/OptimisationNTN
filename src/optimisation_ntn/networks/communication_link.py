@@ -156,12 +156,11 @@ class CommunicationLink:
                 f"({self.request_progress:.1f}/{current_request.size} bits)"
             )
 
+            # Only complete transmission at the end of a tick if enough bits were transmitted
             if self.request_progress >= current_request.size:
                 self.debug_print(
                     f"Request {current_request.id} completed transmission from {self.node_a} to {self.node_b}"
                 )
-
-            # Add to completed requests instead of handling routing here
-            self.completed_requests.append(current_request)
-            self.transmission_queue.pop(0)
-            self.request_progress = 0.0
+                self.completed_requests.append(current_request)
+                self.transmission_queue.pop(0)
+                self.request_progress = 0.0
