@@ -141,11 +141,11 @@ class Simulation:
         energy_history = pd.DataFrame(
             {node.__str__(): node.energy_history for node in self.network.nodes}
         )
-        energy_history.to_csv("output/energy_history.csv", index=False)
+        energy_history.to_csv(f"output/energy_history_{self.user_count}.csv", index=False)
 
         # Save request stats to csv
         request_stats = pd.DataFrame(request_list)
-        request_stats.to_csv("output/request_stats.csv", index=False)
+        request_stats.to_csv(f"output/request_stats_{self.user_count}.csv", index=False)
 
         return self.system_energy_consumed
 
