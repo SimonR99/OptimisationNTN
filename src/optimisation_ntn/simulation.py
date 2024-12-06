@@ -32,7 +32,7 @@ class Simulation:
     DEFAULT_LEO_COUNT = 1
     DEFAULT_USER_COUNT = 50
 
-    DEFAULT_TICK_TIME = 0.01
+    DEFAULT_TICK_TIME = 0.1
     DEFAULT_MAX_SIMULATION_TIME = 300
 
     def __init__(
