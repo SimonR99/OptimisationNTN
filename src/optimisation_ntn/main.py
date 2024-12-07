@@ -2,6 +2,7 @@ import argparse
 import math
 
 from optimisation_ntn.simulation import Simulation
+from optimisation_ntn.algorithms.assignment.strategy_factory import AssignmentStrategyFactory
 
 
 def create_parser():
@@ -61,7 +62,7 @@ def create_parser():
     parser.add_argument(
         "--assignment_strategy",
         type=str,
-        choices=["TimeGreedy", "ClosestNode", "EnergyGreedy", "HAPSOnly", "Random"],
+        choices=AssignmentStrategyFactory.available_strategies(),
         default="TimeGreedy",
         help="Strategy for assigning requests to compute nodes",
     )

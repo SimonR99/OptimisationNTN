@@ -2,7 +2,7 @@
 
 import random
 import time
-from typing import Optional
+from typing import Optional, Type
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -22,14 +22,8 @@ from .nodes.haps import HAPS
 from .nodes.leo import LEO
 from .nodes.user_device import UserDevice
 from .utils.position import Position
-from .algorithms.assignment import (
-    AssignmentStrategy,
-    TimeGreedyAssignment,
-    ClosestNodeAssignment,
-    EnergyGreedyAssignment,
-    HAPSOnlyAssignment,
-    RandomAssignment,
-)
+from .algorithms.assignment.strategy_factory import AssignmentStrategyFactory
+from .algorithms.assignment import AssignmentStrategy
 
 
 class Simulation:
@@ -51,7 +45,8 @@ class Simulation:
         debug: bool = False,
         user_count: int = DEFAULT_USER_COUNT,
         power_strategy: str = "AllOn",
-        assignment_strategy: str = "TimeGreedy",
+        assignment_strategy: str | Type[AssignmentStrategy] | AssignmentStrategy = "TimeGreedy",
+        save_results: bool = True,
     ):
         # Set the random seed if provided
         if seed is not None:
@@ -64,7 +59,10 @@ class Simulation:
         self.network = Network(debug=debug)
         self.matrices = DecisionMatrices(dimension=user_count)
         self.power_strategy = self.set_power_strategy(power_strategy)
-        self.assignment_strategy = self.set_assignment_strategy(assignment_strategy)
+        self.assignment_strategy = AssignmentStrategyFactory.get_strategy(
+            assignment_strategy, self.network
+        )
+        self.save_results = save_results
         self.matrix_history: list[DecisionMatrices] = []
         self.total_requests = 0
         self.is_paused = False
@@ -93,23 +91,6 @@ class Simulation:
                 return RandomStrategy()
             case "StaticRandom":
                 return StaticRandomStrategy()
-
-    def set_assignment_strategy(self, strategy: str) -> AssignmentStrategy:
-        """Set the assignment strategy to use"""
-        print(strategy + "==================================")
-        match strategy:
-            case "TimeGreedy":
-                return TimeGreedyAssignment(self.network)
-            case "ClosestNode":
-                return ClosestNodeAssignment(self.network)
-            case "EnergyGreedy":
-                return EnergyGreedyAssignment(self.network)
-            case "HAPSOnly":
-                return HAPSOnlyAssignment(self.network)
-            case "Random":
-                return RandomAssignment(self.network)
-            case _:
-                return TimeGreedyAssignment(self.network)  # Default strategy
 
     def run(self) -> float:
         """Run simulation until self.max_time.
@@ -164,25 +145,27 @@ class Simulation:
         if self.debug:
             self.consumed_energy_graph()
 
-        # Save energy history to csv
-        energy_history = pd.DataFrame(
-            {node.__str__(): node.energy_history for node in self.network.nodes}
-        )
-        energy_history.to_csv(
-            f"output/energy_history_{self.power_strategy.get_name()}_"
-            f"{self.assignment_strategy.get_name()}_{self.user_count}.csv",
-            index=False,
-        )
+        if self.save_results:
+            # Save energy history to csv
+            energy_history = pd.DataFrame(
+                {node.__str__(): node.energy_history for node in self.network.nodes}
+            )
+            energy_history.to_csv(
+                f"output/energy_history_{self.power_strategy.get_name()}_"
+                f"{self.assignment_strategy.get_name()}_{self.user_count}.csv",
+                index=False,
+            )
 
-        # Save request stats to csv
-        request_stats = pd.DataFrame(request_list)
-        request_stats.to_csv(
-            f"output/request_stats_{self.power_strategy.get_name()}_"
-            f"{self.assignment_strategy.get_name()}_{self.user_count}.csv",
-            index=False,
-        )
+            # Save request stats to csv
+            request_stats = pd.DataFrame(request_list)
+            request_stats.to_csv(
+                f"output/request_stats_{self.power_strategy.get_name()}_"
+                f"{self.assignment_strategy.get_name()}_{self.user_count}.csv",
+                index=False,
+            )
 
         return self.system_energy_consumed
+    
 
     def evaluate_qos_satisfaction(self) -> float:
         """Evaluate QoS satisfaction for all requests."""

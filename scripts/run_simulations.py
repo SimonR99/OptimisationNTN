@@ -14,9 +14,6 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler(
-            f'simulation_log_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
-        ),
     ],
 )
 

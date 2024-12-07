@@ -4,6 +4,7 @@ from .closest_node import ClosestNodeAssignment
 from .energy_greedy import EnergyGreedyAssignment
 from .haps_only import HAPSOnlyAssignment
 from .random_assignment import RandomAssignment
+from .strategy_factory import AssignmentStrategyFactory
 
 __all__ = [
     "AssignmentStrategy",
@@ -12,4 +13,5 @@ __all__ = [
     "EnergyGreedyAssignment",
     "HAPSOnlyAssignment",
     "RandomAssignment",
+    "AssignmentStrategyFactory",
 ]
