@@ -2,7 +2,7 @@
 
 import random
 import time
-from typing import Optional, Type
+from typing import Optional, Type, Literal
 
 import numpy as np
 import pandas as pd
@@ -37,7 +37,9 @@ class Simulation:
         max_time: float = DEFAULT_MAX_SIMULATION_TIME,
         debug: bool = False,
         user_count: int = DEFAULT_USER_COUNT,
-        power_strategy: str = "OnDemand",
+        power_strategy: Literal[
+            "AllOn", "OnDemand", "OnDemandWithTimeout"
+        ] = "OnDemand",
         assignment_strategy: (
             str | Type[AssignmentStrategy] | AssignmentStrategy
         ) = "TimeGreedy",
