@@ -37,7 +37,7 @@ class Request:
         Request.id_counter += 1
         self.tick = tick
         self.current_node = initial_node
-        self.next_node = None
+        self.next_node: Optional["BaseNode"] = None
         self.target_node = target_node
         self.status = RequestStatus.CREATED
         self.processing_progress: float = 0.0  # bits

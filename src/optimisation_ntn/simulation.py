@@ -45,7 +45,9 @@ class Simulation:
         debug: bool = False,
         user_count: int = DEFAULT_USER_COUNT,
         power_strategy: str = "AllOn",
-        assignment_strategy: str | Type[AssignmentStrategy] | AssignmentStrategy = "TimeGreedy",
+        assignment_strategy: (
+            str | Type[AssignmentStrategy] | AssignmentStrategy
+        ) = "TimeGreedy",
         save_results: bool = True,
     ):
         # Set the random seed if provided
@@ -165,7 +167,6 @@ class Simulation:
             )
 
         return self.system_energy_consumed
-    
 
     def evaluate_qos_satisfaction(self) -> float:
         """Evaluate QoS satisfaction for all requests."""

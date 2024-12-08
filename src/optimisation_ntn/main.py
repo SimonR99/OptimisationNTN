@@ -1,8 +1,9 @@
 import argparse
-import math
 
 from optimisation_ntn.simulation import Simulation
-from optimisation_ntn.algorithms.assignment.strategy_factory import AssignmentStrategyFactory
+from optimisation_ntn.algorithms.assignment.strategy_factory import (
+    AssignmentStrategyFactory,
+)
 
 
 def create_parser():
@@ -19,7 +20,7 @@ def create_parser():
 
     parser.add_argument(
         "--tick_time",
-        type=int,
+        type=float,
         default=Simulation.DEFAULT_TICK_TIME,
         help="Number of seconds per tick",
     )
@@ -46,11 +47,11 @@ def create_parser():
     )
 
     parser.add_argument(
-        "--algorithm",
+        "--power_strategy",
         type=str,
         choices=["Random", "StaticRandom", "AllOn"],
         default="AllOn",
-        help="Algorithm used for optimizing or running the simulation",
+        help="Power strategy to use",
     )
 
     parser.add_argument(
@@ -64,7 +65,7 @@ def create_parser():
         type=str,
         choices=AssignmentStrategyFactory.available_strategies(),
         default="TimeGreedy",
-        help="Strategy for assigning requests to compute nodes",
+        help="Assignment strategy to use",
     )
 
     return parser
@@ -77,8 +78,8 @@ def main(args):
         time_step=args.tick_time,
         max_time=args.max_time,
         debug=args.debug,
-        user_count=args.user_count,  # Use the direct user count instead of multiplier
-        power_strategy=args.algorithm,
+        user_count=args.user_count,
+        power_strategy=args.power_strategy,
         assignment_strategy=args.assignment_strategy,
     )
 

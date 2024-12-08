@@ -6,15 +6,16 @@ from .energy_greedy import EnergyGreedyAssignment
 from .haps_only import HAPSOnlyAssignment
 from .random_assignment import RandomAssignment
 
+
 class AssignmentStrategyFactory:
     """Factory class for creating assignment strategies"""
-    
+
     _strategies: Dict[str, Type[AssignmentStrategy]] = {
         "TimeGreedy": TimeGreedyAssignment,
         "ClosestNode": ClosestNodeAssignment,
         "EnergyGreedy": EnergyGreedyAssignment,
         "HAPSOnly": HAPSOnlyAssignment,
-        "Random": RandomAssignment
+        "Random": RandomAssignment,
     }
 
     @classmethod
@@ -29,7 +30,9 @@ class AssignmentStrategyFactory:
         elif isinstance(strategy, AssignmentStrategy):
             return strategy
         else:
-            raise ValueError("Strategy must be a string name, AssignmentStrategy class, or instance")
+            raise ValueError(
+                "Strategy must be a string name, AssignmentStrategy class, or instance"
+            )
 
     @classmethod
     def register_strategy(cls, name: str, strategy_class: Type[AssignmentStrategy]):
@@ -41,4 +44,4 @@ class AssignmentStrategyFactory:
     @classmethod
     def available_strategies(cls) -> list[str]:
         """Get list of available strategy names"""
-        return list(cls._strategies.keys()) 
+        return list(cls._strategies.keys())
