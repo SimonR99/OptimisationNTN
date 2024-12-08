@@ -4,17 +4,10 @@ import random
 import time
 from typing import Optional, Type
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from optimisation_ntn.networks.request import Request, RequestStatus
 
-from .algorithms.power_strategy import (
-    AllOnStrategy,
-    PowerStateStrategy,
-    RandomStrategy,
-    StaticRandomStrategy,
-)
 from .matrices.decision_matrices import DecisionMatrices, MatrixType
 from .networks.network import Network
 from .nodes.base_station import BaseStation
@@ -32,7 +25,7 @@ class Simulation:
     DEFAULT_BS_COUNT = 4
     DEFAULT_HAPS_COUNT = 1
     DEFAULT_LEO_COUNT = 1
-    DEFAULT_USER_COUNT = 50
+    DEFAULT_USER_COUNT = 1
 
     DEFAULT_TICK_TIME = 0.1
     DEFAULT_MAX_SIMULATION_TIME = 300
@@ -44,7 +37,7 @@ class Simulation:
         max_time: float = DEFAULT_MAX_SIMULATION_TIME,
         debug: bool = False,
         user_count: int = DEFAULT_USER_COUNT,
-        power_strategy: str = "AllOn",
+        power_strategy: str = "OnDemand",
         assignment_strategy: (
             str | Type[AssignmentStrategy] | AssignmentStrategy
         ) = "TimeGreedy",
@@ -60,7 +53,7 @@ class Simulation:
         self.max_time = max_time
         self.network = Network(debug=debug)
         self.matrices = DecisionMatrices(dimension=user_count)
-        self.power_strategy = self.set_power_strategy(power_strategy)
+        self.power_strategy = power_strategy
         self.assignment_strategy = AssignmentStrategyFactory.get_strategy(
             assignment_strategy, self.network
         )
@@ -70,8 +63,6 @@ class Simulation:
         self.is_paused = False
         self.debug = debug
         self.system_energy_consumed = 0
-        self.energy_consumption_graph_x = []
-        self.energy_consumption_graph_y = np.arange(0, 300.1, 0.1)
 
         # Initialize with default values
         self.initialize_default_nodes()
@@ -83,16 +74,6 @@ class Simulation:
     def max_tick_time(self) -> int:
         """Calculate the maximum number of simulation steps."""
         return int(self.max_time / self.time_step)
-
-    def set_power_strategy(self, strategy: str) -> PowerStateStrategy:
-        """Set the power optimization strategy to use"""
-        match strategy:
-            case "AllOn":
-                return AllOnStrategy()
-            case "Random":
-                return RandomStrategy()
-            case "StaticRandom":
-                return StaticRandomStrategy()
 
     def run(self) -> float:
         """Run simulation until self.max_time.
@@ -144,16 +125,13 @@ class Simulation:
         for status, count in self.request_state_stats.items():
             print(f"{status.name}: {count}")
 
-        if self.debug:
-            self.consumed_energy_graph()
-
         if self.save_results:
             # Save energy history to csv
             energy_history = pd.DataFrame(
                 {node.__str__(): node.energy_history for node in self.network.nodes}
             )
             energy_history.to_csv(
-                f"output/energy_history_{self.power_strategy.get_name()}_"
+                f"output/energy_history_{self.power_strategy}_"
                 f"{self.assignment_strategy.get_name()}_{self.user_count}.csv",
                 index=False,
             )
@@ -161,7 +139,7 @@ class Simulation:
             # Save request stats to csv
             request_stats = pd.DataFrame(request_list)
             request_stats.to_csv(
-                f"output/request_stats_{self.power_strategy.get_name()}_"
+                f"output/request_stats_{self.power_strategy}_"
                 f"{self.assignment_strategy.get_name()}_{self.user_count}.csv",
                 index=False,
             )
@@ -188,9 +166,6 @@ class Simulation:
 
     def step(self) -> bool:
         """Run simulation for a single step."""
-        # Apply power states at the beginning of each step
-        self.apply_power_states()
-
         # Get new requests from request matrix for this tick
         new_requests = self.matrices.get_matrix(MatrixType.REQUEST)[
             :, self.current_step
@@ -215,7 +190,9 @@ class Simulation:
                 user.add_request(request)
 
                 # Get available compute nodes
-                compute_nodes = self.network.get_compute_nodes(request)
+                compute_nodes = self.network.get_compute_nodes(
+                    request, check_state=False
+                )
 
                 # Use assignment strategy to select node
                 best_node, best_path, _ = self.assignment_strategy.select_compute_node(
@@ -258,8 +235,6 @@ class Simulation:
         # Update time and step counter
         self.current_time += self.time_step
         self.current_step += 1
-        self.system_energy_consumed = self.network.get_total_energy_consumed()
-        self.energy_consumption_graph_x.append(self.system_energy_consumed)
         return self.current_time < self.max_time
 
     def reset(self):
@@ -288,7 +263,7 @@ class Simulation:
 
         # Add default LEO satellites
         for i in range(nb_leo):
-            self.network.add_node(LEO(i))
+            self.network.add_node(LEO(i, power_strategy=self.power_strategy))
 
         # Add default user devices
         self.set_nodes(UserDevice, self.user_count)
@@ -306,7 +281,12 @@ class Simulation:
             for i in range(count):
                 x_pos = start_x + (i * 1.5)
                 self.network.add_node(
-                    node_type(i, Position(x_pos, 0), debug=self.debug)
+                    node_type(
+                        i,
+                        Position(x_pos, 0),
+                        debug=self.debug,
+                        power_strategy=self.power_strategy,
+                    )
                 )
 
         elif node_type == HAPS:
@@ -314,25 +294,21 @@ class Simulation:
             height = 20
             for i in range(count):
                 x_pos = start_x + (i * 2)
-                self.network.add_node(node_type(i, Position(x_pos, height)))
+                self.network.add_node(
+                    node_type(
+                        i, Position(x_pos, height), power_strategy=self.power_strategy
+                    )
+                )
 
         elif node_type == UserDevice:
             for i in range(count):
                 x_pos = random.uniform(-4, 4)
                 height = -2
-                self.network.add_node(node_type(i, Position(x_pos, height)))
-
-    def consumed_energy_graph(self):
-        plt.plot(
-            self.energy_consumption_graph_y,
-            self.energy_consumption_graph_x,
-            color="blue",
-            marker=".",
-        )
-        plt.title("Energy consumption")
-        plt.xlabel("Secondes")
-        plt.ylabel("Cumulative system energy consumed")
-        plt.show()
+                self.network.add_node(
+                    node_type(
+                        i, Position(x_pos, height), power_strategy=self.power_strategy
+                    )
+                )
 
     def initialize_matrices(self):
         """Initialize all matrices needed for simulation"""
@@ -348,37 +324,9 @@ class Simulation:
         # Generate coverage matrix
         self.matrices.generate_coverage_matrix(self.network)
 
-        # Generate power matrix with the strategy
-        compute_nodes_count = (
-            self.network.count_nodes_by_type(HAPS)
-            + self.network.count_nodes_by_type(BaseStation)
-            + self.network.count_nodes_by_type(LEO)
-        )
-
-        # Set the strategy if not already set
-        if not self.power_strategy:
-            self.power_strategy = StaticRandomStrategy()
-
-        print(self.power_strategy.get_name())
-
-        self.matrices.generate_power_matrix(
-            num_devices=compute_nodes_count,
-            num_steps=matrix_size,
-            strategy=self.power_strategy,
-        )
+        print(self.power_strategy)
 
     def debug_print(self, *args, **kwargs):
         """Print only if debug mode is enabled"""
         if self.debug:
             print(*args, **kwargs)
-
-    def apply_power_states(self):
-        """Apply power states from power matrix to network nodes"""
-        power_matrix = self.matrices.get_matrix(MatrixType.POWER_STATE)
-        compute_nodes = self.network.compute_nodes
-
-        current_power_states = power_matrix[:, self.current_step]
-
-        for node_idx, node in enumerate(compute_nodes):
-            if node_idx < len(current_power_states):
-                node.set_state(bool(current_power_states[node_idx]))

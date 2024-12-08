@@ -49,7 +49,7 @@ def create_parser():
     parser.add_argument(
         "--power_strategy",
         type=str,
-        choices=["Random", "StaticRandom", "AllOn"],
+        choices=["AllOn", "OnDemand", "OnDemandWithTimeout"],
         default="AllOn",
         help="Power strategy to use",
     )

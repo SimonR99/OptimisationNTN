@@ -1,14 +1,22 @@
 from optimisation_ntn.networks.request import Request
 from optimisation_ntn.utils.position import Position
-
+from typing import Literal
 from .base_node import BaseNode
 
 
 class UserDevice(BaseNode):
     REQUEST_LIMIT = 1
 
-    def __init__(self, node_id: int, initial_position: Position, debug: bool = False):
-        super().__init__(node_id, initial_position, debug=debug)
+    def __init__(
+        self,
+        node_id: int,
+        initial_position: Position,
+        debug: bool = False,
+        power_strategy: Literal["AllOn", "OnDemand", "OnDemandWithTimeout"] = "AllOn",
+    ):
+        super().__init__(
+            node_id, initial_position, debug=debug, power_strategy=power_strategy
+        )
         self.add_antenna("VHF", 3)
         self.transmission_power = 23
         self.path_loss_exponent = 3
@@ -16,6 +24,8 @@ class UserDevice(BaseNode):
         self.reference_lenght = 1
         self.current_requests: list[Request] = []
         self.name = "USER DEVICE"
+        self.standby_energy = 0
+        self.turn_on_energy_peak = 0
 
     def add_request(self, request) -> Request:
         """Create a new request without specifying target node yet"""

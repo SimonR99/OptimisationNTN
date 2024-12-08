@@ -19,6 +19,8 @@ class MatrixType(Enum):
 class DecisionMatrices:
     def __init__(self, dimension: int = 0):
         """Initialize matrices used in network decision processes."""
+        np.random.seed(42)
+
         self.matrices: Dict[MatrixType, np.ndarray] = {
             MatrixType.COVERAGE_ZONE: np.zeros((dimension, dimension)),
             MatrixType.POWER_STATE: np.zeros((dimension, dimension)),

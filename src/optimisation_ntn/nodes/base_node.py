@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Literal
 import numpy as np
 
 from ..networks.antenna import Antenna
@@ -15,6 +15,7 @@ class BaseNode(ABC):
         node_id: int,
         initial_position: Position,
         debug: bool = False,
+        power_strategy: Literal["AllOn", "OnDemand", "OnDemandWithTimeout"] = "AllOn",
     ):
         self.node_id = node_id
         self.position = initial_position
@@ -45,6 +46,25 @@ class BaseNode(ABC):
         self.destinations: List["BaseNode"] = []
         self.last_tick_energy = 0.0
         self.energy_history = []
+        self.timeout = 10
+        self.last_state_change = 0
+        self.power_strategy = power_strategy
+        self.tick_count = 0
+
+    def apply_power_strategy(self):
+        if self.power_strategy == "AllOn":
+            self._turn_on()
+        elif self.power_strategy == "OnDemand":
+            if self.processing_queue:
+                self._turn_on()
+            else:
+                self._turn_off()
+        elif self.power_strategy == "OnDemandWithTimeout":
+            if self.processing_queue:
+                self.last_state_change = 0
+                self._turn_on()
+            elif self.last_state_change > self.timeout:
+                self._turn_off()
 
     def get_name(self) -> str:
         return self.name
@@ -94,11 +114,15 @@ class BaseNode(ABC):
     def _turn_on(self):
         """Turn node on and add energy consumed."""
 
-        if self.battery_capacity - self.energy_consumed <= 0:
+        if (
+            self.battery_capacity != -1
+            and self.battery_capacity - self.energy_consumed <= 0
+        ):
+            return
+        elif self.state:
             return
         self.energy_consumed += self.turn_on_energy_peak
         self.state = True
-        self.recently_turned_on = True
 
     def _turn_off(self):
         """Turn node off"""
@@ -134,6 +158,13 @@ class BaseNode(ABC):
         if check_state and not self.state:
             return False
 
+        # check battery
+        if (
+            self.battery_capacity != -1
+            and self.battery_capacity - self.energy_consumed <= 0
+        ):
+            return False
+
         # If no specific request, just check basic capability
         if request is None:
             return True
@@ -143,7 +174,7 @@ class BaseNode(ABC):
 
     def add_request_to_process(self, request: Request):
         """Add request to processing queue"""
-        if self.can_process(request):
+        if self.can_process(request, check_state=False):
             self.processing_queue.append(request)
             self.current_load += request.size
             request.update_status(RequestStatus.PROCESSING)
@@ -197,6 +228,8 @@ class BaseNode(ABC):
 
     def tick(self, time: float):
         """Update node state including request processing"""
+        self.apply_power_strategy()
+
         if (
             self.battery_capacity != -1
             and self.battery_capacity - self.energy_consumed <= 0
@@ -213,6 +246,7 @@ class BaseNode(ABC):
         self.last_tick_energy = self.energy_consumed
 
         self.energy_history.append(energy_this_tick)
+        self.last_state_change += time
 
     def debug_print(self, *args, **kwargs):
         """Print only if debug mode is enabled"""
