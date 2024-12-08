@@ -35,7 +35,7 @@ def create_parser():
     parser.add_argument(
         "--num_requests",
         type=int,
-        default=10,
+        default=Simulation.DEFAULT_USER_COUNT,
         help="Number of requests to optimize",
     )
 
@@ -135,7 +135,7 @@ def run_optimization(
         print(f"\nBest solution found by {algorithm_name}:")
         print(f"Assignment vector: {best_x}")
         print(f"Energy consumed: {energy:.2f} J")
-        print(f"QoS satisfaction: {satisfaction:.2f}%")
+        print(f"QoS satisfaction: {satisfaction * 100:.2f}%")
         return best_x, energy, satisfaction
     else:
         print(f"\n{algorithm_name} found no feasible solution")
