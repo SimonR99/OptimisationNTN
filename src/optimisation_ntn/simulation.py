@@ -17,6 +17,7 @@ from .nodes.user_device import UserDevice
 from .utils.position import Position
 from .algorithms.assignment.strategy_factory import AssignmentStrategyFactory
 from .algorithms.assignment import AssignmentStrategy
+from .algorithms.assignment.matrix_based import MatrixBasedAssignment
 
 
 class Simulation:
@@ -25,7 +26,7 @@ class Simulation:
     DEFAULT_BS_COUNT = 4
     DEFAULT_HAPS_COUNT = 1
     DEFAULT_LEO_COUNT = 1
-    DEFAULT_USER_COUNT = 1
+    DEFAULT_USER_COUNT = 10
 
     DEFAULT_TICK_TIME = 0.1
     DEFAULT_MAX_SIMULATION_TIME = 300
@@ -44,6 +45,7 @@ class Simulation:
             str | Type[AssignmentStrategy] | AssignmentStrategy
         ) = "TimeGreedy",
         save_results: bool = True,
+        print_output: bool = False,
     ):
         # Set the random seed if provided
         if seed is not None:
@@ -65,6 +67,8 @@ class Simulation:
         self.is_paused = False
         self.debug = debug
         self.system_energy_consumed = 0
+        self.seed = seed
+        self.print_output = print_output
 
         # Initialize with default values
         self.initialize_default_nodes()
@@ -85,11 +89,12 @@ class Simulation:
         start_time = time.time()
 
         # Print simulation parameters (always show these)
-        print("\nStarting simulation with parameters:")
-        print(f"Time step: {self.time_step}s")
-        print(f"Max simulation time: {self.max_time}s")
-        print(f"{self.network}")
-        print("\nSimulation running...\n")
+        if self.print_output:
+            print("\nStarting simulation with parameters:")
+            print(f"Time step: {self.time_step}s")
+            print(f"Max simulation time: {self.max_time}s")
+            print(f"{self.network}")
+            print("\nSimulation running...\n")
 
         while self.current_time < self.max_time:
             if not self.step():
@@ -97,7 +102,6 @@ class Simulation:
 
         # QoS Evaluation
         success_rate = self.evaluate_qos_satisfaction()
-        print(f"\nQoS Success Rate: {success_rate:.2f}%")
 
         # Calculate execution time and print results (always show these)
         execution_time = time.time() - start_time
@@ -114,18 +118,18 @@ class Simulation:
         for request in request_list:
             self.request_state_stats[request["status"]] += 1
 
-        print("\nSimulation completed:")
-        print(f"Total requests: {self.total_requests}")
-        print(f"Execution time: {execution_time:.2f} seconds")
-        print(f"Simulation steps: {self.current_step}")
-        print(f"Simulated time: {self.current_time:.2f} seconds")
-        print(f"Average speed: {self.current_step/execution_time:.0f} steps/second")
-        print(f"Total energy consumed: {self.system_energy_consumed} joules\n")
-
-        # Print request statistics (always show these)
-        print("\nRequest Statistics:")
-        for status, count in self.request_state_stats.items():
-            print(f"{status.name}: {count}")
+        if self.print_output:
+            print("\nSimulation completed:")
+            print(f"Total requests: {self.total_requests}")
+            print(f"Execution time: {execution_time:.2f} seconds")
+            print(f"Simulation steps: {self.current_step}")
+            print(f"Simulated time: {self.current_time:.2f} seconds")
+            print(f"\nQoS Success Rate: {success_rate:.2f}%")
+            print(f"Average speed: {self.current_step/execution_time:.0f} steps/second")
+            print(f"Total energy consumed: {self.system_energy_consumed} joules\n")
+            print("\nRequest Statistics:")
+            for status, count in self.request_state_stats.items():
+                print(f"{status.name}: {count}")
 
         if self.save_results:
             # Save energy history to csv
@@ -243,10 +247,14 @@ class Simulation:
         """Reset the simulation to initial state."""
         self.current_time = 0.0
         self.current_step = 0
-        self.network = Network()
+        self.network = Network(debug=self.debug)
         self.matrix_history.clear()
         self.total_requests = 0
         self.system_energy_consumed = 0
+
+        # Reset energy consumption for all nodes
+        if self.seed is not None:
+            random.seed(self.seed)
         self.initialize_default_nodes()
         self.initialize_matrices()  # Re-initialize matrices after reset
 
@@ -326,9 +334,33 @@ class Simulation:
         # Generate coverage matrix
         self.matrices.generate_coverage_matrix(self.network)
 
-        print(self.power_strategy)
-
     def debug_print(self, *args, **kwargs):
         """Print only if debug mode is enabled"""
         if self.debug:
             print(*args, **kwargs)
+
+    def run_with_assignment(self, assignment_vector: np.ndarray) -> tuple[float, float]:
+        """Run simulation with a specific assignment vector.
+
+        Args:
+            assignment_vector: Vector specifying node assignments for each request
+
+        Returns:
+            tuple[float, float]: (energy consumed, QoS satisfaction rate)
+        """
+        # Reset simulation state
+        self.reset()
+
+        # Create and set matrix-based strategy
+        matrix_strategy = MatrixBasedAssignment(self.network)
+        matrix_strategy.set_assignment_matrix(assignment_vector)
+        self.assignment_strategy = matrix_strategy
+
+        # Run simulation
+        energy_consumed = self.run()
+        satisfaction_rate = self.evaluate_qos_satisfaction()
+
+        return (
+            energy_consumed,
+            satisfaction_rate / 100.0,
+        )  # Convert percentage to fraction

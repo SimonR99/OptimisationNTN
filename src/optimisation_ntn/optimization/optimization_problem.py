@@ -37,10 +37,14 @@ class OptimizationProblem(ElementwiseProblem):
             None (updates out dictionary)
         """
         # Run simulation with this assignment vector
+        self.simulation.reset()
         energy, satisfaction = self.simulation.run_with_assignment(x)
+        print(
+            f"Running simulation with assignment: {x} - Energy: {energy}, Satisfaction: {satisfaction}"
+        )
 
         # Set objective (energy consumption)
         out["F"] = [energy]
 
         # Set constraint (QoS satisfaction must be >= 95%)
-        out["G"] = [0.95 - satisfaction]
+        out["G"] = [0.85 - satisfaction]

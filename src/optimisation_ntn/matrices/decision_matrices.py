@@ -19,8 +19,6 @@ class MatrixType(Enum):
 class DecisionMatrices:
     def __init__(self, dimension: int = 0):
         """Initialize matrices used in network decision processes."""
-        np.random.seed(42)
-
         self.matrices: Dict[MatrixType, np.ndarray] = {
             MatrixType.COVERAGE_ZONE: np.zeros((dimension, dimension)),
             MatrixType.POWER_STATE: np.zeros((dimension, dimension)),
@@ -60,6 +58,7 @@ class DecisionMatrices:
 
     def generate_request_matrix(self, num_requests: int, num_steps: int):
         """Generate request matrix where each user generates exactly one request."""
+        np.random.seed(42)
         if num_requests <= 0 or num_steps <= 0:
             raise ValueError("Number of requests and steps must be positive")
 

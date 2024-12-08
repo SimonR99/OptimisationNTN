@@ -68,6 +68,13 @@ def create_parser():
         help="Assignment strategy to use",
     )
 
+    parser.add_argument(
+        "--hide_output",
+        action="store_true",
+        default=False,
+        help="Hide output",
+    )
+
     return parser
 
 
@@ -81,6 +88,7 @@ def main(args):
         user_count=args.user_count,
         power_strategy=args.power_strategy,
         assignment_strategy=args.assignment_strategy,
+        print_output=not args.hide_output,
     )
 
     # Run the simulation

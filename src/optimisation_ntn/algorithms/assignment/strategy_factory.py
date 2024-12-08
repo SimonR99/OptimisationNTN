@@ -5,6 +5,8 @@ from .closest_node import ClosestNodeAssignment
 from .energy_greedy import EnergyGreedyAssignment
 from .haps_only import HAPSOnlyAssignment
 from .random_assignment import RandomAssignment
+from .matrix_based import MatrixBasedAssignment
+from optimisation_ntn.networks.network import Network
 
 
 class AssignmentStrategyFactory:
@@ -16,10 +18,11 @@ class AssignmentStrategyFactory:
         "EnergyGreedy": EnergyGreedyAssignment,
         "HAPSOnly": HAPSOnlyAssignment,
         "Random": RandomAssignment,
+        "MatrixBased": MatrixBasedAssignment,
     }
 
     @classmethod
-    def get_strategy(cls, strategy, network) -> AssignmentStrategy:
+    def get_strategy(cls, strategy, network: Network) -> AssignmentStrategy:
         """Get assignment strategy instance from string name or class"""
         if isinstance(strategy, str):
             if strategy not in cls._strategies:

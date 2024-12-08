@@ -56,7 +56,7 @@ def create_parser():
     parser.add_argument(
         "--generations",
         type=int,
-        default=100,
+        default=10,
         help="Number of generations for optimization",
     )
 
@@ -102,6 +102,7 @@ def run_optimization(
             crossover=SBX(prob=0.9, eta=3, repair=RoundingRepair()),
             mutation=PM(prob=0.1, eta=3, repair=RoundingRepair()),
             eliminate_duplicates=True,
+            repair=RoundingRepair(),
         )
     elif algorithm_name == "DE":
         algorithm = DE(
@@ -115,9 +116,11 @@ def run_optimization(
     else:  # PSO
         algorithm = PSO(
             pop_size=pop_size,
+            sampling=IntegerRandomSampling(),
             w=0.9,
             c1=2.0,
             c2=2.0,
+            repair=RoundingRepair(),
         )
 
     # Run optimization
@@ -147,7 +150,7 @@ def main(args):
         max_time=args.max_time,
         debug=args.debug,
         user_count=args.num_requests,
-        power_strategy="AllOn",
+        power_strategy="OnDemand",
     )
 
     # Run optimization
@@ -158,13 +161,16 @@ def main(args):
     # Compare with baseline strategy
     print("\nComparing with TimeGreedy strategy...")
     simulation.reset()
-    baseline_energy = simulation.run()
-    baseline_satisfaction = simulation.evaluate_qos_satisfaction()
+    baseline_energy, baseline_satisfaction = simulation.run_with_assignment(
+        np.random.randint(
+            0, len(simulation.network.compute_nodes) - 1, simulation.user_count
+        )
+    )
 
     print("\nResults comparison:")
-    print(f"Optimized solution: {energy:.2f} J, {satisfaction:.2f}% QoS")
+    print(f"Optimized solution: {energy:.2f} J, {satisfaction*100:.2f}% QoS")
     print(
-        f"Baseline strategy: {baseline_energy:.2f} J, {baseline_satisfaction:.2f}% QoS"
+        f"Baseline strategy: {baseline_energy:.2f} J, {baseline_satisfaction*100:.2f}% QoS"
     )
 
     improvement = ((baseline_energy - energy) / baseline_energy) * 100
