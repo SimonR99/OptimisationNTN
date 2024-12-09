@@ -34,24 +34,18 @@ PARAMETERS = {
 
 def generate_command(params: Dict) -> str:
     """Generate command string for a parameter combination"""
+    base_cmd = "python -m optimisation_ntn.main"
+    cmd_parts = [
+        base_cmd,
+        f"--power_strategy {params['power_strategy']}",
+        f"--strategy {params['assignment_strategy']}",
+        f"--user_count {params['user_count']}",
+    ]
+
+    # Add optimization parameters if using an optimization algorithm
     if params["assignment_strategy"] in ["GA", "PSO", "DE"]:
-        base_cmd = (
-            "python -m optimisation_ntn.optimize --algorithm "
-            + params["assignment_strategy"]
-        )
-        cmd_parts = [
-            base_cmd,
-            f"--power_strategy {params['power_strategy']}",
-            f"--user_count {params['user_count']}",
-        ]
-    else:
-        base_cmd = "python -m optimisation_ntn.main"
-        cmd_parts = [
-            base_cmd,
-            f"--power_strategy {params['power_strategy']}",
-            f"--assignment_strategy {params['assignment_strategy']}",
-            f"--user_count {params['user_count']}",
-        ]
+        cmd_parts.extend(["--generations 10", "--population 50"])
+
     return " ".join(cmd_parts)
 
 
