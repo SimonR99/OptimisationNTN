@@ -56,13 +56,17 @@ class DecisionMatrices:
 
         self.matrices[MatrixType.COVERAGE_ZONE] = coverage_matrix
 
-    def generate_request_matrix(self, num_requests: int, num_steps: int):
+    def generate_request_matrix(self, num_requests: int, num_steps: int, time = 0.1, time_buffer = None):
         """Generate request matrix where each user generates exactly one request."""
         np.random.seed(42)
         if num_requests <= 0 or num_steps <= 0:
             raise ValueError("Number of requests and steps must be positive")
 
-        request_matrix = np.zeros((num_requests, num_steps))
+        if time_buffer is None:
+            request_matrix = np.zeros((num_requests, num_steps))
+        else:
+            num_steps = num_steps - int(time_buffer / time)
+            request_matrix = np.zeros((num_requests, num_steps))
 
         # Generate Poisson distribution of requests
         count = 0
@@ -78,6 +82,10 @@ class DecisionMatrices:
                             row_index += 1
                 self.matrices[MatrixType.REQUEST] = request_matrix
                 break
+        
+        # Add padding to the request matrix if time_buffer is provided (padding with 0s)
+        if time_buffer is not None:
+            self.matrices[MatrixType.REQUEST] = np.pad(request_matrix, (0, int(time_buffer / time)), mode='constant')
 
     def generate_power_matrix(
         self, num_devices: int, num_steps: int, strategy: "PowerStateStrategy"

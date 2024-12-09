@@ -19,21 +19,36 @@ logging.basicConfig(
 
 # Define parameter variations
 PARAMETERS = {
-    "power_strategies": ["AllOn", "Random", "StaticRandom"],
-    "assignment_strategies": ["TimeGreedy", "ClosestNode", "EnergyGreedy", "HAPSOnly"],
-    "user_counts": [50, 55, 61, 67, 73, 80, 89, 97, 107, 118, 130],
+    "power_strategies": ["OnDemand"],
+    "assignment_strategies": [
+        "TimeGreedy",
+        "ClosestNode",
+        "HAPSOnly",
+        "GA",
+        "PSO",
+        "DE",
+    ],
+    "user_counts": [10, 20, 30, 40],
 }
 
 
 def generate_command(params: Dict) -> str:
     """Generate command string for a parameter combination"""
-    base_cmd = "python -m optimisation_ntn.main"
-    cmd_parts = [
-        base_cmd,
-        f"--algorithm {params['power_strategy']}",
-        f"--assignment_strategy {params['assignment_strategy']}",
-        f"--user_count {params['user_count']}",
-    ]
+    if params["assignment_strategy"] in ["GA", "PSO", "DE"]:
+        base_cmd = "python -m optimisation_ntn.optimize --algorithm " + params["assignment_strategy"]
+        cmd_parts = [
+            base_cmd,
+            f"--power_strategy {params['power_strategy']}",
+            f"--user_count {params['user_count']}",
+        ]
+    else:
+        base_cmd = "python -m optimisation_ntn.main"
+        cmd_parts = [
+            base_cmd,
+            f"--power_strategy {params['power_strategy']}",
+            f"--assignment_strategy {params['assignment_strategy']}",
+            f"--user_count {params['user_count']}",
+        ]
     return " ".join(cmd_parts)
 
 

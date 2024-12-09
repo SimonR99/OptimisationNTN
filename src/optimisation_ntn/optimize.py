@@ -33,7 +33,7 @@ def create_parser():
     )
 
     parser.add_argument(
-        "--num_requests",
+        "--user_count",
         type=int,
         default=Simulation.DEFAULT_USER_COUNT,
         help="Number of requests to optimize",
@@ -66,7 +66,15 @@ def create_parser():
         default=50,
         help="Population size for optimization",
     )
-
+    
+    parser.add_argument(
+        "--power_strategy",
+        type=str,
+        choices=["AllOn", "OnDemand", "OnDemandWithTimeout"],
+        default="AllOn",
+        help="Power strategy to use",
+    )
+    
     return parser
 
 
@@ -149,8 +157,9 @@ def main(args):
         time_step=args.tick_time,
         max_time=args.max_time,
         debug=args.debug,
-        user_count=args.num_requests,
+        user_count=args.user_count,
         power_strategy="OnDemand",
+        optimizer=args.algorithm,
     )
 
     # Run optimization
