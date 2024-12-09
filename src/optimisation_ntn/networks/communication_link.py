@@ -140,15 +140,15 @@ class CommunicationLink:
             capacity = self.calculate_capacity()
             transmission_delay = self.calculate_transmission_delay(current_request)
             bits_transmitted = capacity * time
-            if isinstance(
-                self.node_a, HAPS
-            ):  # Only HAPS->LEO transmission energy need to be taken into account
+
+            # Only HAPS->LEO transmission energy need to be taken into account
+            if isinstance(self.node_a, HAPS):
                 self.node_a.energy_consumed += self.node_a.transmission_energy() * time
 
-            if self.debug:
-                print(f"Capacity: {capacity} \n")
-                print(f"Request size: {current_request.size} \n")
-                print(f"Transmission time: {transmission_delay} \n")
+            self.debug_print(f"Capacity: {capacity}")
+            self.debug_print(f"Request size: {current_request.size}")
+            self.debug_print(f"Transmission time: {transmission_delay}")
+
             self.request_progress += bits_transmitted
 
             self.debug_print(

@@ -7,7 +7,7 @@ class Simulation {
   - network: Network
   - matrices: DecisionMatrices
   - power_strategy: PowerStateStrategy
-  - assignment_strategy: AssignmentStrategy
+  - assignment_manager: AssignmentManager
   - matrix_history: List
   - is_paused: bool
   + run() -> float
@@ -18,50 +18,84 @@ class Simulation {
   + initialize_default_nodes()
   + set_nodes(node_type: type, count: int)
   + evaluate_qos_satisfaction() -> float
+  + run_with_assignment(assign_vector: List[int]) -> (float, float)
 }
 
-class DecisionMatrices {
-  - matrices: Dict[MatrixType, ndarray]
-  + generate_coverage_matrix(network: Network)
-  + generate_request_matrix(num_requests: int, num_steps: int)
-  + generate_power_matrix(num_devices: int, num_steps: int, strategy: PowerStateStrategy)
-  + update_assignment_matrix(network: Network)
+class AssignmentManager {
+  - current_assignment_vector: List[int]
+  - power_state_history: Dict[int, List[Tuple[float, bool]]]
+  - min_idle_time: float
+  + set_assignment_vector(vector: List[int])
+  + get_assignment_for_request(req_id: int) -> int
+  + get_current_vector() -> List[int]
+  + derive_power_states(time: float)
+  + should_power_on(node_id: int, time: float) -> bool
+  + should_power_off(node_id: int, time: float) -> bool
+}
+
+class OptimizationProblem {
+  - simulation: Simulation
+  - n_requests: int
+  - n_nodes: int
+  + evaluate(x: ndarray) -> Tuple[float, float]
+  + get_bounds() -> Tuple[ndarray, ndarray]
 }
 
 ' Strategy Hierarchy
 abstract class PowerStateStrategy {
   + {abstract} generate_power_matrix(num_devices: int, num_steps: int) -> ndarray
   + get_name() -> str
+  + update_power_states(assignments: List[int], request_times: List[float])
 }
 
 abstract class AssignmentStrategy {
-  + {abstract} select_compute_node(request: Request, nodes: List[BaseNode]) -> BaseNode
+  + {abstract} select_compute_node(request: Request, nodes: List[BaseNode]) -> tuple[BaseNode, List[BaseNode], float]
   + get_name() -> str
 }
 
 ' Power State Implementations
 class AllOnStrategy extends PowerStateStrategy
-class RandomPowerStrategy extends PowerStateStrategy
-class MatrixPowerStrategy extends PowerStateStrategy {
-  - power_matrix: ndarray
-  + set_matrix(matrix: ndarray)
-  + get_matrix() -> ndarray
+class RandomStrategy extends PowerStateStrategy {
+  - probability: float
 }
+class StaticRandomStrategy extends PowerStateStrategy
 
 ' Assignment Implementations
-class TimeGreedyAssignment extends AssignmentStrategy
-class EnergyGreedyAssignment extends AssignmentStrategy
-class ClosestNodeAssignment extends AssignmentStrategy
-class HAPSOnlyAssignment extends AssignmentStrategy
-class RandomAssignment extends AssignmentStrategy
+class TimeGreedyAssignment extends AssignmentStrategy {
+  - network: Network
+}
+class EnergyGreedyAssignment extends AssignmentStrategy {
+  - network: Network
+}
+class ClosestNodeAssignment extends AssignmentStrategy {
+  - network: Network
+}
+class HAPSOnlyAssignment extends AssignmentStrategy {
+  - network: Network
+}
+class RandomAssignment extends AssignmentStrategy {
+  - network: Network
+}
+
+class AssignmentStrategyFactory {
+  - _strategies: Dict[str, Type[AssignmentStrategy]]
+  + get_strategy(strategy, network) -> AssignmentStrategy
+  + register_strategy(name: str, strategy_class: Type[AssignmentStrategy])
+  + available_strategies() -> list[str]
+}
 
 ' Network Components
 class Network {
   - nodes: List[BaseNode]
   - communication_links: List[CommunicationLink]
+  - compute_nodes: List[BaseNode]
+  - haps_nodes: List[HAPS]
+  - base_stations: List[BaseStation]
+  - leo_nodes: List[LEO]
   + add_node(node: BaseNode)
   + get_compute_nodes() -> List[BaseNode]
-  + route_request(request: Request) -> bool
+  + generate_request_path(source: BaseNode, target: BaseNode) -> List[BaseNode]
+  + get_network_delay(request: Request, path: List[BaseNode]) -> float
   + tick(time: float)
   + get_total_energy_consumed() -> float
 }
@@ -73,10 +107,15 @@ abstract class BaseNode {
   # antennas: List[Antenna]
   # energy_consumed: float
   # processing_queue: List[Request]
+  # battery_capacity: float
+  # processing_frequency: float
+  # transmission_power: float
   + set_state(state: bool)
   + add_antenna(type: str, gain: float)
   + can_process(request: Request) -> bool
   + tick(time: float)
+  + transmission_energy() -> float
+  + processing_energy() -> float
 }
 
 class Position {
@@ -86,57 +125,51 @@ class Position {
 }
 
 class Antenna {
-  - type: str
+  - antenna_type: str
   - gain: float
   + is_compatible_with(other: Antenna) -> bool
 }
 
 class BaseStation extends BaseNode {
-  - processing_frequency: float
+  - k_const: float
 }
 
 class HAPS extends BaseNode {
-  - battery_capacity: float
-  - processing_frequency: float
-  - transmission_power: float
+  - k_const: float
+  {static} + haps_altitude: float
+  {static} + sky_visibility_angle: float
 }
 
 class LEO extends BaseNode {
   - current_angle: float
-  - angular_speed: float
-  - battery_capacity: float
-  + update_position(time: float)
+  - k_const: float
+  {static} + leo_altitude: float
+  {static} + leo_temperature: float
+  + speed: float
+  + angular_speed: float
+  + is_visible: bool
 }
 
 class UserDevice extends BaseNode {
   - current_requests: List[Request]
+  - path_loss_exponent: float
+  - attenuation_coefficient: float
+  - reference_length: float
   + add_request(request: Request)
+  + assign_target_node(request: Request, target_node: BaseNode)
 }
 
 class CommunicationLink {
   - node_a: BaseNode
   - node_b: BaseNode
   - transmission_queue: List[Request]
+  - signal_power: float
+  - carrier_frequency: float
+  - total_bandwidth: float
   + calculate_capacity() -> float
+  + calculate_transmission_delay(request: Request) -> float
   + add_to_queue(request: Request)
   + tick(time: float)
-}
-
-' Optimizers
-abstract class Optimizer {
-  # simulation: Simulation
-  # population_size: int
-  # max_generations: int
-  + {abstract} optimize() -> PowerStateStrategy
-  # evaluate_fitness(strategy: PowerStateStrategy) -> float
-}
-
-class GeneticOptimizer extends Optimizer {
-  - crossover_rate: float
-  - mutation_rate: float
-  + optimize() -> PowerStateStrategy
-  - encode_strategy() -> ndarray  ' Converts strategy to chromosome
-  - decode_chromosome(chromosome: ndarray) -> PowerStateStrategy
 }
 
 enum MatrixType {
@@ -149,6 +182,7 @@ enum MatrixType {
 ' Relationships
 Simulation *-- Network
 Simulation *-- DecisionMatrices
+Simulation *-- AssignmentManager
 Simulation o-- PowerStateStrategy
 Simulation o-- AssignmentStrategy
 DecisionMatrices *-- MatrixType
@@ -158,6 +192,7 @@ BaseNode *-- Position
 BaseNode o-- "1..*" Antenna
 BaseNode o-- "0..*" Request
 CommunicationLink o-- "0..*" Request
-Optimizer o-- Simulation
+AssignmentStrategyFactory ..> AssignmentStrategy
+OptimizationProblem *-- Simulation
 
 @enduml

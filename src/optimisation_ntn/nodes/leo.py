@@ -4,6 +4,7 @@ from optimisation_ntn.nodes.haps import HAPS
 from optimisation_ntn.utils.earth import Earth
 
 from .base_node import BaseNode
+from typing import Literal
 
 
 class LEO(BaseNode):
@@ -27,15 +28,23 @@ class LEO(BaseNode):
 
     initial_angle = -final_angle
 
-    def __init__(self, node_id, start_angle=initial_angle, debug: bool = False):
+    def __init__(
+        self,
+        node_id,
+        start_angle=initial_angle,
+        debug: bool = False,
+        power_strategy: Literal["AllOn", "OnDemand", "OnDemandWithTimeout"] = "AllOn",
+    ):
         global_position = Earth.calculate_position_from_angle(
             start_angle, self.leo_orbit_radius
         )
         super().__init__(
-            node_id, Earth.global_coordinate_to_local(global_position), debug=debug
+            node_id,
+            Earth.global_coordinate_to_local(global_position),
+            debug=debug,
+            power_strategy=power_strategy,
         )
         self.add_antenna("UHF", 8)
-        self.state = True
         self.battery_capacity = 1e4  # J
         self.current_angle = start_angle
         self.processing_frequency = 10e9  # Hz

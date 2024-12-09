@@ -2,19 +2,12 @@
 
 import random
 import time
-from typing import Optional
+from typing import Optional, Type, Literal
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from optimisation_ntn.networks.request import Request, RequestStatus
 
-from .algorithms.power_strategy import (
-    AllOnStrategy,
-    PowerStateStrategy,
-    RandomStrategy,
-    StaticRandomStrategy,
-)
 from .matrices.decision_matrices import DecisionMatrices, MatrixType
 from .networks.network import Network
 from .nodes.base_station import BaseStation
@@ -22,14 +15,9 @@ from .nodes.haps import HAPS
 from .nodes.leo import LEO
 from .nodes.user_device import UserDevice
 from .utils.position import Position
-from .algorithms.assignment import (
-    AssignmentStrategy,
-    TimeGreedyAssignment,
-    ClosestNodeAssignment,
-    EnergyGreedyAssignment,
-    HAPSOnlyAssignment,
-    RandomAssignment,
-)
+from .algorithms.assignment.strategy_factory import AssignmentStrategyFactory
+from .algorithms.assignment import AssignmentStrategy
+from .algorithms.assignment.matrix_based import MatrixBasedAssignment
 
 
 class Simulation:
@@ -38,7 +26,7 @@ class Simulation:
     DEFAULT_BS_COUNT = 4
     DEFAULT_HAPS_COUNT = 1
     DEFAULT_LEO_COUNT = 1
-    DEFAULT_USER_COUNT = 50
+    DEFAULT_USER_COUNT = 10
 
     DEFAULT_TICK_TIME = 0.1
     DEFAULT_MAX_SIMULATION_TIME = 300
@@ -50,8 +38,14 @@ class Simulation:
         max_time: float = DEFAULT_MAX_SIMULATION_TIME,
         debug: bool = False,
         user_count: int = DEFAULT_USER_COUNT,
-        power_strategy: str = "AllOn",
-        assignment_strategy: str = "TimeGreedy",
+        power_strategy: Literal[
+            "AllOn", "OnDemand", "OnDemandWithTimeout"
+        ] = "OnDemand",
+        assignment_strategy: (
+            str | Type[AssignmentStrategy] | AssignmentStrategy
+        ) = "TimeGreedy",
+        save_results: bool = True,
+        print_output: bool = False,
     ):
         # Set the random seed if provided
         if seed is not None:
@@ -63,15 +57,18 @@ class Simulation:
         self.max_time = max_time
         self.network = Network(debug=debug)
         self.matrices = DecisionMatrices(dimension=user_count)
-        self.power_strategy = self.set_power_strategy(power_strategy)
-        self.assignment_strategy = self.set_assignment_strategy(assignment_strategy)
+        self.power_strategy = power_strategy
+        self.assignment_strategy = AssignmentStrategyFactory.get_strategy(
+            assignment_strategy, self.network
+        )
+        self.save_results = save_results
         self.matrix_history: list[DecisionMatrices] = []
         self.total_requests = 0
         self.is_paused = False
         self.debug = debug
         self.system_energy_consumed = 0
-        self.energy_consumption_graph_x = []
-        self.energy_consumption_graph_y = np.arange(0, 300.1, 0.1)
+        self.seed = seed
+        self.print_output = print_output
 
         # Initialize with default values
         self.initialize_default_nodes()
@@ -84,33 +81,6 @@ class Simulation:
         """Calculate the maximum number of simulation steps."""
         return int(self.max_time / self.time_step)
 
-    def set_power_strategy(self, strategy: str) -> PowerStateStrategy:
-        """Set the power optimization strategy to use"""
-        match strategy:
-            case "AllOn":
-                return AllOnStrategy()
-            case "Random":
-                return RandomStrategy()
-            case "StaticRandom":
-                return StaticRandomStrategy()
-
-    def set_assignment_strategy(self, strategy: str) -> AssignmentStrategy:
-        """Set the assignment strategy to use"""
-        print(strategy + "==================================")
-        match strategy:
-            case "TimeGreedy":
-                return TimeGreedyAssignment(self.network)
-            case "ClosestNode":
-                return ClosestNodeAssignment(self.network)
-            case "EnergyGreedy":
-                return EnergyGreedyAssignment(self.network)
-            case "HAPSOnly":
-                return HAPSOnlyAssignment(self.network)
-            case "Random":
-                return RandomAssignment(self.network)
-            case _:
-                return TimeGreedyAssignment(self.network)  # Default strategy
-
     def run(self) -> float:
         """Run simulation until self.max_time.
         Returns:
@@ -119,11 +89,12 @@ class Simulation:
         start_time = time.time()
 
         # Print simulation parameters (always show these)
-        print("\nStarting simulation with parameters:")
-        print(f"Time step: {self.time_step}s")
-        print(f"Max simulation time: {self.max_time}s")
-        print(f"{self.network}")
-        print("\nSimulation running...\n")
+        if self.print_output:
+            print("\nStarting simulation with parameters:")
+            print(f"Time step: {self.time_step}s")
+            print(f"Max simulation time: {self.max_time}s")
+            print(f"{self.network}")
+            print("\nSimulation running...\n")
 
         while self.current_time < self.max_time:
             if not self.step():
@@ -131,7 +102,6 @@ class Simulation:
 
         # QoS Evaluation
         success_rate = self.evaluate_qos_satisfaction()
-        print(f"\nQoS Success Rate: {success_rate:.2f}%")
 
         # Calculate execution time and print results (always show these)
         execution_time = time.time() - start_time
@@ -148,39 +118,37 @@ class Simulation:
         for request in request_list:
             self.request_state_stats[request["status"]] += 1
 
-        print("\nSimulation completed:")
-        print(f"Total requests: {self.total_requests}")
-        print(f"Execution time: {execution_time:.2f} seconds")
-        print(f"Simulation steps: {self.current_step}")
-        print(f"Simulated time: {self.current_time:.2f} seconds")
-        print(f"Average speed: {self.current_step/execution_time:.0f} steps/second")
-        print(f"Total energy consumed: {self.system_energy_consumed} joules\n")
+        if self.print_output:
+            print("\nSimulation completed:")
+            print(f"Total requests: {self.total_requests}")
+            print(f"Execution time: {execution_time:.2f} seconds")
+            print(f"Simulation steps: {self.current_step}")
+            print(f"Simulated time: {self.current_time:.2f} seconds")
+            print(f"\nQoS Success Rate: {success_rate:.2f}%")
+            print(f"Average speed: {self.current_step/execution_time:.0f} steps/second")
+            print(f"Total energy consumed: {self.system_energy_consumed} joules\n")
+            print("\nRequest Statistics:")
+            for status, count in self.request_state_stats.items():
+                print(f"{status.name}: {count}")
 
-        # Print request statistics (always show these)
-        print("\nRequest Statistics:")
-        for status, count in self.request_state_stats.items():
-            print(f"{status.name}: {count}")
+        if self.save_results:
+            # Save energy history to csv
+            energy_history = pd.DataFrame(
+                {node.__str__(): node.energy_history for node in self.network.nodes}
+            )
+            energy_history.to_csv(
+                f"output/energy_history_{self.power_strategy}_"
+                f"{self.assignment_strategy.get_name()}_{self.user_count}.csv",
+                index=False,
+            )
 
-        if self.debug:
-            self.consumed_energy_graph()
-
-        # Save energy history to csv
-        energy_history = pd.DataFrame(
-            {node.__str__(): node.energy_history for node in self.network.nodes}
-        )
-        energy_history.to_csv(
-            f"output/energy_history_{self.power_strategy.get_name()}_"
-            f"{self.assignment_strategy.get_name()}_{self.user_count}.csv",
-            index=False,
-        )
-
-        # Save request stats to csv
-        request_stats = pd.DataFrame(request_list)
-        request_stats.to_csv(
-            f"output/request_stats_{self.power_strategy.get_name()}_"
-            f"{self.assignment_strategy.get_name()}_{self.user_count}.csv",
-            index=False,
-        )
+            # Save request stats to csv
+            request_stats = pd.DataFrame(request_list)
+            request_stats.to_csv(
+                f"output/request_stats_{self.power_strategy}_"
+                f"{self.assignment_strategy.get_name()}_{self.user_count}.csv",
+                index=False,
+            )
 
         return self.system_energy_consumed
 
@@ -204,9 +172,6 @@ class Simulation:
 
     def step(self) -> bool:
         """Run simulation for a single step."""
-        # Apply power states at the beginning of each step
-        self.apply_power_states()
-
         # Get new requests from request matrix for this tick
         new_requests = self.matrices.get_matrix(MatrixType.REQUEST)[
             :, self.current_step
@@ -231,7 +196,9 @@ class Simulation:
                 user.add_request(request)
 
                 # Get available compute nodes
-                compute_nodes = self.network.get_compute_nodes(request)
+                compute_nodes = self.network.get_compute_nodes(
+                    request, check_state=False
+                )
 
                 # Use assignment strategy to select node
                 best_node, best_path, _ = self.assignment_strategy.select_compute_node(
@@ -268,24 +235,29 @@ class Simulation:
         # Update network state
         self.network.tick(self.time_step)
 
+        # Update total energy consumed
+        self.system_energy_consumed = self.network.get_total_energy_consumed()
+
         # Update matrices and stats
         self.matrices.update_assignment_matrix(self.network)
 
         # Update time and step counter
         self.current_time += self.time_step
         self.current_step += 1
-        self.system_energy_consumed = self.network.get_total_energy_consumed()
-        self.energy_consumption_graph_x.append(self.system_energy_consumed)
         return self.current_time < self.max_time
 
     def reset(self):
         """Reset the simulation to initial state."""
         self.current_time = 0.0
         self.current_step = 0
-        self.network = Network()
+        self.network = Network(debug=self.debug)
         self.matrix_history.clear()
         self.total_requests = 0
         self.system_energy_consumed = 0
+
+        # Reset energy consumption for all nodes
+        if self.seed is not None:
+            random.seed(self.seed)
         self.initialize_default_nodes()
         self.initialize_matrices()  # Re-initialize matrices after reset
 
@@ -304,7 +276,7 @@ class Simulation:
 
         # Add default LEO satellites
         for i in range(nb_leo):
-            self.network.add_node(LEO(i))
+            self.network.add_node(LEO(i, power_strategy=self.power_strategy))
 
         # Add default user devices
         self.set_nodes(UserDevice, self.user_count)
@@ -322,7 +294,12 @@ class Simulation:
             for i in range(count):
                 x_pos = start_x + (i * 1.5)
                 self.network.add_node(
-                    node_type(i, Position(x_pos, 0), debug=self.debug)
+                    node_type(
+                        i,
+                        Position(x_pos, 0),
+                        debug=self.debug,
+                        power_strategy=self.power_strategy,
+                    )
                 )
 
         elif node_type == HAPS:
@@ -330,25 +307,21 @@ class Simulation:
             height = 20
             for i in range(count):
                 x_pos = start_x + (i * 2)
-                self.network.add_node(node_type(i, Position(x_pos, height)))
+                self.network.add_node(
+                    node_type(
+                        i, Position(x_pos, height), power_strategy=self.power_strategy
+                    )
+                )
 
         elif node_type == UserDevice:
             for i in range(count):
                 x_pos = random.uniform(-4, 4)
                 height = -2
-                self.network.add_node(node_type(i, Position(x_pos, height)))
-
-    def consumed_energy_graph(self):
-        plt.plot(
-            self.energy_consumption_graph_y,
-            self.energy_consumption_graph_x,
-            color="blue",
-            marker=".",
-        )
-        plt.title("Energy consumption")
-        plt.xlabel("Secondes")
-        plt.ylabel("Cumulative system energy consumed")
-        plt.show()
+                self.network.add_node(
+                    node_type(
+                        i, Position(x_pos, height), power_strategy=self.power_strategy
+                    )
+                )
 
     def initialize_matrices(self):
         """Initialize all matrices needed for simulation"""
@@ -364,37 +337,33 @@ class Simulation:
         # Generate coverage matrix
         self.matrices.generate_coverage_matrix(self.network)
 
-        # Generate power matrix with the strategy
-        compute_nodes_count = (
-            self.network.count_nodes_by_type(HAPS)
-            + self.network.count_nodes_by_type(BaseStation)
-            + self.network.count_nodes_by_type(LEO)
-        )
-
-        # Set the strategy if not already set
-        if not self.power_strategy:
-            self.power_strategy = StaticRandomStrategy()
-
-        print(self.power_strategy.get_name())
-
-        self.matrices.generate_power_matrix(
-            num_devices=compute_nodes_count,
-            num_steps=matrix_size,
-            strategy=self.power_strategy,
-        )
-
     def debug_print(self, *args, **kwargs):
         """Print only if debug mode is enabled"""
         if self.debug:
             print(*args, **kwargs)
 
-    def apply_power_states(self):
-        """Apply power states from power matrix to network nodes"""
-        power_matrix = self.matrices.get_matrix(MatrixType.POWER_STATE)
-        compute_nodes = self.network.compute_nodes
+    def run_with_assignment(self, assignment_vector: np.ndarray) -> tuple[float, float]:
+        """Run simulation with a specific assignment vector.
 
-        current_power_states = power_matrix[:, self.current_step]
+        Args:
+            assignment_vector: Vector specifying node assignments for each request
 
-        for node_idx, node in enumerate(compute_nodes):
-            if node_idx < len(current_power_states):
-                node.set_state(bool(current_power_states[node_idx]))
+        Returns:
+            tuple[float, float]: (energy consumed, QoS satisfaction rate)
+        """
+        # Reset simulation state
+        self.reset()
+
+        # Create and set matrix-based strategy
+        matrix_strategy = MatrixBasedAssignment(self.network)
+        matrix_strategy.set_assignment_matrix(assignment_vector)
+        self.assignment_strategy = matrix_strategy
+
+        # Run simulation
+        energy_consumed = self.run()
+        satisfaction_rate = self.evaluate_qos_satisfaction()
+
+        return (
+            energy_consumed,
+            satisfaction_rate / 100.0,
+        )  # Convert percentage to fraction

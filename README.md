@@ -47,6 +47,17 @@ To run the simulation with the user interface, use the following command:
 python -m optimisation_ntn.gui
 ```
 
+### Running the optimization
+
+To run the optimization, use the following command:
+
+```sh
+python -m optimisation_ntn.optimize
+```
+
+The default algorithm is GA, but you can specify a different algorithm using the `--algorithm` argument. You can choose between Genetic Algorithm (GA), Differential Evolution (DE), and Particle Swarm Optimization (PSO).
+
+
 ## Testing and Formatting
 
 Before committing your changes, please run the following commands to ensure your code is formatted correctly and passes all tests:
