@@ -28,7 +28,7 @@ PARAMETERS = {
         "PSO",
         "DE",
     ],
-    "user_counts": [10, 20, 30, 40],
+    "user_counts": [10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
 }
 
 
@@ -44,7 +44,7 @@ def generate_command(params: Dict) -> str:
 
     # Add optimization parameters if using an optimization algorithm
     if params["assignment_strategy"] in ["GA", "PSO", "DE"]:
-        cmd_parts.extend(["--generations 10", "--population 50"])
+        cmd_parts.extend(["--generations 50", "--population 200"])
 
     return " ".join(cmd_parts)
 

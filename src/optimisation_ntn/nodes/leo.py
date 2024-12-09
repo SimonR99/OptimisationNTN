@@ -45,7 +45,7 @@ class LEO(BaseNode):
             power_strategy=power_strategy,
         )
         self.add_antenna("UHF", 8)
-        self.battery_capacity = 1e4  # J
+        self.battery_capacity = 2e3  # J
         self.current_angle = start_angle
         self.processing_frequency = 10e9  # Hz
         self.k_const = 10e-28
