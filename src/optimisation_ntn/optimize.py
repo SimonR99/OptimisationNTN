@@ -66,7 +66,7 @@ def create_parser():
         default=50,
         help="Population size for optimization",
     )
-    
+
     parser.add_argument(
         "--power_strategy",
         type=str,
@@ -74,7 +74,7 @@ def create_parser():
         default="AllOn",
         help="Power strategy to use",
     )
-    
+
     return parser
 
 

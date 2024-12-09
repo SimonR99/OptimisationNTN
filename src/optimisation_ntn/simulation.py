@@ -337,7 +337,9 @@ class Simulation:
         # Generate request matrix using the new counting method
         self.matrices.generate_request_matrix(
             num_requests=self.network.count_nodes_by_type(UserDevice),
-            num_steps=matrix_size, time=self.time_step, time_buffer=2
+            num_steps=matrix_size,
+            time=self.time_step,
+            time_buffer=2,
         )
 
         # Generate coverage matrix

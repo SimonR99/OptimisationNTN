@@ -35,7 +35,10 @@ PARAMETERS = {
 def generate_command(params: Dict) -> str:
     """Generate command string for a parameter combination"""
     if params["assignment_strategy"] in ["GA", "PSO", "DE"]:
-        base_cmd = "python -m optimisation_ntn.optimize --algorithm " + params["assignment_strategy"]
+        base_cmd = (
+            "python -m optimisation_ntn.optimize --algorithm "
+            + params["assignment_strategy"]
+        )
         cmd_parts = [
             base_cmd,
             f"--power_strategy {params['power_strategy']}",
