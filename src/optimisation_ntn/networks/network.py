@@ -237,7 +237,7 @@ class Network:
 
     def get_total_energy_consumed(self):
         total_energy_consumed = 0
-        for node in self.nodes:
+        for node in self.compute_nodes:
             total_energy_consumed += node.energy_consumed
         return total_energy_consumed
 

@@ -235,6 +235,9 @@ class Simulation:
         # Update network state
         self.network.tick(self.time_step)
 
+        # Update total energy consumed
+        self.system_energy_consumed = self.network.get_total_energy_consumed()
+
         # Update matrices and stats
         self.matrices.update_assignment_matrix(self.network)
 
