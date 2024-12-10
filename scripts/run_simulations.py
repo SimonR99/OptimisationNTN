@@ -19,9 +19,16 @@ logging.basicConfig(
 
 # Define parameter variations
 PARAMETERS = {
-    "power_strategies": ["AllOn", "Random", "StaticRandom"],
-    "assignment_strategies": ["TimeGreedy", "ClosestNode", "EnergyGreedy", "HAPSOnly"],
-    "user_counts": [50, 55, 61, 67, 73, 80, 89, 97, 107, 118, 130],
+    "power_strategies": ["OnDemand"],
+    "assignment_strategies": [
+        "TimeGreedy",
+        "ClosestNode",
+        "HAPSOnly",
+        "GA",
+        "PSO",
+        "DE",
+    ],
+    "user_counts": [10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
 }
 
 
@@ -30,10 +37,15 @@ def generate_command(params: Dict) -> str:
     base_cmd = "python -m optimisation_ntn.main"
     cmd_parts = [
         base_cmd,
-        f"--algorithm {params['power_strategy']}",
-        f"--assignment_strategy {params['assignment_strategy']}",
+        f"--power_strategy {params['power_strategy']}",
+        f"--strategy {params['assignment_strategy']}",
         f"--user_count {params['user_count']}",
     ]
+
+    # Add optimization parameters if using an optimization algorithm
+    if params["assignment_strategy"] in ["GA", "PSO", "DE"]:
+        cmd_parts.extend(["--generations 50", "--population 200"])
+
     return " ".join(cmd_parts)
 
 

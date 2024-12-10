@@ -28,8 +28,8 @@ class Simulation:
     DEFAULT_LEO_COUNT = 1
     DEFAULT_USER_COUNT = 10
 
-    DEFAULT_TICK_TIME = 0.1
-    DEFAULT_MAX_SIMULATION_TIME = 300
+    DEFAULT_TICK_TIME = 0.01
+    DEFAULT_MAX_SIMULATION_TIME = 10
 
     def __init__(
         self,
@@ -46,6 +46,7 @@ class Simulation:
         ) = "TimeGreedy",
         save_results: bool = True,
         print_output: bool = False,
+        optimizer: None | Literal["GA", "PSO", "DE"] = None,
     ):
         # Set the random seed if provided
         if seed is not None:
@@ -69,6 +70,7 @@ class Simulation:
         self.system_energy_consumed = 0
         self.seed = seed
         self.print_output = print_output
+        self.optimizer = optimizer
 
         # Initialize with default values
         self.initialize_default_nodes()
@@ -132,13 +134,17 @@ class Simulation:
                 print(f"{status.name}: {count}")
 
         if self.save_results:
+            if self.optimizer:
+                assignment_strategy_name = self.optimizer
+            else:
+                assignment_strategy_name = self.assignment_strategy.get_name()
             # Save energy history to csv
             energy_history = pd.DataFrame(
                 {node.__str__(): node.energy_history for node in self.network.nodes}
             )
             energy_history.to_csv(
                 f"output/energy_history_{self.power_strategy}_"
-                f"{self.assignment_strategy.get_name()}_{self.user_count}.csv",
+                f"{assignment_strategy_name}_{self.user_count}.csv",
                 index=False,
             )
 
@@ -146,7 +152,7 @@ class Simulation:
             request_stats = pd.DataFrame(request_list)
             request_stats.to_csv(
                 f"output/request_stats_{self.power_strategy}_"
-                f"{self.assignment_strategy.get_name()}_{self.user_count}.csv",
+                f"{assignment_strategy_name}_{self.user_count}.csv",
                 index=False,
             )
 
@@ -332,6 +338,8 @@ class Simulation:
         self.matrices.generate_request_matrix(
             num_requests=self.network.count_nodes_by_type(UserDevice),
             num_steps=matrix_size,
+            time=self.time_step,
+            time_buffer=2,
         )
 
         # Generate coverage matrix

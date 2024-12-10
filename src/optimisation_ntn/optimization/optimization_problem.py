@@ -47,4 +47,4 @@ class OptimizationProblem(ElementwiseProblem):
         out["F"] = [energy]
 
         # Set constraint (QoS satisfaction must be >= 95%)
-        out["G"] = [0.85 - satisfaction]
+        out["G"] = [0.90 - satisfaction]
