@@ -7,7 +7,7 @@ class Simulation {
   - network: Network
   - matrices: DecisionMatrices
   - power_strategy: PowerStateStrategy
-  - assignment_manager: AssignmentManager
+  - assignment_strategy: AssignmentStrategy
   - matrix_history: List
   - is_paused: bool
   + run() -> float
@@ -21,60 +21,49 @@ class Simulation {
   + run_with_assignment(assign_vector: List[int]) -> (float, float)
 }
 
-class AssignmentManager {
-  - current_assignment_vector: List[int]
-  - power_state_history: Dict[int, List[Tuple[float, bool]]]
-  - min_idle_time: float
-  + set_assignment_vector(vector: List[int])
-  + get_assignment_for_request(req_id: int) -> int
-  + get_current_vector() -> List[int]
-  + derive_power_states(time: float)
-  + should_power_on(node_id: int, time: float) -> bool
-  + should_power_off(node_id: int, time: float) -> bool
-}
-
-class OptimizationProblem {
-  - simulation: Simulation
-  - n_requests: int
-  - n_nodes: int
-  + evaluate(x: ndarray) -> Tuple[float, float]
-  + get_bounds() -> Tuple[ndarray, ndarray]
-}
-
-' Strategy Hierarchy
+' Power Strategy Hierarchy
 abstract class PowerStateStrategy {
   + {abstract} generate_power_matrix(num_devices: int, num_steps: int) -> ndarray
   + get_name() -> str
-  + update_power_states(assignments: List[int], request_times: List[float])
 }
 
+class AllOnStrategy extends PowerStateStrategy
+class OnDemandStrategy extends PowerStateStrategy
+class OnDemandWithTimeoutStrategy extends PowerStateStrategy {
+  - timeout: float
+}
+
+' Assignment Strategy Hierarchy
 abstract class AssignmentStrategy {
   + {abstract} select_compute_node(request: Request, nodes: List[BaseNode]) -> tuple[BaseNode, List[BaseNode], float]
   + get_name() -> str
 }
 
-' Power State Implementations
-class AllOnStrategy extends PowerStateStrategy
-class RandomStrategy extends PowerStateStrategy {
-  - probability: float
-}
-class StaticRandomStrategy extends PowerStateStrategy
-
-' Assignment Implementations
 class TimeGreedyAssignment extends AssignmentStrategy {
   - network: Network
 }
+
 class EnergyGreedyAssignment extends AssignmentStrategy {
   - network: Network
 }
+
 class ClosestNodeAssignment extends AssignmentStrategy {
   - network: Network
 }
+
 class HAPSOnlyAssignment extends AssignmentStrategy {
   - network: Network
 }
+
 class RandomAssignment extends AssignmentStrategy {
   - network: Network
+}
+
+class MatrixBasedAssignment extends AssignmentStrategy {
+  - network: Network
+  - assignment_matrix: ndarray
+  - current_request_index: int
+  + set_assignment_matrix(matrix: ndarray)
 }
 
 class AssignmentStrategyFactory {
@@ -172,20 +161,10 @@ class CommunicationLink {
   + tick(time: float)
 }
 
-enum MatrixType {
-  COVERAGE_ZONE
-  POWER_STATE
-  REQUEST
-  ASSIGNMENT
-}
-
 ' Relationships
 Simulation *-- Network
-Simulation *-- DecisionMatrices
-Simulation *-- AssignmentManager
-Simulation o-- PowerStateStrategy
 Simulation o-- AssignmentStrategy
-DecisionMatrices *-- MatrixType
+Simulation o-- PowerStateStrategy
 Network o-- "1..*" BaseNode
 Network o-- "0..*" CommunicationLink
 BaseNode *-- Position
@@ -193,6 +172,5 @@ BaseNode o-- "1..*" Antenna
 BaseNode o-- "0..*" Request
 CommunicationLink o-- "0..*" Request
 AssignmentStrategyFactory ..> AssignmentStrategy
-OptimizationProblem *-- Simulation
 
 @enduml
