@@ -23,7 +23,7 @@ class EnergyGraph:
 
         self.axis_y = QValueAxis()
         self.axis_y.setTitleText(
-            "Energy (J)" if title == "Total Energy" else "Energy per tick (J)"
+            "Energy (J)" if title == "Total Energy" else "Energy per tick (W)"
         )
 
         # Add axes to chart
@@ -60,12 +60,14 @@ class EnergyGraph:
         if hasattr(self, "series") and isinstance(self.series, QLineSeries):
             self.current_step += 1
             self.series.append(self.current_step, y)
-            
+
             # Adjust x-axis range more fluidly
             if self.current_step >= self.axis_x.max():
-                new_max = self.current_step + int(self.current_step * 0.05)  # Increase by 50 steps
+                new_max = self.current_step + int(
+                    self.current_step * 0.05
+                )  # Increase by 50 steps
                 self.axis_x.setRange(0, new_max)
-            
+
             self.update_y_axis_range()
 
     def add_node_point(self, node_text, x, y):
@@ -89,12 +91,14 @@ class EnergyGraph:
 
         self.series[node_text].current_step += 1
         self.series[node_text].append(self.series[node_text].current_step, y)
-        
+
         # Adjust x-axis range more fluidly
         if self.series[node_text].current_step >= self.axis_x.max():
-            new_max = self.series[node_text].current_step + int(self.series[node_text].current_step * 0.05)  # Increase by 50 steps
+            new_max = self.series[node_text].current_step + int(
+                self.series[node_text].current_step * 0.05
+            )  # Increase by 50 steps
             self.axis_x.setRange(0, new_max)
-            
+
         self.update_y_axis_range()
         self.chart.legend().setVisible(len(self.series) > 1)
 
