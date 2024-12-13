@@ -66,22 +66,22 @@ class Simulation:
         self.current_time = 0.0
         self.time_step = config.time_step
         self.max_time = config.max_time
-        self.network = Network(debug=config.debug)
-        self.matrices = DecisionMatrices(dimension=config.user_count)
+        self.seed = config.seed
+        self.debug = config.debug
         self.power_strategy = config.power_strategy
+        self.matrices = DecisionMatrices(dimension=config.user_count)
+        self.network = Network(debug=self.debug)
         self.assignment_strategy = AssignmentStrategyFactory.get_strategy(
             config.assignment_strategy, self.network
         )
         self.save_results = config.save_results
-        self.matrix_history: list[DecisionMatrices] = []
         self.total_requests = 0
         self.is_paused = False
-        self.debug = config.debug
         self.system_energy_consumed = 0
-        self.seed = config.seed
         self.print_output = config.print_output
         self.optimizer = config.optimizer
 
+        # self.reset()
         self.reset()
 
         # Initialize request state stats
@@ -267,13 +267,17 @@ class Simulation:
         self.current_time = 0.0
         self.current_step = 0
         self.network = Network(debug=self.debug)
-        self.matrix_history.clear()
         self.total_requests = 0
         self.system_energy_consumed = 0
+
+        self.assignment_strategy = AssignmentStrategyFactory.get_strategy(
+            self.config.assignment_strategy, self.network
+        )
 
         # Reset energy consumption for all nodes
         if self.seed is not None:
             random.seed(self.seed)
+
         self.initialize_default_nodes()
         self.initialize_matrices()
 

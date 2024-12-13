@@ -33,6 +33,7 @@ class SimulationControls:
         self.time_inputs = {}
         self.strategy_combos = {}
         self.widget = None
+        self._assignment_vector = None
 
         # Initialize timer
         self.timer = QtCore.QTimer()
@@ -167,34 +168,20 @@ class SimulationControls:
 
             # Set assignment strategy
             strategy = self.strategy_combos["assignment"].currentText()
-            if strategy in ["GA", "DE", "PSO"]:
-                simulation.optimizer = strategy
-                self.simulations[simulation_name] = simulation
-                self.current_simulation = simulation
 
-                # Add to list and select it
-                self.sim_list.addItem(simulation_name)
-                self.sim_list.setCurrentRow(self.sim_list.count() - 1)
+            strategy_obj = AssignmentStrategyFactory.get_strategy(
+                strategy, simulation.network
+            )
+            simulation.assignment_strategy = strategy_obj
+            self.simulations[simulation_name] = simulation
+            self.current_simulation = simulation
 
-                # Update UI parameters
-                self.update_ui_parameters()
+            # Add to list and select it
+            self.sim_list.addItem(simulation_name)
+            self.sim_list.setCurrentRow(self.sim_list.count() - 1)
 
-                # Prompt for vector before enabling simulation
-                self._prompt_for_assignment_vector()
-            else:
-                strategy_obj = AssignmentStrategyFactory.get_strategy(
-                    strategy, simulation.network
-                )
-                simulation.assignment_strategy = strategy_obj
-                self.simulations[simulation_name] = simulation
-                self.current_simulation = simulation
-
-                # Add to list and select it
-                self.sim_list.addItem(simulation_name)
-                self.sim_list.setCurrentRow(self.sim_list.count() - 1)
-
-                # Update UI parameters
-                self.update_ui_parameters()
+            # Update UI parameters
+            self.update_ui_parameters()
 
             # Enable step duration input
             self.time_inputs["step_duration"].setEnabled(True)
@@ -438,73 +425,6 @@ class SimulationControls:
 
             # Notify parent of reset
             self.parent.on_simulation_reset()
-
-    def _prompt_for_assignment_vector(self):
-        """Prompt user for initial assignment vector when using optimization"""
-        if not self.current_simulation:
-            return
-
-        n_nodes = len(self.current_simulation.network.compute_nodes)
-        n_users = self.current_simulation.user_count
-
-        # Create dialog for vector input
-        dialog = QtWidgets.QDialog(self.parent)
-        dialog.setWindowTitle("Initial Assignment Vector")
-        layout = QtWidgets.QVBoxLayout()
-
-        # Add explanation
-        layout.addWidget(
-            QtWidgets.QLabel(
-                f"Enter {n_users} comma-separated integers between 0 and {n_nodes-1}\n"
-                "representing the initial node assignments for each user."
-            )
-        )
-
-        # Add text input
-        text_input = QtWidgets.QLineEdit()
-        text_input.setPlaceholderText(f"e.g., 0,1,2,1,0 (for {n_users} users)")
-        layout.addWidget(text_input)
-
-        # Add random vector option
-        random_btn = QtWidgets.QPushButton("Generate Random Vector")
-
-        def set_random_vector():
-            vector = np.random.randint(0, n_nodes, n_users)
-            text_input.setText(",".join(map(str, vector)))
-
-        random_btn.clicked.connect(set_random_vector)
-        layout.addWidget(random_btn)
-
-        # Add buttons
-        button_box = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.StandardButton.Ok
-            | QtWidgets.QDialogButtonBox.StandardButton.Cancel
-        )
-        button_box.accepted.connect(dialog.accept)
-        button_box.rejected.connect(dialog.reject)
-        layout.addWidget(button_box)
-
-        dialog.setLayout(layout)
-
-        if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
-            try:
-                vector = np.array(
-                    [int(x.strip()) for x in text_input.text().split(",")]
-                )
-                if len(vector) == n_users and all(0 <= x < n_nodes for x in vector):
-                    self.current_simulation.initial_assignment = vector
-                else:
-                    QtWidgets.QMessageBox.warning(
-                        self.parent,
-                        "Invalid Input",
-                        f"Please enter exactly {n_users} integers between 0 and {n_nodes-1}.",
-                    )
-            except ValueError:
-                QtWidgets.QMessageBox.warning(
-                    self.parent,
-                    "Invalid Input",
-                    "Please enter valid comma-separated integers.",
-                )
 
     def _setup_matrix_assignment(self):
         """Setup matrix-based assignment with user input vector"""
