@@ -1,11 +1,13 @@
-from abc import ABC
+""" Earth model """
 
 import numpy as np
 
 from optimisation_ntn.utils.position import Position
 
 
-class Earth(ABC):
+class Earth:
+    """Earth model"""
+
     radius = 6.371e6  # m
     mass = 5.972e24  # kg
     gravitational_constant = 6.67430e-11  # m^3 kg^-1 s^-2
@@ -15,6 +17,7 @@ class Earth(ABC):
 
     @staticmethod
     def calculate_position_from_angle(angle, orbit_radius):
+        """Calculate position from angle"""
         return Position(
             x=orbit_radius * np.sin(np.deg2rad(angle)),
             y=orbit_radius * np.cos(np.deg2rad(angle)),
@@ -22,6 +25,7 @@ class Earth(ABC):
 
     @staticmethod
     def global_coordinate_to_local(global_position):
+        """Convert global coordinates to local coordinates"""
         earth_base_position = Position(0, Earth.radius)
 
         return Position(

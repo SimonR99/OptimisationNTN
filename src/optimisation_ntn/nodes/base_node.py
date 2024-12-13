@@ -1,3 +1,5 @@
+""" Base node class. Does the base computation and transmission power calculation """
+
 from abc import ABC
 from typing import Dict, List, Literal, Optional, Tuple
 
@@ -8,6 +10,8 @@ from ..utils.position import Position
 
 
 class BaseNode(ABC):
+    """Base node class"""
+
     def __init__(
         self,
         node_id: int,
@@ -50,6 +54,7 @@ class BaseNode(ABC):
         self.tick_count = 0
 
     def apply_power_strategy(self):
+        """Apply power strategy"""
         if self.power_strategy == "AllOn":
             self._turn_on()
         elif self.power_strategy == "OnDemand":
@@ -65,6 +70,7 @@ class BaseNode(ABC):
                 self._turn_off()
 
     def get_name(self) -> str:
+        """Get node name"""
         return self.name
 
     def add_antenna(self, antenna_type: str, gain: float):
@@ -117,7 +123,7 @@ class BaseNode(ABC):
             and self.battery_capacity - self.energy_consumed <= 0
         ):
             return
-        elif self.state:
+        if self.state:
             return
         self.energy_consumed += self.turn_on_energy_peak
         self.state = True

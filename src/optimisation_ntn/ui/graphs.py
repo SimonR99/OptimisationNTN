@@ -8,7 +8,7 @@ from optimisation_ntn.ui.theme_manager import ThemeManager
 
 
 class EnergyGraph:
-    def __init__(self, title, max_time=300, parent=None):
+    def __init__(self, title, parent=None):
         self.parent = parent
         self.chart = QChart()
         self.chart.setTitle(title)
@@ -57,7 +57,7 @@ class EnergyGraph:
             dialog = EnlargedGraphDialog(self.chart_view, self.parent)
             dialog.exec()
 
-    def add_point(self, x, y):
+    def add_point(self, y):
         """Add a point to the total energy series"""
         if hasattr(self, "series") and isinstance(self.series, QLineSeries):
             self.current_step += 1

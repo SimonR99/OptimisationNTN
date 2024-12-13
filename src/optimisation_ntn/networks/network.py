@@ -1,3 +1,5 @@
+""" Network class """
+
 from typing import List
 
 from optimisation_ntn.networks.request import Request
@@ -11,6 +13,8 @@ from .communication_link import CommunicationLink
 
 
 class Network:
+    """Network class"""
+
     def __init__(self, debug: bool = False):
         self.nodes: List[BaseNode] = []
         self.communication_links: List[CommunicationLink] = []
@@ -236,24 +240,28 @@ class Network:
                             break
 
     def get_total_energy_consumed(self):
+        """Get total energy consumed by all nodes"""
         total_energy_consumed = 0
         for node in self.compute_nodes:
             total_energy_consumed += node.energy_consumed
         return total_energy_consumed
 
     def get_energy_bs(self):
+        """Get total energy consumed by base stations"""
         total_energy_bs = 0
         for node in self.base_stations:
             total_energy_bs += node.energy_consumed
         return total_energy_bs
 
     def get_energy_haps(self):
+        """Get total energy consumed by HAPS"""
         total_energy_haps = 0
         for node in self.haps_nodes:
             total_energy_haps += node.energy_consumed
         return total_energy_haps
 
     def get_energy_leo(self):
+        """Get total energy consumed by LEO"""
         total_energy_leo = 0
         for node in self.leo_nodes:
             total_energy_leo += node.energy_consumed

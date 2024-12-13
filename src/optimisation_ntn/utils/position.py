@@ -1,3 +1,5 @@
+""" Position class """
+
 import numpy as np
 
 
@@ -9,10 +11,12 @@ class Position:
 
     @property
     def x(self) -> float:
+        """X coordinate"""
         return self.coords[0]
 
     @property
     def y(self) -> float:
+        """Y coordinate"""
         return self.coords[1]
 
     def distance_to(self, other: "Position") -> float:

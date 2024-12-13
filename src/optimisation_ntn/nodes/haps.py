@@ -1,3 +1,5 @@
+""" HAPS node """
+
 from typing import Literal
 
 from optimisation_ntn.utils.earth import Earth
@@ -7,6 +9,8 @@ from .base_node import BaseNode
 
 
 class HAPS(BaseNode):
+    """HAPS node"""
+
     haps_altitude = 20e3
     sky_visibility_angle = 10
     haps_orbit_radius = Earth.radius + haps_altitude

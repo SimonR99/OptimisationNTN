@@ -1,13 +1,11 @@
+""" Main GUI class """
+
 import ctypes
 import platform
 import sys
 
 from PySide6 import QtCore, QtGui, QtWidgets
-from PySide6.QtCharts import QChartView
 
-from optimisation_ntn.algorithms.assignment.strategy_factory import (
-    AssignmentStrategyFactory,
-)
 from optimisation_ntn.ui.dialogs.enlarged_graph import EnlargedGraphDialog
 from optimisation_ntn.ui.graphs import EnergyGraph
 from optimisation_ntn.ui.simulation_controls import SimulationControls
@@ -21,6 +19,8 @@ if platform.system() == "Windows":
 
 
 class SimulationUI(QtWidgets.QMainWindow):
+    """Main GUI class"""
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Optimisation NTN")
@@ -33,6 +33,7 @@ class SimulationUI(QtWidgets.QMainWindow):
         self.apply_theme()
 
     def initUI(self):
+        """Initialize the UI"""
         main_layout = QtWidgets.QHBoxLayout()
 
         # Create simulation controls
@@ -114,6 +115,7 @@ class SimulationUI(QtWidgets.QMainWindow):
         self.update_view()
 
     def create_simulation_list(self):
+        """Create the simulation list"""
         sim_list_box = QtWidgets.QGroupBox("Simulations")
         sim_layout = QtWidgets.QVBoxLayout()
 
@@ -131,6 +133,7 @@ class SimulationUI(QtWidgets.QMainWindow):
         return sim_list_box
 
     def create_simulation_control(self):
+        """Create the simulation control"""
         control_box = QtWidgets.QGroupBox("Simulation Control")
         control_layout = QtWidgets.QVBoxLayout()
 
@@ -164,6 +167,7 @@ class SimulationUI(QtWidgets.QMainWindow):
         return control_box
 
     def create_real_time_view(self):
+        """Create the real-time view"""
         layout = QtWidgets.QVBoxLayout()
 
         # Schematic View with QGraphicsView
@@ -285,9 +289,7 @@ class SimulationUI(QtWidgets.QMainWindow):
         self.current_energy_label.setText(f"{simulation.system_energy_consumed:.2f} J")
 
         # Update total energy graph
-        self.total_energy_graph.add_point(
-            current_time, simulation.system_energy_consumed
-        )
+        self.total_energy_graph.add_point(simulation.system_energy_consumed)
 
         # Update node statistics and graphs
         self.node_stats_table.update_stats(

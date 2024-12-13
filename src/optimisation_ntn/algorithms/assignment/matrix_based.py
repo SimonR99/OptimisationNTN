@@ -1,3 +1,5 @@
+""" Matrix based assignment strategy """
+
 from typing import List, Optional
 import numpy as np
 

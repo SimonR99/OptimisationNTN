@@ -1,7 +1,11 @@
+""" Theme manager """
+
 from PySide6 import QtGui
 
 
 class ThemeManager:
+    """Theme manager"""
+
     DARK_THEME = {
         "app_background": "#2e2e2e",
         "text": "white",

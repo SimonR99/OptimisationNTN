@@ -70,9 +70,11 @@ class Request:
             print(*args, **kwargs)
 
     def set_size(self, size: int | float):
+        """Set request size"""
         self.size = size
 
     def set_priority_type(self, priority):
+        """Set priority type"""
         match priority:
             case Priority.HIGH:
                 self.qos_limit = 0.2  # 200 ms

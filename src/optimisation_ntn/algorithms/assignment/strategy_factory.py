@@ -1,3 +1,5 @@
+""" Assignment strategy factory. Returns a strategy instance based on the name """
+
 from typing import Type, Dict
 from .assignment_strategy import AssignmentStrategy
 from .time_greedy import TimeGreedyAssignment

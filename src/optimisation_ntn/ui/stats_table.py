@@ -1,3 +1,5 @@
+""" Node stats table """
+
 from PySide6 import QtCore, QtWidgets
 
 

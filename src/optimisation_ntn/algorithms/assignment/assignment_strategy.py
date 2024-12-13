@@ -1,3 +1,5 @@
+""" Assignment strategy base class """
+
 from abc import ABC, abstractmethod
 from typing import List
 

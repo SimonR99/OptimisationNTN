@@ -24,6 +24,7 @@ class SimulationControls:
         self.setup_ui()
 
     def setup_ui(self):
+        """Setup the UI"""
         # Create simulation list
         self.sim_list = QtWidgets.QListWidget()
         self.sim_list.itemSelectionChanged.connect(self.update_simulation_selection)
@@ -208,29 +209,13 @@ class SimulationControls:
                 self.run_pause_btn.setText("Pause")
 
     def start_simulation(self):
+        """Start or resume simulation"""
         if self.current_simulation:
             self.current_simulation.is_paused = False
             update_interval = self.time_step_input.value()
 
             # Disable step duration input while simulation is running
             self.step_duration_input.setEnabled(False)
-
-            # If using optimization and have initial assignment, set it up
-            if (
-                self.current_simulation.optimizer
-                and self.current_simulation.initial_assignment is not None
-            ):
-                try:
-                    self.current_simulation.run_with_assignment(
-                        self.current_simulation.initial_assignment
-                    )
-                except Exception as e:
-                    QtWidgets.QMessageBox.critical(
-                        self.parent,
-                        "Simulation Error",
-                        f"Error running simulation with assignment vector: {str(e)}",
-                    )
-                    return
 
             # Create timer for UI updates
             self.timer = QtCore.QTimer()

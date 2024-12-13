@@ -1,3 +1,5 @@
+""" User device class """
+
 from typing import Literal
 
 from optimisation_ntn.networks.request import Request
@@ -7,6 +9,8 @@ from .base_node import BaseNode
 
 
 class UserDevice(BaseNode):
+    """User device class"""
+
     REQUEST_LIMIT = 1
 
     def __init__(

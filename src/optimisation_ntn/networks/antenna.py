@@ -1,7 +1,9 @@
-from typing import Type
+""" Antenna class """
 
 
 class Antenna:
+    """Antenna class"""
+
     def __init__(self, antenna_type: str, gain: float):
         self.antenna_type = antenna_type  # Type of the antenna (e.g., "UHF", "VHF")
         self.gain = gain  # Gain of the antenna

@@ -1,5 +1,6 @@
+""" Closest node assignment strategy """
+
 from typing import List
-import numpy as np
 
 from ...networks.request import Request
 from ...nodes.base_node import BaseNode

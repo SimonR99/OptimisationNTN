@@ -1,3 +1,5 @@
+""" Base station node """
+
 from typing import Literal
 
 from optimisation_ntn.utils.position import Position
@@ -6,6 +8,8 @@ from .base_node import BaseNode
 
 
 class BaseStation(BaseNode):
+    """Base station node"""
+
     def __init__(
         self,
         node_id: int,

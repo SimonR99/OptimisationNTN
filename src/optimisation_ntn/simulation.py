@@ -175,6 +175,7 @@ class Simulation:
         return success_rate
 
     def get_current_tick(self):
+        """Get current tick"""
         return self.current_step
 
     def step(self) -> bool:

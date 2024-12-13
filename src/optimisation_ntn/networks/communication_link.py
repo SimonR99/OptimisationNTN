@@ -1,3 +1,5 @@
+""" Communication link class """
+
 from typing import List
 
 import numpy as np
@@ -11,6 +13,8 @@ from .request import Request
 
 
 class CommunicationLink:
+    """Communication link class"""
+
     def __init__(
         self,
         node_a: BaseNode,
