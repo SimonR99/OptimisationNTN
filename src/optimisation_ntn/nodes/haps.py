@@ -1,5 +1,7 @@
-from optimisation_ntn.utils.earth import Earth
 from typing import Literal
+
+from optimisation_ntn.utils.earth import Earth
+
 from ..utils.position import Position
 from .base_node import BaseNode
 

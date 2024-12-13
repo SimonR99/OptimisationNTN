@@ -1,7 +1,9 @@
 """ Close up view and far view panel """
 
 import math
+
 from PySide6 import QtCore, QtGui, QtWidgets
+
 from optimisation_ntn.nodes.base_station import BaseStation
 from optimisation_ntn.nodes.haps import HAPS
 from optimisation_ntn.nodes.leo import LEO

@@ -1,6 +1,7 @@
 import math
 
 from PySide6 import QtGui, QtWidgets
+
 from optimisation_ntn.nodes.base_station import BaseStation
 from optimisation_ntn.nodes.haps import HAPS
 from optimisation_ntn.nodes.user_device import UserDevice

@@ -1,6 +1,8 @@
 import random
+
 from PySide6 import QtCore, QtGui
 from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis
+
 from optimisation_ntn.ui.dialogs.enlarged_graph import EnlargedGraphDialog
 from optimisation_ntn.ui.theme_manager import ThemeManager
 

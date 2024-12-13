@@ -1,10 +1,11 @@
+from typing import Literal
+
 import numpy as np
 
 from optimisation_ntn.nodes.haps import HAPS
 from optimisation_ntn.utils.earth import Earth
 
 from .base_node import BaseNode
-from typing import Literal
 
 
 class LEO(BaseNode):

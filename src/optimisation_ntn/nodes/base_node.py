@@ -1,11 +1,10 @@
 from abc import ABC
-from typing import Dict, List, Optional, Tuple, Literal
+from typing import Dict, List, Literal, Optional, Tuple
 
 from ..networks.antenna import Antenna
 from ..networks.request import Request, RequestStatus
-from ..utils.position import Position
-
 from ..utils.conversion import convert_dbm_watt
+from ..utils.position import Position
 
 
 class BaseNode(ABC):

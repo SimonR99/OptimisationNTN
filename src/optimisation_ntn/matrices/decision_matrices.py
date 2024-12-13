@@ -3,10 +3,10 @@ from typing import Dict
 
 import numpy as np
 
+from ..networks.network import Network
 from ..networks.request import RequestStatus
 from ..nodes.base_station import BaseStation
 from ..nodes.user_device import UserDevice
-from ..networks.network import Network
 
 
 class MatrixType(Enum):

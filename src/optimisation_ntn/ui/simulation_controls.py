@@ -1,13 +1,17 @@
+""" Simulation controls UI for managing simulations and their parameters """
+
+from typing import Literal, cast
+
+import numpy as np
 from PySide6 import QtCore, QtWidgets
+
+from optimisation_ntn.algorithms.assignment.strategy_factory import (
+    AssignmentStrategyFactory,
+)
 from optimisation_ntn.nodes.base_station import BaseStation
 from optimisation_ntn.nodes.haps import HAPS
 from optimisation_ntn.nodes.user_device import UserDevice
 from optimisation_ntn.simulation import Simulation
-from optimisation_ntn.algorithms.assignment.strategy_factory import (
-    AssignmentStrategyFactory,
-)
-import numpy as np
-from typing import Literal, cast
 
 
 class SimulationControls:

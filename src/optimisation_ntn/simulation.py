@@ -2,12 +2,16 @@
 
 import random
 import time
-from typing import Optional, Type, Literal
+from typing import Literal, Optional, Type
 
 import numpy as np
 import pandas as pd
+
 from optimisation_ntn.networks.request import Request, RequestStatus
 
+from .algorithms.assignment import AssignmentStrategy
+from .algorithms.assignment.matrix_based import MatrixBasedAssignment
+from .algorithms.assignment.strategy_factory import AssignmentStrategyFactory
 from .matrices.decision_matrices import DecisionMatrices, MatrixType
 from .networks.network import Network
 from .nodes.base_station import BaseStation
@@ -15,9 +19,6 @@ from .nodes.haps import HAPS
 from .nodes.leo import LEO
 from .nodes.user_device import UserDevice
 from .utils.position import Position
-from .algorithms.assignment.strategy_factory import AssignmentStrategyFactory
-from .algorithms.assignment import AssignmentStrategy
-from .algorithms.assignment.matrix_based import MatrixBasedAssignment
 
 
 class Simulation:

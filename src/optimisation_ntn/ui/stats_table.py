@@ -2,6 +2,8 @@ from PySide6 import QtCore, QtWidgets
 
 
 class NodeStatsTable(QtWidgets.QTableWidget):
+    """Node stats table"""
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.checkbox_signal_connected = False

@@ -1,21 +1,21 @@
 import argparse
-import numpy as np
 from typing import List, Tuple
 
-from pymoo.algorithms.soo.nonconvex.ga import GA
+import numpy as np
 from pymoo.algorithms.soo.nonconvex.de import DE
+from pymoo.algorithms.soo.nonconvex.ga import GA
 from pymoo.algorithms.soo.nonconvex.pso import PSO
 from pymoo.operators.crossover.sbx import SBX
 from pymoo.operators.mutation.pm import PM
-from pymoo.operators.sampling.rnd import IntegerRandomSampling
 from pymoo.operators.repair.rounding import RoundingRepair
+from pymoo.operators.sampling.rnd import IntegerRandomSampling
 from pymoo.optimize import minimize
 
-from optimisation_ntn.simulation import Simulation
-from optimisation_ntn.optimization.optimization_problem import OptimizationProblem
 from optimisation_ntn.algorithms.assignment.strategy_factory import (
     AssignmentStrategyFactory,
 )
+from optimisation_ntn.optimization.optimization_problem import OptimizationProblem
+from optimisation_ntn.simulation import Simulation
 
 
 def create_parser():
