@@ -79,6 +79,9 @@ class Simulation:
         # Initialize matrices after network is set up
         self.initialize_matrices()
 
+        # Initialize request state stats
+        self.request_state_stats = {status: 0 for status in RequestStatus}
+
     @property
     def max_tick_time(self) -> int:
         """Calculate the maximum number of simulation steps."""
@@ -117,7 +120,6 @@ class Simulation:
             for request in requests:
                 request_list.append(request.__dict__)
 
-        self.request_state_stats = {status: 0 for status in RequestStatus}
         for request in request_list:
             self.request_state_stats[request["status"]] += 1
 
@@ -290,7 +292,7 @@ class Simulation:
         # Add default user devices
         self.set_nodes(UserDevice, self.user_count)
 
-    def set_nodes(self, node_type: type, count: int, **kwargs):
+    def set_nodes(self, node_type: type, count: int):
         """Generic method to set nodes of a specific type."""
         # Remove existing nodes of this type
         self.network.nodes = [

@@ -142,38 +142,15 @@ class SimulationUI(QtWidgets.QMainWindow):
         return sim_list_box
 
     def create_simulation_control(self):
-        """Create the simulation control"""
-        control_box = QtWidgets.QGroupBox("Simulation Control")
+        """Create simulation control panel"""
+        control_panel = QtWidgets.QGroupBox("Simulation Control")
         control_layout = QtWidgets.QVBoxLayout()
 
-        # Add node controls
-        node_controls = QtWidgets.QGridLayout()
-        node_controls.addWidget(QtWidgets.QLabel("Base Stations:"), 0, 0)
-        node_controls.addWidget(self.sim_controls.num_bs_input, 0, 1)
-        node_controls.addWidget(QtWidgets.QLabel("HAPS:"), 1, 0)
-        node_controls.addWidget(self.sim_controls.num_haps_input, 1, 1)
-        node_controls.addWidget(QtWidgets.QLabel("Users:"), 2, 0)
-        node_controls.addWidget(self.sim_controls.num_users_input, 2, 1)
-        control_layout.addLayout(node_controls)
+        # Add simulation controls widget
+        control_layout.addWidget(self.sim_controls.widget)
 
-        # Add strategy selection
-        strategy_layout = QtWidgets.QGridLayout()
-        strategy_layout.addWidget(QtWidgets.QLabel("Assignment Strategy:"), 0, 0)
-        strategy_layout.addWidget(self.sim_controls.assignment_strategy_combo, 0, 1)
-        strategy_layout.addWidget(QtWidgets.QLabel("Power Strategy:"), 1, 0)
-        strategy_layout.addWidget(self.sim_controls.power_strategy_combo, 1, 1)
-        control_layout.addLayout(strategy_layout)
-
-        # Add step duration and time step controls
-        step_controls = QtWidgets.QGridLayout()
-        step_controls.addWidget(QtWidgets.QLabel("Step Duration (s):"), 0, 0)
-        step_controls.addWidget(self.sim_controls.step_duration_input, 0, 1)
-        step_controls.addWidget(QtWidgets.QLabel("UI Update Interval (ms):"), 1, 0)
-        step_controls.addWidget(self.sim_controls.time_step_input, 1, 1)
-        control_layout.addLayout(step_controls)
-
-        control_box.setLayout(control_layout)
-        return control_box
+        control_panel.setLayout(control_layout)
+        return control_panel
 
     def create_real_time_view(self):
         """Create the real-time view"""

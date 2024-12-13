@@ -18,13 +18,30 @@ class SimulationControls:
     """Simulation controls UI"""
 
     def __init__(self, parent):
+        super().__init__()
         self.parent = parent
         self.simulations = {}
         self.current_simulation = None
-        self.setup_ui()
 
-    def setup_ui(self):
-        """Setup the UI"""
+        # Initialize UI component containers
+        self.sim_list = None
+        self.run_pause_btn = None
+        self.reset_btn = None
+        self.node_inputs = {}
+        self.time_inputs = {}
+        self.strategy_combos = {}
+        self.widget = None
+
+        # Initialize timer
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.simulation_step)
+
+        # Create UI components
+        self._create_ui_components()
+        self._setup_ui_layout()
+
+    def _create_ui_components(self):
+        """Create all UI components"""
         # Create simulation list
         self.sim_list = QtWidgets.QListWidget()
         self.sim_list.itemSelectionChanged.connect(self.update_simulation_selection)
@@ -40,50 +57,88 @@ class SimulationControls:
         self.reset_btn = QtWidgets.QPushButton("Reset")
         self.reset_btn.clicked.connect(self.reset_simulation)
 
-        # Create spinboxes for node counts
-        self.num_bs_input = QtWidgets.QSpinBox()
-        self.num_bs_input.setRange(1, 10)
-        self.num_bs_input.valueChanged.connect(self._on_bs_value_changed)
+        # Create input controls
+        self._create_input_controls()
+        self._create_strategy_controls()
 
-        self.num_haps_input = QtWidgets.QSpinBox()
-        self.num_haps_input.setRange(1, 5)
-        self.num_haps_input.valueChanged.connect(self._on_haps_value_changed)
+    def _create_input_controls(self):
+        """Create spinbox controls for simulation parameters"""
+        # Node count inputs
+        self.node_inputs = {
+            "bs": self._create_spinbox(1, 10, self._on_bs_value_changed),
+            "haps": self._create_spinbox(1, 5, self._on_haps_value_changed),
+            "users": self._create_spinbox(0, 200, self._on_users_value_changed),
+        }
 
-        self.num_users_input = QtWidgets.QSpinBox()
-        self.num_users_input.setRange(0, 200)
-        self.num_users_input.valueChanged.connect(self._on_users_value_changed)
+        # Time control inputs
+        step_duration_config = {
+            "min_val": 0.00001,
+            "max_val": 10.0,
+            "decimals": 5,
+            "step": 0.0001,
+            "initial": 0.001,
+        }
 
-        # Create step duration input
-        self.step_duration_input = QtWidgets.QDoubleSpinBox()
-        self.step_duration_input.setRange(0.00001, 10.0)
-        self.step_duration_input.setDecimals(5)
-        self.step_duration_input.setSingleStep(0.0001)
-        self.step_duration_input.setValue(0.001)
-        self.step_duration_input.valueChanged.connect(self._on_step_duration_changed)
+        self.time_inputs = {
+            "step_duration": self._create_double_spinbox(
+                config=step_duration_config, on_change=self._on_step_duration_changed
+            ),
+            "time_step": self._create_spinbox(
+                1, 100, self._on_time_step_changed, initial_value=100
+            ),
+        }
 
-        # Create time step input for UI updates
-        self.time_step_input = QtWidgets.QSpinBox()
-        self.time_step_input.setRange(1, 100)
-        self.time_step_input.setValue(100)
-        self.time_step_input.valueChanged.connect(self._on_time_step_changed)
-
-        # Create strategy selection combos
-        self.assignment_strategy_combo = QtWidgets.QComboBox()
+    def _create_strategy_controls(self):
+        """Create strategy selection controls"""
+        # Assignment strategy combo
         all_strategies = AssignmentStrategyFactory.available_strategies() + [
             "GA",
             "DE",
             "PSO",
         ]
-        self.assignment_strategy_combo.addItems(all_strategies)
-        self.assignment_strategy_combo.currentTextChanged.connect(
-            self._on_assignment_strategy_changed
-        )
+        self.strategy_combos = {
+            "assignment": self._create_combobox(
+                all_strategies, self._on_assignment_strategy_changed
+            ),
+            "power": self._create_combobox(
+                ["AllOn", "OnDemand", "OnDemandWithTimeout"],
+                self._on_power_strategy_changed,
+            ),
+        }
 
-        self.power_strategy_combo = QtWidgets.QComboBox()
-        self.power_strategy_combo.addItems(["AllOn", "OnDemand", "OnDemandWithTimeout"])
-        self.power_strategy_combo.currentTextChanged.connect(
-            self._on_power_strategy_changed
-        )
+    @staticmethod
+    def _create_spinbox(min_val, max_val, on_change, initial_value=None):
+        """Create a QSpinBox with given parameters"""
+        spinbox = QtWidgets.QSpinBox()
+        spinbox.setRange(min_val, max_val)
+        if initial_value is not None:
+            spinbox.setValue(initial_value)
+        spinbox.valueChanged.connect(on_change)
+        return spinbox
+
+    @staticmethod
+    def _create_double_spinbox(*, config, on_change):
+        """Create a QDoubleSpinBox with given configuration
+
+        Args:
+            config (dict): Configuration with min_val, max_val, decimals, step, initial
+            on_change (callable): Callback for value changes
+        """
+        spinbox = QtWidgets.QDoubleSpinBox()
+        spinbox.setRange(config["min_val"], config["max_val"])
+        spinbox.setDecimals(config["decimals"])
+        spinbox.setSingleStep(config["step"])
+        spinbox.setValue(config["initial"])
+        spinbox.valueChanged.connect(on_change)
+        return spinbox
+
+    @staticmethod
+    def _create_combobox(items, on_change):
+        """Create a QComboBox with given items"""
+        combo = QtWidgets.QComboBox()
+        combo.addItems(items)
+        combo.currentTextChanged.connect(on_change)
+        return combo
 
     def create_new_simulation(self):
         """Create a new simulation and add it to the list"""
@@ -91,7 +146,7 @@ class SimulationControls:
             simulation_name = f"Simulation {self.sim_list.count() + 1}"
 
             # Get power strategy as proper Literal type
-            power_strategy_text = self.power_strategy_combo.currentText()
+            power_strategy_text = self.strategy_combos["power"].currentText()
             if power_strategy_text not in ["AllOn", "OnDemand", "OnDemandWithTimeout"]:
                 power_strategy_text = "OnDemand"  # Default fallback
 
@@ -108,7 +163,7 @@ class SimulationControls:
             )
 
             # Set assignment strategy
-            strategy = self.assignment_strategy_combo.currentText()
+            strategy = self.strategy_combos["assignment"].currentText()
             if strategy in ["GA", "DE", "PSO"]:
                 simulation.optimizer = strategy
                 self.simulations[simulation_name] = simulation
@@ -139,7 +194,7 @@ class SimulationControls:
                 self.update_ui_parameters()
 
             # Enable step duration input
-            self.step_duration_input.setEnabled(True)
+            self.time_inputs["step_duration"].setEnabled(True)
 
             # Notify parent of new simulation
             self.parent.on_new_simulation()
@@ -151,12 +206,12 @@ class SimulationControls:
         """Update UI controls to match current simulation"""
         if self.current_simulation:
             # Block signals during update
-            self.num_bs_input.blockSignals(True)
-            self.num_haps_input.blockSignals(True)
-            self.num_users_input.blockSignals(True)
-            self.step_duration_input.blockSignals(True)
-            self.power_strategy_combo.blockSignals(True)
-            self.assignment_strategy_combo.blockSignals(True)
+            self.node_inputs["bs"].blockSignals(True)
+            self.node_inputs["haps"].blockSignals(True)
+            self.node_inputs["users"].blockSignals(True)
+            self.time_inputs["step_duration"].blockSignals(True)
+            self.strategy_combos["power"].blockSignals(True)
+            self.strategy_combos["assignment"].blockSignals(True)
 
             # Count nodes of each type
             bs_count = self.current_simulation.network.count_nodes_by_type(BaseStation)
@@ -166,39 +221,41 @@ class SimulationControls:
             )
 
             # Update UI values
-            self.num_bs_input.setValue(bs_count)
-            self.num_haps_input.setValue(haps_count)
-            self.num_users_input.setValue(users_count)
-            self.step_duration_input.setValue(self.current_simulation.time_step)
+            self.node_inputs["bs"].setValue(bs_count)
+            self.node_inputs["haps"].setValue(haps_count)
+            self.node_inputs["users"].setValue(users_count)
+            self.time_inputs["step_duration"].setValue(
+                self.current_simulation.time_step
+            )
 
             # Update strategy combos
             if hasattr(self.current_simulation, "power_strategy"):
-                self.power_strategy_combo.setCurrentText(
+                self.strategy_combos["power"].setCurrentText(
                     self.current_simulation.power_strategy
                 )
 
             if self.current_simulation.optimizer:
-                self.assignment_strategy_combo.setCurrentText(
+                self.strategy_combos["assignment"].setCurrentText(
                     self.current_simulation.optimizer
                 )
             elif hasattr(self.current_simulation.assignment_strategy, "__class__"):
                 strategy_name = (
                     self.current_simulation.assignment_strategy.__class__.__name__
                 )
-                self.assignment_strategy_combo.setCurrentText(strategy_name)
+                self.strategy_combos["assignment"].setCurrentText(strategy_name)
 
             # Re-enable signals
-            self.num_bs_input.blockSignals(False)
-            self.num_haps_input.blockSignals(False)
-            self.num_users_input.blockSignals(False)
-            self.step_duration_input.blockSignals(False)
-            self.power_strategy_combo.blockSignals(False)
-            self.assignment_strategy_combo.blockSignals(False)
+            self.node_inputs["bs"].blockSignals(False)
+            self.node_inputs["haps"].blockSignals(False)
+            self.node_inputs["users"].blockSignals(False)
+            self.time_inputs["step_duration"].blockSignals(False)
+            self.strategy_combos["power"].blockSignals(False)
+            self.strategy_combos["assignment"].blockSignals(False)
 
     def toggle_simulation(self):
         """Toggle between running and paused states"""
         if self.current_simulation:
-            if hasattr(self, "timer") and self.timer.isActive():
+            if self.timer.isActive():
                 # Pause simulation
                 self.timer.stop()
                 self.current_simulation.is_paused = True
@@ -212,14 +269,11 @@ class SimulationControls:
         """Start or resume simulation"""
         if self.current_simulation:
             self.current_simulation.is_paused = False
-            update_interval = self.time_step_input.value()
+            update_interval = self.time_inputs["time_step"].value()
 
             # Disable step duration input while simulation is running
-            self.step_duration_input.setEnabled(False)
+            self.time_inputs["step_duration"].setEnabled(False)
 
-            # Create timer for UI updates
-            self.timer = QtCore.QTimer()
-            self.timer.timeout.connect(self.simulation_step)
             self.timer.start(update_interval)
             self.run_pause_btn.setText("Pause")
 
@@ -256,12 +310,12 @@ class SimulationControls:
         """Reset the current simulation"""
         if self.current_simulation:
             # Stop timer if running
-            if hasattr(self, "timer") and self.timer.isActive():
+            if self.timer.isActive():
                 self.timer.stop()
                 self.run_pause_btn.setText("Run")
 
             # Re-enable step duration input
-            self.step_duration_input.setEnabled(True)
+            self.time_inputs["step_duration"].setEnabled(True)
 
             self.current_simulation.reset()
             self.update_ui_parameters()
@@ -303,7 +357,7 @@ class SimulationControls:
                 self.parent,
                 "Rename Simulation",
                 "Enter new name:",
-                QtWidgets.QLineEdit.Normal,
+                QtWidgets.QLineEdit.EchoMode.Normal,
                 old_name,
             )
 
@@ -336,7 +390,7 @@ class SimulationControls:
 
     def _on_time_step_changed(self, value):
         """Handle UI update interval changes"""
-        if hasattr(self, "timer") and self.timer.isActive():
+        if self.timer.isActive():
             self.timer.setInterval(value)
 
     def _on_assignment_strategy_changed(self, strategy):
@@ -433,3 +487,60 @@ class SimulationControls:
                     "Invalid Input",
                     "Please enter valid comma-separated integers.",
                 )
+
+    def _setup_ui_layout(self):
+        """Setup the layout of UI components"""
+        # Create main layout
+        layout = QtWidgets.QVBoxLayout()
+
+        # Add control buttons
+        button_layout = QtWidgets.QHBoxLayout()
+        button_layout.addWidget(self.run_pause_btn)
+        button_layout.addWidget(self.reset_btn)
+        layout.addLayout(button_layout)
+
+        # Add node count controls
+        node_group = QtWidgets.QGroupBox("Node Counts")
+        node_layout = QtWidgets.QFormLayout()
+        node_layout.addRow("Base Stations:", self.node_inputs["bs"])
+        node_layout.addRow("HAPS:", self.node_inputs["haps"])
+        node_layout.addRow("Users:", self.node_inputs["users"])
+        node_group.setLayout(node_layout)
+        layout.addWidget(node_group)
+
+        # Add time controls
+        time_group = QtWidgets.QGroupBox("Time Controls")
+        time_layout = QtWidgets.QFormLayout()
+        time_layout.addRow("Step Duration (s):", self.time_inputs["step_duration"])
+        time_layout.addRow("UI Update Interval (ms):", self.time_inputs["time_step"])
+        time_group.setLayout(time_layout)
+        layout.addWidget(time_group)
+
+        # Add strategy controls
+        strategy_group = QtWidgets.QGroupBox("Strategies")
+        strategy_layout = QtWidgets.QFormLayout()
+        strategy_layout.addRow(
+            "Assignment Strategy:", self.strategy_combos["assignment"]
+        )
+        strategy_layout.addRow("Power Strategy:", self.strategy_combos["power"])
+        strategy_group.setLayout(strategy_layout)
+        layout.addWidget(strategy_group)
+
+        # Create a widget to hold the layout
+        self.widget = QtWidgets.QWidget()
+        self.widget.setLayout(layout)
+
+    @property
+    def num_bs_input(self):
+        """Get base station count input"""
+        return self.node_inputs["bs"]
+
+    @property
+    def num_haps_input(self):
+        """Get HAPS count input"""
+        return self.node_inputs["haps"]
+
+    @property
+    def num_users_input(self):
+        """Get user count input"""
+        return self.node_inputs["users"]

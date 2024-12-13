@@ -5,7 +5,7 @@ import numpy as np
 from optimisation_ntn.nodes.base_station import BaseStation
 from optimisation_ntn.nodes.haps import HAPS
 from optimisation_ntn.nodes.leo import LEO
-from optimisation_ntn.networks.communication_link import CommunicationLink
+from optimisation_ntn.networks.communication_link import CommunicationLink, LinkConfig
 from optimisation_ntn.utils.position import Position
 
 
@@ -26,7 +26,7 @@ class TestLEO(unittest.TestCase):
         leo = LEO(1, 0)
         haps = HAPS(2, initial_position=Position(0.0, 20e3))
 
-        link = CommunicationLink(leo, haps, 1, 1, 1)
+        link = CommunicationLink(leo, haps, LinkConfig(1, 1, 1))
 
         self.assertEqual(link.link_length, leo.position.y - haps.position.y)
         self.assertEqual(link.link_length, 480e3)
@@ -36,8 +36,8 @@ class TestLEO(unittest.TestCase):
         end_leo = LEO(2, LEO.final_angle)
         haps = HAPS(2, initial_position=Position(0.0, 20e3))
 
-        first_link = CommunicationLink(start_leo, haps, 1, 1, 1)
-        second_link = CommunicationLink(end_leo, haps, 1, 1, 1)
+        first_link = CommunicationLink(start_leo, haps, LinkConfig(1, 1, 1))
+        second_link = CommunicationLink(end_leo, haps, LinkConfig(1, 1, 1))
 
         self.assertAlmostEqual(first_link.link_length, 1646550.0, places=0)
         self.assertAlmostEqual(second_link.link_length, 1646550.0, places=0)

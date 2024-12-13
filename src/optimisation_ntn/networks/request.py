@@ -24,6 +24,7 @@ class Priority(Enum):
     HIGH = 3
 
 
+# pylint: disable=R0902,R0913,R0917
 class Request:
     """Request class"""
 

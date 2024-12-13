@@ -1,5 +1,6 @@
 """ Communication link class """
 
+from dataclasses import dataclass
 from typing import List
 
 import numpy as np
@@ -12,6 +13,16 @@ from ..utils.earth import Earth
 from .request import Request
 
 
+@dataclass
+class LinkConfig:
+    """Configuration for communication link"""
+
+    total_bandwidth: float
+    signal_power: float
+    carrier_frequency: float
+    debug: bool = False
+
+
 class CommunicationLink:
     """Communication link class"""
 
@@ -19,19 +30,13 @@ class CommunicationLink:
         self,
         node_a: BaseNode,
         node_b: BaseNode,
-        signal_power: float,
-        carrier_frequency: float,
-        total_bandwidth: float,
-        debug: bool = False,
+        config: LinkConfig,
     ):
         self.node_a = node_a
         self.node_b = node_b
-        self.signal_power = signal_power
-        self.carrier_frequency = carrier_frequency
-        self.total_bandwidth = total_bandwidth
+        self.config = config
         self.transmission_queue: List[Request] = []  # FIFO queue
         self.request_progress = 0.0
-        self.debug = debug
         self.completed_requests = []
 
         # Identify compatible antennas for communication
@@ -66,8 +71,7 @@ class CommunicationLink:
     def adjusted_bandwidth(self) -> float:
         """Adjusts bandwidth based on the number of active links with the same type."""
         active_count = self.node_b.get_active_count(type(self.node_a))
-
-        return self.total_bandwidth / max(1, active_count)
+        return self.config.total_bandwidth / max(1, active_count)
 
     @property
     def noise_power(self) -> float:
@@ -90,7 +94,7 @@ class CommunicationLink:
     def calculate_free_space_path_loss(self) -> float:
         """Calculates Free Space Path Loss for (user-haps, haps-base station, haps-leo)."""
         return Earth.speed_of_light / (
-            4 * np.pi * self.link_length * self.carrier_frequency
+            4 * np.pi * self.link_length * self.config.carrier_frequency
         )
 
     def calculate_gain(self) -> float:
@@ -115,8 +119,7 @@ class CommunicationLink:
     def calculate_snr(self) -> float:
         """Calculates SNR (Signal to Noise Ratio) of the current channel."""
         gain = self.calculate_gain()
-        power = self.linear_scale_dbm(self.signal_power)
-
+        power = self.linear_scale_dbm(self.config.signal_power)
         return power * gain / self.noise_power
 
     def calculate_capacity(self) -> float:
@@ -135,7 +138,7 @@ class CommunicationLink:
 
     def debug_print(self, *args, **kwargs):
         """Print only if debug mode is enabled"""
-        if self.debug:
+        if self.config.debug:
             print(*args, **kwargs)
 
     def tick(self, time: float):

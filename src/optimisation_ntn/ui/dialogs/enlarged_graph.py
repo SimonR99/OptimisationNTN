@@ -12,48 +12,77 @@ class EnlargedGraphDialog(QtWidgets.QDialog):
         super().__init__(parent)
         self.setWindowTitle("Enlarged Graph View")
         self.setModal(True)
-
-        # Set initial size to 80% of screen size
-        screen = QtWidgets.QApplication.primaryScreen().geometry()
-        self.resize(int(screen.width() * 0.8), int(screen.height() * 0.8))
+        self._setup_window_size()
 
         # Create layout
         layout = QtWidgets.QVBoxLayout()
 
-        # Create a new chart with the same data
-        original_chart = chart_view.chart()
+        # Create and setup chart
+        self.chart_view = self._create_chart_view(chart_view)
+
+        # Create and add controls
+        zoom_layout = self._create_zoom_controls()
+
+        # Create stats table
+        self.stats_table = self._create_stats_table()
+        self.update_stats(chart_view.chart())
+
+        # Add widgets to layout
+        layout.addWidget(self.chart_view)
+        layout.addLayout(zoom_layout)
+        layout.addWidget(self.stats_table)
+
+        self.setLayout(layout)
+
+    def _setup_window_size(self):
+        """Set initial window size to 80% of screen size"""
+        screen = QtWidgets.QApplication.primaryScreen().geometry()
+        self.resize(int(screen.width() * 0.8), int(screen.height() * 0.8))
+
+    def _create_chart_view(self, original_chart_view):
+        """Create a new chart view with copied data from original"""
+        original_chart = original_chart_view.chart()
         new_chart = QChart()
         new_chart.setTitle(original_chart.title())
         new_chart.setBackgroundBrush(original_chart.backgroundBrush())
 
-        # Copy series data and preserve colors
+        self._copy_series_data(original_chart, new_chart)
+
+        # Create new chart view with zoom/pan support
+        chart_view = QChartView(new_chart)
+        chart_view.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        chart_view.setRubberBand(QChartView.RubberBand.RectangleRubberBand)
+        return chart_view
+
+    def _copy_series_data(self, original_chart, new_chart):
+        """Copy series data and axes from original chart to new chart"""
         for original_series in original_chart.series():
             new_series = QLineSeries()
-            new_series.setName(original_series.name())  # Copy series name
+            new_series.setName(original_series.name())
             for point in range(original_series.count()):
                 new_series.append(original_series.at(point))
             new_chart.addSeries(new_series)
-            new_series.setColor(original_series.color())  # Copy series color
+            new_series.setColor(original_series.color())
 
-            # Copy axes
-            for axis in original_chart.axes():
-                new_axis = QValueAxis()
-                new_axis.setTitleText(axis.titleText())
-                new_axis.setRange(axis.min(), axis.max())
+            self._copy_axes(original_chart, new_chart, new_series)
 
-                if axis.orientation() == Qt.Orientation.Horizontal:
-                    new_chart.addAxis(new_axis, Qt.AlignmentFlag.AlignBottom)
-                else:
-                    new_chart.addAxis(new_axis, Qt.AlignmentFlag.AlignLeft)
+    def _copy_axes(self, original_chart, new_chart, new_series):
+        """Copy axes from original chart to new chart"""
+        for axis in original_chart.axes():
+            new_axis = QValueAxis()
+            new_axis.setTitleText(axis.titleText())
+            new_axis.setRange(axis.min(), axis.max())
 
-                new_series.attachAxis(new_axis)
+            alignment = (
+                Qt.AlignmentFlag.AlignBottom
+                if axis.orientation() == Qt.Orientation.Horizontal
+                else Qt.AlignmentFlag.AlignLeft
+            )
+            new_chart.addAxis(new_axis, alignment)
+            new_series.attachAxis(new_axis)
 
-        # Create new chart view with zoom/pan support
-        self.chart_view = QChartView(new_chart)
-        self.chart_view.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
-        self.chart_view.setRubberBand(QChartView.RubberBand.RectangleRubberBand)
-
-        # Add zoom controls
+    def _create_zoom_controls(self):
+        """Create zoom control buttons"""
         zoom_layout = QtWidgets.QHBoxLayout()
 
         zoom_in_btn = QtWidgets.QPushButton("Zoom In")
@@ -68,23 +97,19 @@ class EnlargedGraphDialog(QtWidgets.QDialog):
         reset_zoom_btn.clicked.connect(self.reset_view)
         zoom_layout.addWidget(reset_zoom_btn)
 
-        # Add stats panel
-        self.stats_table = QtWidgets.QTableWidget()
-        self.stats_table.setColumnCount(4)
-        self.stats_table.setHorizontalHeaderLabels(
+        return zoom_layout
+
+    def _create_stats_table(self):
+        """Create and setup statistics table"""
+        stats_table = QtWidgets.QTableWidget()
+        stats_table.setColumnCount(4)
+        stats_table.setHorizontalHeaderLabels(
             ["Node", "Current Energy", "Peak Energy", "Average Energy"]
         )
-        self.stats_table.horizontalHeader().setSectionResizeMode(
+        stats_table.horizontalHeader().setSectionResizeMode(
             QtWidgets.QHeaderView.ResizeMode.Stretch
         )
-        self.update_stats(original_chart)
-
-        # Add widgets to layout
-        layout.addWidget(self.chart_view)
-        layout.addLayout(zoom_layout)
-        layout.addWidget(self.stats_table)
-
-        self.setLayout(layout)
+        return stats_table
 
     def zoom(self, factor):
         """Zoom in or out"""
