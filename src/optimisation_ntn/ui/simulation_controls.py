@@ -14,7 +14,6 @@ from optimisation_ntn.nodes.user_device import UserDevice
 from optimisation_ntn.simulation import Simulation, SimulationConfig
 
 
-# pylint: disable=too-many-instance-attributes
 class SimulationControls:
     """Simulation controls UI"""
 
