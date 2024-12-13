@@ -20,6 +20,7 @@ class Network:
         self.communication_links: List[CommunicationLink] = []
         self.debug = debug
         self.compute_nodes: List[BaseStation | HAPS | LEO] = []
+        self.user_nodes: List[UserDevice] = []
         self.haps_nodes: List[HAPS] = []
         self.base_stations: List[BaseStation] = []
         self.leo_nodes: List[LEO] = []
@@ -43,10 +44,7 @@ class Network:
 
     def count_nodes_by_type(self, node_type: type) -> int:
         """Count nodes of a specific type in network."""
-        try:
-            return len([n for n in self.nodes if isinstance(n, node_type)])
-        except Exception:
-            return 0
+        return len([n for n in self.nodes if isinstance(n, node_type)])
 
     def add_node(self, node):
         """Add a node to the network"""
@@ -185,6 +183,9 @@ class Network:
 
     def get_network_delay(self, request: Request, path: List[BaseNode]) -> float:
         """Get the total network delay for a request"""
+        if len(path) < 2:
+            raise ValueError(f"Path must have at least 2 nodes: {path}")
+
         time = 0.0
         for i in range(len(path) - 1):
             for link in self.communication_links:

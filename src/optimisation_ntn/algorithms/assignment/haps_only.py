@@ -37,9 +37,6 @@ class HAPSOnlyAssignment(AssignmentStrategy):
                     request.current_node, haps
                 )
 
-        total_delay = (
-            self.network.get_network_delay(request, best_path)
-            if best_path
-            else float("inf")
-        )
+        total_delay = self.network.get_network_delay(request, best_path)
+
         return best_node, best_path, total_delay

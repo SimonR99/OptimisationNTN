@@ -146,7 +146,7 @@ class DecisionMatrices:
         """
         try:
             return self.matrices[name]
-        except (KeyError, ValueError):
+        except KeyError:
             raise ValueError(f"Matrix '{name}' does not exist.")
 
     def set_matrix(self, name: MatrixType, matrix: np.ndarray) -> None:

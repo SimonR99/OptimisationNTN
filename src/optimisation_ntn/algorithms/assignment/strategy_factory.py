@@ -1,14 +1,16 @@
 """ Assignment strategy factory. Returns a strategy instance based on the name """
 
-from typing import Type, Dict
+from typing import Dict, Type
+
+from optimisation_ntn.networks.network import Network
+
 from .assignment_strategy import AssignmentStrategy
-from .time_greedy import TimeGreedyAssignment
 from .closest_node import ClosestNodeAssignment
 from .energy_greedy import EnergyGreedyAssignment
 from .haps_only import HAPSOnlyAssignment
-from .random_assignment import RandomAssignment
 from .matrix_based import MatrixBasedAssignment
-from optimisation_ntn.networks.network import Network
+from .random_assignment import RandomAssignment
+from .time_greedy import TimeGreedyAssignment
 
 
 class AssignmentStrategyFactory:

@@ -49,7 +49,10 @@ class CommunicationLink:
             antenna_b = self.node_b.get_compatible_antenna(antenna_a)
             if antenna_b:
                 return antenna_a, antenna_b
-        return None, None
+
+        raise ValueError(
+            f"No compatible antennas found between {self.node_a} and {self.node_b}"
+        )
 
     @property
     def link_length(self) -> float:
@@ -93,7 +96,7 @@ class CommunicationLink:
     def calculate_gain(self) -> float:
         """Calculates Gain of the channel user - base station."""
         if isinstance(self.node_a, UserDevice) and isinstance(self.node_b, BaseStation):
-            """Linear Scale the path loss link of 40 dB. 40 dB selon études"""
+            # Linear Scale the path loss link of 40 dB. 40 dB selon études
             path_loss = self.linear_scale_db(40)
 
             return (
@@ -101,13 +104,13 @@ class CommunicationLink:
                 * (np.abs(self.node_a.attenuation_coefficient) ** 2)
                 / self.link_length**self.node_a.path_loss_exponent
             )
-        else:
-            """Calculates Gain of the current channel that is different from user - bs."""
-            path_loss = self.calculate_free_space_path_loss()
-            tx_antenna = self.linear_scale_db(self.antenna_a.gain)
-            rx_antenna = self.linear_scale_db(self.antenna_b.gain)
 
-            return tx_antenna * rx_antenna * path_loss
+        # Calculates Gain of the current channel that is different from user - bs.
+        path_loss = self.calculate_free_space_path_loss()
+        tx_antenna = self.linear_scale_db(self.antenna_a.gain)
+        rx_antenna = self.linear_scale_db(self.antenna_b.gain)
+
+        return tx_antenna * rx_antenna * path_loss
 
     def calculate_snr(self) -> float:
         """Calculates SNR (Signal to Noise Ratio) of the current channel."""

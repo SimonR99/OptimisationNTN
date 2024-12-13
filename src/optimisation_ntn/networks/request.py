@@ -1,7 +1,6 @@
 """Request module"""
 
 import random
-import time
 from enum import Enum
 from typing import Callable, List, Optional, Tuple
 

@@ -1,3 +1,5 @@
+"""Random assignment strategy"""
+
 from typing import List
 import random
 

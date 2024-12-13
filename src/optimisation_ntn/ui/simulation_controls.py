@@ -251,15 +251,6 @@ class SimulationControls:
                     "Simulation Ended",
                     f"The simulation has reached the end of the request data matrix. {e}",
                 )
-            except Exception as e:
-                # Handle other errors
-                self.timer.stop()
-                self.run_pause_btn.setText("Run")
-                QtWidgets.QMessageBox.critical(
-                    self.parent,
-                    "Simulation Error",
-                    f"An error occurred during simulation: {str(e)}",
-                )
 
     def reset_simulation(self):
         """Reset the current simulation"""

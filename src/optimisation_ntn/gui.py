@@ -29,6 +29,15 @@ class SimulationUI(QtWidgets.QMainWindow):
         self.show_links = True
         self.is_dark_theme = True
         self.setWindowIcon(QtGui.QIcon("images/logo.png"))
+
+        self.schematic_view = QtWidgets.QGraphicsView()
+        self.view_toggle_btn = QtWidgets.QPushButton("Switch to Far View")
+        self.node_stats_table = NodeStatsTable()
+        self.show_links_checkbox = QtWidgets.QCheckBox("Show Communication Links")
+        self.current_time_label = QtWidgets.QLabel("0.0s")
+        self.current_step_label = QtWidgets.QLabel("0")
+        self.current_energy_label = QtWidgets.QLabel("0.0 J")
+
         self.init_ui()
         self.apply_theme()
 
@@ -171,11 +180,9 @@ class SimulationUI(QtWidgets.QMainWindow):
         layout = QtWidgets.QVBoxLayout()
 
         # Schematic View with QGraphicsView
-        self.schematic_view = QtWidgets.QGraphicsView()
         layout.addWidget(self.schematic_view)
 
         # Toggle button to switch between views
-        self.view_toggle_btn = QtWidgets.QPushButton("Switch to Far View")
         self.view_toggle_btn.clicked.connect(self.toggle_view)
         layout.addWidget(self.view_toggle_btn)
 
@@ -191,7 +198,6 @@ class SimulationUI(QtWidgets.QMainWindow):
         layout = QtWidgets.QVBoxLayout()
 
         # Create table for node statistics
-        self.node_stats_table = NodeStatsTable()
         layout.addWidget(self.node_stats_table)
 
         container = QtWidgets.QWidget()
@@ -222,16 +228,13 @@ class SimulationUI(QtWidgets.QMainWindow):
 
         # Current simulation info
         info_layout.addWidget(QtWidgets.QLabel("Current Time:"), 2, 0)
-        self.current_time_label = QtWidgets.QLabel("0.0s")
         info_layout.addWidget(self.current_time_label, 2, 1)
 
         info_layout.addWidget(QtWidgets.QLabel("Current Step:"), 3, 0)
-        self.current_step_label = QtWidgets.QLabel("0")
         info_layout.addWidget(self.current_step_label, 3, 1)
 
         # Add energy consumption display
         info_layout.addWidget(QtWidgets.QLabel("Energy Consumed:"), 4, 0)
-        self.current_energy_label = QtWidgets.QLabel("0.0 J")
         info_layout.addWidget(self.current_energy_label, 4, 1)
 
         info_box.setLayout(info_layout)
@@ -373,22 +376,31 @@ class SimulationUI(QtWidgets.QMainWindow):
         if self.sim_controls.current_simulation is None:
             return
 
+        # Create a lookup dictionary for quick node access
+        node_lookup = {
+            f"{type(node).__name__} {node.node_id}": node
+            for node in self.sim_controls.current_simulation.network.nodes
+        }
+
+        # Process only checked rows
         for row in range(self.node_stats_table.rowCount()):
             checkbox_item = self.node_stats_table.item(row, 0)
-            if (
+            if not (
                 checkbox_item
                 and checkbox_item.checkState() == QtCore.Qt.CheckState.Checked
             ):
-                node_item = self.node_stats_table.item(row, 1)
-                if node_item:
-                    node_text = node_item.text()
-                    for node in self.sim_controls.current_simulation.network.nodes:
-                        if f"{type(node).__name__} {node.node_id}" == node_text:
-                            if len(node.energy_history) > 0:
-                                self.node_energy_graph.add_node_point(
-                                    node_text, node.energy_history[-1]
-                                )
-                            break
+                continue
+
+            node_item = self.node_stats_table.item(row, 1)
+            if not node_item:
+                continue
+
+            node_text = node_item.text()
+            if node := node_lookup.get(node_text):
+                if node.energy_history:
+                    self.node_energy_graph.add_node_point(
+                        node_text, node.energy_history[-1]
+                    )
 
 
 app = QtWidgets.QApplication(sys.argv)

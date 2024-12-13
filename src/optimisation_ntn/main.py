@@ -165,9 +165,9 @@ def run_optimization(
         print(f"Energy consumed: {energy:.2f} J")
         print(f"QoS satisfaction: {satisfaction * 100:.2f}%")
         return best_x, energy, satisfaction
-    else:
-        print(f"\n{algorithm_name} found no feasible solution")
-        return [], 0.0, 0.0
+
+    print(f"\n{algorithm_name} found no feasible solution")
+    return [], 0.0, 0.0
 
 
 def main(args):
@@ -207,6 +207,7 @@ def main(args):
             )
             improvement = ((baseline_energy - energy) / baseline_energy) * 100
             print(f"\nEnergy improvement: {improvement:.1f}%")
+            print(f"Best vector: {best_vector}")
 
         return energy
 
