@@ -9,6 +9,7 @@ from ..utils.conversion import convert_dbm_watt
 from ..utils.position import Position
 
 
+# pylint: disable=too-many-instance-attributes
 class BaseNode(ABC):
     """Base node class"""
 

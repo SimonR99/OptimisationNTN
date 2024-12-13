@@ -18,6 +18,7 @@ if platform.system() == "Windows":
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("optimisation_ntn")
 
 
+# pylint: disable=too-many-instance-attributes
 class SimulationUI(QtWidgets.QMainWindow):
     """Main GUI class"""
 

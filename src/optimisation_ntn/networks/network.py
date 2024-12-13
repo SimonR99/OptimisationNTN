@@ -19,11 +19,15 @@ class Network:
         self.nodes: List[BaseNode] = []
         self.communication_links: List[CommunicationLink] = []
         self.debug = debug
-        self.compute_nodes: List[BaseStation | HAPS | LEO] = []
         self.user_nodes: List[UserDevice] = []
         self.haps_nodes: List[HAPS] = []
         self.base_stations: List[BaseStation] = []
         self.leo_nodes: List[LEO] = []
+
+    @property
+    def compute_nodes(self):
+        """Get all compute nodes"""
+        return self.haps_nodes + self.base_stations + self.leo_nodes
 
     def debug_print(self, *args, **kwargs):
         """Print only if debug mode is enabled"""
@@ -61,8 +65,6 @@ class Network:
             node for node in self.nodes if isinstance(node, BaseStation)
         ]
         self.leo_nodes = [node for node in self.nodes if isinstance(node, LEO)]
-
-        self.compute_nodes = self.haps_nodes + self.base_stations + self.leo_nodes
 
         self.debug_print("\nCreating communication links:")
 

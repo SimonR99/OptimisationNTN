@@ -40,10 +40,10 @@ class CommunicationLink:
         self.completed_requests = []
 
         # Identify compatible antennas for communication
-        self.antenna_a, self.antenna_b = self.find_compatible_antennas()
+        self.antennas = self.find_compatible_antennas()
         self.node_a.add_destination(self.node_b)
 
-        if not self.antenna_a or not self.antenna_b:
+        if not self.antennas:
             raise ValueError(
                 f"No compatible antennas found between {node_a} and {node_b}"
             )
@@ -53,7 +53,7 @@ class CommunicationLink:
         for antenna_a in self.node_a.antennas:
             antenna_b = self.node_b.get_compatible_antenna(antenna_a)
             if antenna_b:
-                return antenna_a, antenna_b
+                return [antenna_a, antenna_b]
 
         raise ValueError(
             f"No compatible antennas found between {self.node_a} and {self.node_b}"
@@ -111,8 +111,8 @@ class CommunicationLink:
 
         # Calculates Gain of the current channel that is different from user - bs.
         path_loss = self.calculate_free_space_path_loss()
-        tx_antenna = self.linear_scale_db(self.antenna_a.gain)
-        rx_antenna = self.linear_scale_db(self.antenna_b.gain)
+        tx_antenna = self.linear_scale_db(self.antennas[0].gain)
+        rx_antenna = self.linear_scale_db(self.antennas[1].gain)
 
         return tx_antenna * rx_antenna * path_loss
 

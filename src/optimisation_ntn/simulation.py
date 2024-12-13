@@ -3,6 +3,7 @@
 import random
 import time
 from typing import Literal, Optional, Type
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
@@ -21,6 +22,25 @@ from .nodes.user_device import UserDevice
 from .utils.position import Position
 
 
+# pylint: disable=too-many-instance-attributes
+@dataclass
+class SimulationConfig:
+    """Configuration class for Simulation parameters."""
+
+    seed: Optional[int] = None
+    time_step: float = 0.1
+    max_time: float = 300
+    debug: bool = False
+    user_count: int = 10
+    power_strategy: Literal["AllOn", "OnDemand", "OnDemandWithTimeout"] = "OnDemand"
+    assignment_strategy: str | Type[AssignmentStrategy] | AssignmentStrategy = (
+        "TimeGreedy"
+    )
+    save_results: bool = True
+    print_output: bool = False
+    optimizer: None | Literal["GA", "PSO", "DE"] = None
+
+
 class Simulation:
     """Class to run the simulation."""
 
@@ -28,50 +48,39 @@ class Simulation:
     DEFAULT_HAPS_COUNT = 1
     DEFAULT_LEO_COUNT = 1
     DEFAULT_USER_COUNT = 10
-
     DEFAULT_TICK_TIME = 0.1
     DEFAULT_MAX_SIMULATION_TIME = 300
 
-    def __init__(
-        self,
-        seed: Optional[int] = None,
-        time_step: float = DEFAULT_TICK_TIME,
-        max_time: float = DEFAULT_MAX_SIMULATION_TIME,
-        debug: bool = False,
-        user_count: int = DEFAULT_USER_COUNT,
-        power_strategy: Literal[
-            "AllOn", "OnDemand", "OnDemandWithTimeout"
-        ] = "OnDemand",
-        assignment_strategy: (
-            str | Type[AssignmentStrategy] | AssignmentStrategy
-        ) = "TimeGreedy",
-        save_results: bool = True,
-        print_output: bool = False,
-        optimizer: None | Literal["GA", "PSO", "DE"] = None,
-    ):
+    def __init__(self, config: Optional[SimulationConfig] = None):
+        """Initialize simulation with given configuration."""
+        if config is None:
+            config = SimulationConfig()
+
         # Set the random seed if provided
-        if seed is not None:
-            random.seed(seed)
-        self.user_count = user_count
+        if config.seed is not None:
+            random.seed(config.seed)
+
+        self.config = config
+        self.user_count = config.user_count
         self.current_step = 0
         self.current_time = 0.0
-        self.time_step = time_step
-        self.max_time = max_time
-        self.network = Network(debug=debug)
-        self.matrices = DecisionMatrices(dimension=user_count)
-        self.power_strategy = power_strategy
+        self.time_step = config.time_step
+        self.max_time = config.max_time
+        self.network = Network(debug=config.debug)
+        self.matrices = DecisionMatrices(dimension=config.user_count)
+        self.power_strategy = config.power_strategy
         self.assignment_strategy = AssignmentStrategyFactory.get_strategy(
-            assignment_strategy, self.network
+            config.assignment_strategy, self.network
         )
-        self.save_results = save_results
+        self.save_results = config.save_results
         self.matrix_history: list[DecisionMatrices] = []
         self.total_requests = 0
         self.is_paused = False
-        self.debug = debug
+        self.debug = config.debug
         self.system_energy_consumed = 0
-        self.seed = seed
-        self.print_output = print_output
-        self.optimizer = optimizer
+        self.seed = config.seed
+        self.print_output = config.print_output
+        self.optimizer = config.optimizer
 
         # Initialize with default values
         self.initialize_default_nodes()
@@ -143,7 +152,7 @@ class Simulation:
                 assignment_strategy_name = self.assignment_strategy.get_name()
             # Save energy history to csv
             energy_history = pd.DataFrame(
-                {node.__str__(): node.energy_history for node in self.network.nodes}
+                {str(node): node.energy_history for node in self.network.nodes}
             )
             energy_history.to_csv(
                 f"output/energy_history_{self.power_strategy}_"

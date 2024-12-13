@@ -1,12 +1,14 @@
 """ Matrix based assignment strategy """
 
 from typing import List, Optional
+
 import numpy as np
 
-from ...networks.request import Request
-from ...nodes.base_node import BaseNode
-from .assignment_strategy import AssignmentStrategy
 from optimisation_ntn.networks.network import Network
+from optimisation_ntn.networks.request import Request
+from optimisation_ntn.nodes.base_node import BaseNode
+
+from .assignment_strategy import AssignmentStrategy
 
 
 class MatrixBasedAssignment(AssignmentStrategy):

@@ -17,35 +17,35 @@ from optimisation_ntn.algorithms.assignment.strategy_factory import (
     AssignmentStrategyFactory,
 )
 from optimisation_ntn.optimization.optimization_problem import OptimizationProblem
-from optimisation_ntn.simulation import Simulation
+from optimisation_ntn.simulation import Simulation, SimulationConfig
 
 
-def create_parser():
+def create_argument_parser():
     """Create parser for command line arguments"""
-    parser = argparse.ArgumentParser(description="Run the NTN network simulation.")
+    arg_parser = argparse.ArgumentParser(description="Run the NTN network simulation.")
 
-    parser.add_argument(
+    arg_parser.add_argument(
         "--max_time",
         type=int,
         default=Simulation.DEFAULT_MAX_SIMULATION_TIME,
         help="The maximum simulation time in seconds",
     )
 
-    parser.add_argument(
+    arg_parser.add_argument(
         "--tick_time",
         type=float,
         default=Simulation.DEFAULT_TICK_TIME,
         help="Number of seconds per tick",
     )
 
-    parser.add_argument(
+    arg_parser.add_argument(
         "--user_count",
         type=int,
         default=Simulation.DEFAULT_USER_COUNT,
         help="Number of users in the simulation",
     )
 
-    parser.add_argument(
+    arg_parser.add_argument(
         "--power_strategy",
         type=str,
         choices=["AllOn", "OnDemand", "OnDemandWithTimeout"],
@@ -53,7 +53,7 @@ def create_parser():
         help="Power strategy to use",
     )
 
-    parser.add_argument(
+    arg_parser.add_argument(
         "--debug",
         action="store_true",
         help="Enable debug printing",
@@ -65,7 +65,7 @@ def create_parser():
         "DE",
         "PSO",
     ]
-    parser.add_argument(
+    arg_parser.add_argument(
         "--strategy",
         type=str,
         choices=all_strategies,
@@ -74,28 +74,28 @@ def create_parser():
     )
 
     # Optimization specific arguments
-    parser.add_argument(
+    arg_parser.add_argument(
         "--generations",
         type=int,
         default=5,
         help="Number of generations for optimization algorithms",
     )
 
-    parser.add_argument(
+    arg_parser.add_argument(
         "--population",
         type=int,
         default=30,
         help="Population size for optimization algorithms",
     )
 
-    parser.add_argument(
+    arg_parser.add_argument(
         "--hide_output",
         action="store_true",
         default=False,
         help="Hide output",
     )
 
-    return parser
+    return arg_parser
 
 
 def run_optimization(
@@ -170,22 +170,25 @@ def run_optimization(
     return [], 0.0, 0.0
 
 
-def main(args):
+def main(cli_args):
     """Main function"""
-    # Create simulation instance
-    simulation = Simulation(
+    # Create simulation configuration
+    config = SimulationConfig(
         seed=42,
-        time_step=args.tick_time,
-        max_time=args.max_time,
-        debug=args.debug,
-        user_count=args.user_count,
-        power_strategy=args.power_strategy,
-        print_output=not args.hide_output,
+        time_step=cli_args.tick_time,
+        max_time=cli_args.max_time,
+        debug=cli_args.debug,
+        user_count=cli_args.user_count,
+        power_strategy=cli_args.power_strategy,
+        print_output=not cli_args.hide_output,
     )
 
+    # Create simulation instance
+    simulation = Simulation(config)
+
     # Check if using an optimization algorithm
-    if args.strategy in ["GA", "DE", "PSO"]:
-        simulation.optimizer = args.strategy
+    if cli_args.strategy in ["GA", "DE", "PSO"]:
+        simulation.optimizer = cli_args.strategy
 
         baseline_energy, baseline_satisfaction = simulation.run_with_assignment(
             np.random.randint(
@@ -194,11 +197,11 @@ def main(args):
         )
 
         best_vector, energy, satisfaction = run_optimization(
-            simulation, args.strategy, args.generations, args.population
+            simulation, cli_args.strategy, cli_args.generations, cli_args.population
         )
 
         # Compare with baseline
-        if not args.hide_output:
+        if not cli_args.hide_output:
             print("\nComparing with Random strategy...")
             print("\nResults comparison:")
             print(f"Optimized solution: {energy:.2f} J, {satisfaction*100:.2f}% QoS")
@@ -212,12 +215,14 @@ def main(args):
         return energy
 
     # Run with traditional assignment strategy
-    strategy = AssignmentStrategyFactory.get_strategy(args.strategy, simulation.network)
+    strategy = AssignmentStrategyFactory.get_strategy(
+        cli_args.strategy, simulation.network
+    )
     simulation.assignment_strategy = strategy
     return simulation.run()
 
 
 if __name__ == "__main__":
-    parser = create_parser()
+    parser = create_argument_parser()
     args = parser.parse_args()
     main(args)

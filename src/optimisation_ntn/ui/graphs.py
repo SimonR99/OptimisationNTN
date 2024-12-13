@@ -57,6 +57,9 @@ class EnergyGraph:
 
     def show_enlarged_graph(self, event):
         """Show the enlarged version of the graph"""
+        if event.button() != QtCore.Qt.MouseButton.LeftButton:
+            return
+
         if self.parent:
             dialog = EnlargedGraphDialog(self.chart_view, self.parent)
             dialog.exec()

@@ -11,9 +11,10 @@ from optimisation_ntn.algorithms.assignment.strategy_factory import (
 from optimisation_ntn.nodes.base_station import BaseStation
 from optimisation_ntn.nodes.haps import HAPS
 from optimisation_ntn.nodes.user_device import UserDevice
-from optimisation_ntn.simulation import Simulation
+from optimisation_ntn.simulation import Simulation, SimulationConfig
 
 
+# pylint: disable=too-many-instance-attributes
 class SimulationControls:
     """Simulation controls UI"""
 
@@ -157,9 +158,11 @@ class SimulationControls:
 
             # Create simulation with selected strategies
             simulation = Simulation(
-                debug=False,
-                power_strategy=power_strategy,
-                optimizer=None,
+                config=SimulationConfig(
+                    debug=False,
+                    power_strategy=power_strategy,
+                    optimizer=None,
+                )
             )
 
             # Set assignment strategy

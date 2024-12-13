@@ -97,22 +97,6 @@ class DecisionMatrices:
                 request_matrix, (0, int(time_buffer / time)), mode="constant"
             )
 
-    def generate_power_matrix(
-        self, num_devices: int, num_steps: int, strategy: "PowerStateStrategy"
-    ):
-        """Generate power state matrix based on a given strategy.
-
-        Args:
-            num_devices: Number of devices
-            num_steps: Number of time steps
-            strategy: PowerStateStrategy object
-
-        Returns:
-            np.ndarray: Power state matrix
-        """
-        power_matrix = strategy.generate_power_matrix(num_devices, num_steps)
-        self.matrices[MatrixType.POWER_STATE] = power_matrix
-
     def update_assignment_matrix(self, network: Network):
         """Update real-time request assignment matrix"""
         users = [n for n in network.nodes if isinstance(n, UserDevice)]
@@ -146,8 +130,8 @@ class DecisionMatrices:
         """
         try:
             return self.matrices[name]
-        except KeyError:
-            raise ValueError(f"Matrix '{name}' does not exist.")
+        except KeyError as exc:
+            raise ValueError(f"Matrix '{name}' does not exist.") from exc
 
     def set_matrix(self, name: MatrixType, matrix: np.ndarray) -> None:
         """Set matrix by enum value.
