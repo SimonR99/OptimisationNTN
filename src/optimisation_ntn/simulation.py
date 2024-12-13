@@ -82,11 +82,7 @@ class Simulation:
         self.print_output = config.print_output
         self.optimizer = config.optimizer
 
-        # Initialize with default values
-        self.initialize_default_nodes()
-
-        # Initialize matrices after network is set up
-        self.initialize_matrices()
+        self.reset()
 
         # Initialize request state stats
         self.request_state_stats = {status: 0 for status in RequestStatus}
@@ -279,7 +275,7 @@ class Simulation:
         if self.seed is not None:
             random.seed(self.seed)
         self.initialize_default_nodes()
-        self.initialize_matrices()  # Re-initialize matrices after reset
+        self.initialize_matrices()
 
     def initialize_default_nodes(
         self,
