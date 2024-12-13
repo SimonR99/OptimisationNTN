@@ -35,4 +35,5 @@ jobs:
         black --check .
     - name: Lint with pylint
       run: |
-        pylint ./src
+        pylint --rcfile=.pylintrc ./src
+
