@@ -41,10 +41,10 @@ class EnlargedGraphDialog(QtWidgets.QDialog):
                 new_axis.setTitleText(axis.titleText())
                 new_axis.setRange(axis.min(), axis.max())
 
-                if axis.orientation() == Qt.Horizontal:
-                    new_chart.addAxis(new_axis, Qt.AlignBottom)
+                if axis.orientation() == Qt.Orientation.Horizontal:
+                    new_chart.addAxis(new_axis, Qt.AlignmentFlag.AlignBottom)
                 else:
-                    new_chart.addAxis(new_axis, Qt.AlignLeft)
+                    new_chart.addAxis(new_axis, Qt.AlignmentFlag.AlignLeft)
 
                 new_series.attachAxis(new_axis)
 

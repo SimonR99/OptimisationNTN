@@ -1,3 +1,5 @@
+""" LEO node class """
+
 from typing import Literal
 
 import numpy as np
@@ -9,6 +11,8 @@ from .base_node import BaseNode
 
 
 class LEO(BaseNode):
+    """LEO node class"""
+
     leo_altitude = 500e3
     leo_temperature = 200
 

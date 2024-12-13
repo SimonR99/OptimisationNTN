@@ -44,7 +44,6 @@ class BaseNode(ABC):
         self.name = ""
         self.path_loss_exponent = 0.0
         self.attenuation_coefficient = 0.0
-        self.reference_lenght = 0.0
         self.destinations: List["BaseNode"] = []
         self.last_tick_energy = 0.0
         self.energy_history = []
@@ -189,7 +188,8 @@ class BaseNode(ABC):
             )
         else:
             self.debug_print(
-                f"Node {self} cannot process request {request.id} (current load: {self.current_load}, power: {self.processing_frequency})"
+                f"Node {self} cannot process request {request.id} "
+                f"(current load: {self.current_load}, power: {self.processing_frequency})"
             )
 
     def process_requests(self, time: float):
@@ -258,8 +258,9 @@ class BaseNode(ABC):
             print(*args, **kwargs)
 
     def transmission_energy(self):
-        """Calculates the transmission energy consumed from the haps to the next node (bs or Leo) and turns off the node
-        if the battery is depleted.
+        """Calculates the transmission energy consumed
+        from the haps to the next node (bs or Leo) and
+        turns off the node if the battery is depleted.
         :param link_bandwidth:
         :param request:
         :return: energy consumed in joules

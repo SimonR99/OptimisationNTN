@@ -1,3 +1,5 @@
+""" Main module, runs the simulation or optimization """
+
 import argparse
 from typing import List, Tuple
 
@@ -19,6 +21,7 @@ from optimisation_ntn.simulation import Simulation
 
 
 def create_parser():
+    """Create parser for command line arguments"""
     parser = argparse.ArgumentParser(description="Run the NTN network simulation.")
 
     parser.add_argument(
@@ -168,6 +171,7 @@ def run_optimization(
 
 
 def main(args):
+    """Main function"""
     # Create simulation instance
     simulation = Simulation(
         seed=42,
@@ -205,13 +209,11 @@ def main(args):
             print(f"\nEnergy improvement: {improvement:.1f}%")
 
         return energy
-    else:
-        # Run with traditional assignment strategy
-        strategy = AssignmentStrategyFactory.get_strategy(
-            args.strategy, simulation.network
-        )
-        simulation.assignment_strategy = strategy
-        return simulation.run()
+
+    # Run with traditional assignment strategy
+    strategy = AssignmentStrategyFactory.get_strategy(args.strategy, simulation.network)
+    simulation.assignment_strategy = strategy
+    return simulation.run()
 
 
 if __name__ == "__main__":

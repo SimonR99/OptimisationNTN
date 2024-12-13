@@ -1,3 +1,5 @@
+""" Energy greedy assignment strategy """
+
 from typing import List
 
 from ...networks.request import Request

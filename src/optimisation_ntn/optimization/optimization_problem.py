@@ -1,3 +1,5 @@
+""" Optimization problem class """
+
 from pymoo.core.problem import ElementwiseProblem
 
 

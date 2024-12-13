@@ -144,7 +144,7 @@ class SimulationControls:
             # Notify parent of new simulation
             self.parent.on_new_simulation()
 
-        except Exception as e:
+        except ValueError as e:
             print(f"Error creating simulation: {str(e)}")
 
     def update_ui_parameters(self):
@@ -249,7 +249,7 @@ class SimulationControls:
                 QtWidgets.QMessageBox.warning(
                     self.parent,
                     "Simulation Ended",
-                    "The simulation has reached the end of the request data matrix.",
+                    f"The simulation has reached the end of the request data matrix. {e}",
                 )
             except Exception as e:
                 # Handle other errors
@@ -290,7 +290,8 @@ class SimulationControls:
                     self.parent.on_simulation_selected()
                 else:
                     print(f"Warning: Simulation '{simulation_name}' not found")
-        except Exception as e:
+
+        except ValueError as e:
             print(f"Error updating simulation selection: {str(e)}")
 
     def show_context_menu(self, position):

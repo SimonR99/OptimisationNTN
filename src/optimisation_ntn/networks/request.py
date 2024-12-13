@@ -3,7 +3,7 @@
 import random
 import time
 from enum import Enum
-from typing import List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 
 
 class RequestStatus(Enum):
@@ -35,15 +35,13 @@ class Request:
         tick: int,
         tick_time: float,
         initial_node: "BaseNode",
+        get_tick: Callable[[], float],
         target_node: Optional["BaseNode"] = None,
         debug: bool = False,
-        get_tick=time.time,
     ):
         self.debug = debug
-
         self.id = Request.id_counter
         Request.id_counter += 1
-        self.tick = tick
         self.current_node = initial_node
         self.next_node: Optional["BaseNode"] = None
         self.target_node = target_node
@@ -105,4 +103,8 @@ class Request:
             self.status = RequestStatus.FAILED
 
     def __str__(self):
-        return f"Priority: {self.priority} + \nAppearing time: {self.tick} + \nStatus:{self.status}"
+        return (
+            f"Priority: {self.priority} "
+            f"Appearing time: {self.creation_time} "
+            f"Status:{self.status}"
+        )

@@ -230,7 +230,8 @@ class Simulation:
                             link.add_to_queue(request)
                             request.next_node = next_node
                             self.debug_print(
-                                f"Added request {request.id} to transmission queue: {current_node} -> {next_node}"
+                                f"Added request {request.id} to transmission queue: "
+                                f"{current_node} -> {next_node}"
                             )
                             break
 

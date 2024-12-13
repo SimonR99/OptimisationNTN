@@ -1,3 +1,5 @@
+""" Assignment algorithms """
+
 from .assignment_strategy import AssignmentStrategy
 from .time_greedy import TimeGreedyAssignment
 from .closest_node import ClosestNodeAssignment

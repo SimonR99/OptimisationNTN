@@ -49,6 +49,7 @@ class Network:
             return 0
 
     def add_node(self, node):
+        """Add a node to the network"""
         self.nodes.append(node)
         self._update_communication_links()
 
@@ -65,7 +66,7 @@ class Network:
 
         self.compute_nodes = self.haps_nodes + self.base_stations + self.leo_nodes
 
-        """self.debug_print("\nCreating communication links:")"""
+        self.debug_print("\nCreating communication links:")
 
         # Connect each user to all HAPS and closest base station (bidirectional)
         for user in self.user_nodes:
@@ -108,7 +109,8 @@ class Network:
                     )
                     self.communication_links.append(link)
                     self.debug_print(
-                        f"Created link: {user} -> {closest_bs} (closest, distance: {min_distance:.2f})"
+                        f"Created link: {user} -> {closest_bs} "
+                        f"(closest, distance: {min_distance:.2f})"
                     )
 
         # Connect each base station to all HAPS (bidirectional)
@@ -176,7 +178,7 @@ class Network:
 
         if target in source.destinations:
             return [source, target]
-        elif closest_haps:
+        if closest_haps:
             return [source, closest_haps, target]
 
         raise ValueError(f"No path found for request from {source} to {target}")
@@ -201,10 +203,13 @@ class Network:
         for link in self.communication_links:
             if link.transmission_queue:
                 self.debug_print(
-                    f"Link {link.node_a} -> {link.node_b} has {len(link.transmission_queue)} requests in queue"
+                    f"Link {link.node_a} -> {link.node_b} has "
+                    f"{len(link.transmission_queue)} requests in queue"
                 )
                 self.debug_print(
-                    f"Link {link.node_a} -> {link.node_b}: Transmitting request {link.transmission_queue[0].id} ({link.request_progress:.1f}/{link.transmission_queue[0].size} bits)"
+                    f"Link {link.node_a} -> {link.node_b}: Transmitting request "
+                    f"{link.transmission_queue[0].id} "
+                    f"({link.request_progress:.1f}/{link.transmission_queue[0].size} bits)"
                 )
 
             link.tick(time)
@@ -219,14 +224,16 @@ class Network:
                 if request.path_index >= len(request.path):
                     if current_node == request.target_node:
                         self.debug_print(
-                            f"Request {request.id} reached target node {current_node}, adding to processing queue"
+                            f"Request {request.id} reached target node {current_node}, "
+                            f"adding to processing queue"
                         )
                         current_node.add_request_to_process(request)
                 else:
                     # Route to next node
                     next_node = request.path[request.path_index]
                     self.debug_print(
-                        f"Request {request.id} completed transmission to {current_node}, routing to {next_node}"
+                        f"Request {request.id} completed transmission to {current_node}, "
+                        f"routing to {next_node}"
                     )
 
                     # Find next link and add request to its queue

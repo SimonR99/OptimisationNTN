@@ -12,6 +12,8 @@ from ..nodes.user_device import UserDevice
 
 
 class MatrixType(Enum):
+    """Matrix type enum"""
+
     COVERAGE_ZONE = "A"
     POWER_STATE = "B"
     REQUEST = "K"
@@ -19,6 +21,8 @@ class MatrixType(Enum):
 
 
 class DecisionMatrices:
+    """Decision matrices class"""
+
     def __init__(self, dimension: int = 0):
         """Initialize matrices used in network decision processes."""
         self.matrices: Dict[MatrixType, np.ndarray] = {

@@ -30,14 +30,13 @@ class AssignmentStrategyFactory:
             if strategy not in cls._strategies:
                 raise ValueError(f"Unknown strategy: {strategy}")
             return cls._strategies[strategy](network)
-        elif isinstance(strategy, type) and issubclass(strategy, AssignmentStrategy):
+        if isinstance(strategy, type) and issubclass(strategy, AssignmentStrategy):
             return strategy(network)
-        elif isinstance(strategy, AssignmentStrategy):
+        if isinstance(strategy, AssignmentStrategy):
             return strategy
-        else:
-            raise ValueError(
-                "Strategy must be a string name, AssignmentStrategy class, or instance"
-            )
+        raise ValueError(
+            "Strategy must be a string name, AssignmentStrategy class, or instance"
+        )
 
     @classmethod
     def register_strategy(cls, name: str, strategy_class: Type[AssignmentStrategy]):

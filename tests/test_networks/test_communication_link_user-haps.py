@@ -13,6 +13,11 @@ from optimisation_ntn.nodes.leo import LEO
 from optimisation_ntn.utils.position import Position
 
 
+def get_tick():
+    """Get a random tick"""
+    return np.random.randint(0, 100)
+
+
 class TestCommunicationLink(unittest.TestCase):
     def setUp(self):
         # Define positions for nodes
@@ -165,7 +170,7 @@ class TestCommunicationLink(unittest.TestCase):
         )
 
         # Create and add a request
-        request = Request(np.random.randint(0, 100), self.node_a, self.node_b)
+        request = Request(0, 0.1, self.node_a, get_tick, self.node_b)
         request.set_size(100)  # data_size=100 bits
         link.add_to_queue(request)
 
@@ -187,9 +192,9 @@ class TestCommunicationLink(unittest.TestCase):
         )
 
         # Create and add multiple requests
-        request1 = Request(0, self.node_a, self.node_b)
+        request1 = Request(0, 0.1, self.node_a, get_tick, self.node_b)
         request1.set_size(20e6)  # data size=20 Mbits
-        request2 = Request(0, self.node_a, self.node_b)
+        request2 = Request(0, 0.1, self.node_a, get_tick, self.node_b)
         request2.set_size(10e6)  # data size=10 Mbits
 
         link.add_to_queue(request1)

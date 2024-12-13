@@ -1,3 +1,5 @@
+""" Energy graph class """
+
 import random
 
 from PySide6 import QtCore, QtGui
@@ -8,6 +10,8 @@ from optimisation_ntn.ui.theme_manager import ThemeManager
 
 
 class EnergyGraph:
+    """Energy graph class"""
+
     def __init__(self, title, parent=None):
         self.parent = parent
         self.chart = QChart()
@@ -72,7 +76,7 @@ class EnergyGraph:
 
             self.update_y_axis_range()
 
-    def add_node_point(self, node_text, x, y):
+    def add_node_point(self, node_text, y):
         """Add a point to a node's energy series"""
         if node_text not in self.series:
             series = QLineSeries()

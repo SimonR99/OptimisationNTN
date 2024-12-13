@@ -29,10 +29,10 @@ class SimulationUI(QtWidgets.QMainWindow):
         self.show_links = True
         self.is_dark_theme = True
         self.setWindowIcon(QtGui.QIcon("images/logo.png"))
-        self.initUI()
+        self.init_ui()
         self.apply_theme()
 
-    def initUI(self):
+    def init_ui(self):
         """Initialize the UI"""
         main_layout = QtWidgets.QHBoxLayout()
 
@@ -187,6 +187,7 @@ class SimulationUI(QtWidgets.QMainWindow):
         return container
 
     def create_results_tab(self):
+        """Create the results tab"""
         layout = QtWidgets.QVBoxLayout()
 
         # Create table for node statistics
@@ -198,6 +199,7 @@ class SimulationUI(QtWidgets.QMainWindow):
         return container
 
     def create_simulation_parameters(self):
+        """Create the simulation parameters"""
         # Create horizontal layout for parameters and info
         horizontal_layout = QtWidgets.QHBoxLayout()
 
@@ -241,6 +243,7 @@ class SimulationUI(QtWidgets.QMainWindow):
         return container
 
     def toggle_view(self):
+        """Toggle between close-up and far views"""
         if self.current_view == "close":
             self.current_view = "far"
             self.view_toggle_btn.setText("Switch to Close-Up View")
@@ -266,6 +269,7 @@ class SimulationUI(QtWidgets.QMainWindow):
             )
 
     def toggle_links(self, state):
+        """Toggle communication links"""
         self.show_links = bool(state)
         self.update_view()
 
@@ -295,7 +299,7 @@ class SimulationUI(QtWidgets.QMainWindow):
         self.node_stats_table.update_stats(
             simulation.network.nodes, self.handle_checkbox_change
         )
-        self.update_checked_nodes_graphs(current_time)
+        self.update_checked_nodes_graphs()
 
         # Update view
         self.update_view()
@@ -358,20 +362,23 @@ class SimulationUI(QtWidgets.QMainWindow):
                         break
 
                 if node and len(node.energy_history) > 0:
-                    for i, energy in enumerate(node.energy_history):
-                        time_point = i * self.sim_controls.current_simulation.time_step
-                        self.node_energy_graph.add_node_point(
-                            node_text, time_point, energy
-                        )
+                    for energy in node.energy_history:
+                        self.node_energy_graph.add_node_point(node_text, energy)
             else:
                 # Remove node from graph
                 self.node_energy_graph.remove_node_series(node_text)
 
-    def update_checked_nodes_graphs(self, current_time):
+    def update_checked_nodes_graphs(self):
         """Update graphs for checked nodes"""
+        if self.sim_controls.current_simulation is None:
+            return
+
         for row in range(self.node_stats_table.rowCount()):
             checkbox_item = self.node_stats_table.item(row, 0)
-            if checkbox_item and checkbox_item.checkState() == QtCore.Qt.Checked:
+            if (
+                checkbox_item
+                and checkbox_item.checkState() == QtCore.Qt.CheckState.Checked
+            ):
                 node_item = self.node_stats_table.item(row, 1)
                 if node_item:
                     node_text = node_item.text()
@@ -379,7 +386,7 @@ class SimulationUI(QtWidgets.QMainWindow):
                         if f"{type(node).__name__} {node.node_id}" == node_text:
                             if len(node.energy_history) > 0:
                                 self.node_energy_graph.add_node_point(
-                                    node_text, current_time, node.energy_history[-1]
+                                    node_text, node.energy_history[-1]
                                 )
                             break
 

@@ -101,8 +101,8 @@ class CommunicationLink:
                 * (np.abs(self.node_a.attenuation_coefficient) ** 2)
                 / self.link_length**self.node_a.path_loss_exponent
             )
-            """Calculates Gain of the current channel that is different from user - bs."""
         else:
+            """Calculates Gain of the current channel that is different from user - bs."""
             path_loss = self.calculate_free_space_path_loss()
             tx_antenna = self.linear_scale_db(self.antenna_a.gain)
             rx_antenna = self.linear_scale_db(self.antenna_b.gain)
@@ -163,7 +163,8 @@ class CommunicationLink:
             # Only complete transmission at the end of a tick if enough bits were transmitted
             if self.request_progress >= current_request.size:
                 self.debug_print(
-                    f"Request {current_request.id} completed transmission from {self.node_a} to {self.node_b}"
+                    f"Request {current_request.id} "
+                    f"completed transmission from {self.node_a} to {self.node_b}"
                 )
                 self.completed_requests.append(current_request)
                 self.transmission_queue.pop(0)

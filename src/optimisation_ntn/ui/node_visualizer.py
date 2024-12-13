@@ -1,3 +1,5 @@
+""" Node visualizer class """
+
 import math
 
 from PySide6 import QtGui, QtWidgets
@@ -8,6 +10,8 @@ from optimisation_ntn.nodes.user_device import UserDevice
 
 
 class NodeVisualizer:
+    """Node visualizer class"""
+
     @staticmethod
     def add_processing_requests(scene, node, node_x, node_y):
         """Add visual representation of requests being processed by a node"""

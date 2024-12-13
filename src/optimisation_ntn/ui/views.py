@@ -70,6 +70,10 @@ class CloseUpView:
         view.setScene(scene)
         view.centerOn(0, 200)
 
+    def reset(self, view):
+        """Reset the close-up view"""
+        view.setScene(None)
+
     @staticmethod
     def _add_haps(scene, node, pixmap, node_positions):
         x_pos = node.position.x * 50
@@ -224,16 +228,21 @@ class FarView:
                 -radius,
                 2 * radius,
                 2 * radius,
-                QtGui.QPen(QtGui.QColor("gray"), 1, QtCore.Qt.DashLine),
+                QtGui.QPen(QtGui.QColor("gray"), 1, QtCore.Qt.PenStyle.DashLine),
             )
 
         if simulation:
             FarView._add_nodes(scene, simulation.network.nodes, leo_radius, haps_radius)
 
         view.setScene(scene)
-        view.fitInView(scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
-        view.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        view.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        view.fitInView(scene.sceneRect(), QtCore.Qt.AspectRatioMode.KeepAspectRatio)
+        view.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        view.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+    @staticmethod
+    def reset(view):
+        """Reset the far view"""
+        view.setScene(None)
 
     @staticmethod
     def _add_nodes(scene, nodes, leo_radius, haps_radius):

@@ -27,7 +27,6 @@ class UserDevice(BaseNode):
         self.transmission_power = 23
         self.path_loss_exponent = 3
         self.attenuation_coefficient = 3
-        self.reference_lenght = 1
         self.current_requests: list[Request] = []
         self.name = "USER DEVICE"
         self.idle_energy = 0
