@@ -24,7 +24,7 @@ class UserDevice(BaseNode):
         self.reference_lenght = 1
         self.current_requests: list[Request] = []
         self.name = "USER DEVICE"
-        self.standby_energy = 0
+        self.idle_energy = 0
         self.turn_on_energy_peak = 0
 
     def add_request(self, request) -> Request:

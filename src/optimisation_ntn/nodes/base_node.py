@@ -36,7 +36,7 @@ class BaseNode(ABC):
         self.spectral_noise_density = -174  # dBm/Hz
         """Ce peak d'énergie est une constante déterminée sans sources scientifiques."""
         self.turn_on_energy_peak = 150  # J
-        self.standby_energy = 50  # J/s
+        self.idle_energy = 50  # J/s
         self.recently_turned_on = False
         self.debug = debug
         self.name = ""
@@ -239,7 +239,7 @@ class BaseNode(ABC):
         self.process_requests(time)
 
         if self.state:
-            self.energy_consumed += self.standby_energy * time
+            self.energy_consumed += self.idle_energy * time
 
         # Store energy consumed during this time step
         energy_this_tick = self.energy_consumed - self.last_tick_energy
