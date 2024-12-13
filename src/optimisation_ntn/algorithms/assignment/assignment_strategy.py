@@ -21,7 +21,6 @@ class AssignmentStrategy(ABC):
         Returns:
             tuple[BaseNode, List[BaseNode], float]: Selected node, path to node, and total delay
         """
-        pass
 
     def get_name(self) -> str:
         """Get strategy name for display/logging"""

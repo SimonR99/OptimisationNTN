@@ -74,14 +74,14 @@ def create_parser():
     parser.add_argument(
         "--generations",
         type=int,
-        default=10,
+        default=5,
         help="Number of generations for optimization algorithms",
     )
 
     parser.add_argument(
         "--population",
         type=int,
-        default=50,
+        default=30,
         help="Population size for optimization algorithms",
     )
 
@@ -141,11 +141,11 @@ def run_optimization(
     else:  # PSO
         algorithm = PSO(
             pop_size=pop_size,
-            sampling=IntegerRandomSampling(),
+            sampling=IntegerRandomSampling(),  # type: ignore
             w=0.9,
             c1=2.0,
             c2=2.0,
-            repair=RoundingRepair(),
+            repair=RoundingRepair(),  # type: ignore
         )
 
     # Run optimization

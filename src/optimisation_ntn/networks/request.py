@@ -1,10 +1,14 @@
+"""Request module"""
+
 import random
 import time
 from enum import Enum
-from typing import Callable, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 
 class RequestStatus(Enum):
+    """Request status"""
+
     CREATED = 0
     IN_TRANSIT = 1
     IN_PROCESSING_QUEUE = 2
@@ -14,12 +18,16 @@ class RequestStatus(Enum):
 
 
 class Priority(Enum):
+    """Request priority"""
+
     LOW = 1
     MEDIUM = 2
     HIGH = 3
 
 
 class Request:
+    """Request class"""
+
     id_counter = 0
 
     def __init__(
@@ -49,7 +57,7 @@ class Request:
         self.status_history: List[Tuple[RequestStatus, float]] = [
             (RequestStatus.CREATED, float(tick))
         ]
-        self.path: Optional[List["BaseNode"]] = None
+        self.path: Optional[List["BaseNode"]] = []
         self.path_index = 0
         self.get_tick = get_tick
         self.tick_time = tick_time

@@ -27,8 +27,8 @@ class EnergyGraph:
         )
 
         # Add axes to chart
-        self.chart.addAxis(self.axis_x, QtCore.Qt.AlignBottom)
-        self.chart.addAxis(self.axis_y, QtCore.Qt.AlignLeft)
+        self.chart.addAxis(self.axis_x, QtCore.Qt.AlignmentFlag.AlignBottom)
+        self.chart.addAxis(self.axis_y, QtCore.Qt.AlignmentFlag.AlignLeft)
 
         if title == "Total Energy":
             self.series = QLineSeries()

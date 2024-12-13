@@ -1,6 +1,5 @@
 from abc import ABC
 from typing import Dict, List, Optional, Tuple, Literal
-import numpy as np
 
 from ..networks.antenna import Antenna
 from ..networks.request import Request, RequestStatus

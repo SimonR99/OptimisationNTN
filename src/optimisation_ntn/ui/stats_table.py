@@ -23,9 +23,8 @@ class NodeStatsTable(QtWidgets.QTableWidget):
         )
 
         # Set column resize modes
-        self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
         self.horizontalHeader().setSectionResizeMode(
-            0, QtWidgets.QHeaderView.ResizeToContents
+            QtWidgets.QHeaderView.ResizeMode.ResizeToContents
         )
 
     def update_stats(self, nodes, on_checkbox_change):

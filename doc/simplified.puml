@@ -1,4 +1,5 @@
-@startuml
+@startuml simplified class diagram
+
 ' Core Components
 class Simulation {
   - current_time: float

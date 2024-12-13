@@ -1,4 +1,4 @@
-@startuml
+@startuml class diagram
 
 ' Core Components
 class Simulation {

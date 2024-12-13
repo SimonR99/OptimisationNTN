@@ -24,7 +24,7 @@ class SimulationUI(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Optimisation NTN")
-        self.setGeometry(100, 100, 1200, 700)
+        self.setGeometry(100, 100, 1400, 800)
         self.current_view = "close"
         self.show_links = True
         self.is_dark_theme = True
@@ -273,6 +273,10 @@ class SimulationUI(QtWidgets.QMainWindow):
     def on_simulation_step(self):
         """Handle UI updates after each simulation step"""
         simulation = self.sim_controls.current_simulation
+
+        if simulation is None:
+            return
+
         current_time = simulation.current_time
 
         # Update time labels
@@ -296,6 +300,9 @@ class SimulationUI(QtWidgets.QMainWindow):
 
     def on_new_simulation(self):
         """Handle UI updates when a new simulation is created"""
+        if self.sim_controls.current_simulation is None:
+            return
+
         self.node_stats_table.update_stats(
             self.sim_controls.current_simulation.network.nodes,
             self.handle_checkbox_change,
@@ -306,6 +313,9 @@ class SimulationUI(QtWidgets.QMainWindow):
 
     def on_simulation_selected(self):
         """Handle UI updates when a simulation is selected"""
+        if self.sim_controls.current_simulation is None:
+            return
+
         self.node_stats_table.update_stats(
             self.sim_controls.current_simulation.network.nodes,
             self.handle_checkbox_change,
@@ -327,6 +337,9 @@ class SimulationUI(QtWidgets.QMainWindow):
 
     def handle_checkbox_change(self, item):
         """Handle checkbox state changes in the stats table"""
+        if self.sim_controls.current_simulation is None:
+            return
+
         if not item or item.column() != 0:
             return
 

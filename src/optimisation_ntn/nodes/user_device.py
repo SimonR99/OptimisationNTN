@@ -1,6 +1,6 @@
+from typing import Literal
 from optimisation_ntn.networks.request import Request
 from optimisation_ntn.utils.position import Position
-from typing import Literal
 from .base_node import BaseNode
 
 

@@ -7,9 +7,12 @@ from optimisation_ntn.algorithms.assignment.strategy_factory import (
     AssignmentStrategyFactory,
 )
 import numpy as np
+from typing import Literal, cast
 
 
 class SimulationControls:
+    """Simulation controls UI"""
+
     def __init__(self, parent):
         self.parent = parent
         self.simulations = {}
@@ -87,10 +90,15 @@ class SimulationControls:
             if power_strategy_text not in ["AllOn", "OnDemand", "OnDemandWithTimeout"]:
                 power_strategy_text = "OnDemand"  # Default fallback
 
+            # cast to Literal
+            power_strategy = cast(
+                Literal["AllOn", "OnDemand", "OnDemandWithTimeout"], power_strategy_text
+            )
+
             # Create simulation with selected strategies
             simulation = Simulation(
                 debug=False,
-                power_strategy=power_strategy_text,  # Now it's a proper Literal
+                power_strategy=power_strategy,
                 optimizer=None,
             )
 

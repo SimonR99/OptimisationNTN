@@ -1,3 +1,5 @@
+""" Close up view and far view panel """
+
 import math
 from PySide6 import QtCore, QtGui, QtWidgets
 from optimisation_ntn.nodes.base_station import BaseStation
@@ -9,6 +11,8 @@ from optimisation_ntn.ui.theme_manager import ThemeManager
 
 
 class CloseUpView:
+    """Close up view"""
+
     @staticmethod
     def load(view, simulation, show_links=True, is_dark_theme=True):
         """Load the close-up view of the network"""
@@ -16,8 +20,6 @@ class CloseUpView:
         if not simulation:
             view.setScene(scene)
             return
-
-        theme = ThemeManager.DARK_THEME if is_dark_theme else ThemeManager.LIGHT_THEME
 
         # Add green floor
         scene.addRect(
@@ -166,14 +168,16 @@ class CloseUpView:
     def _get_link_color(source, target):
         if isinstance(source, LEO) or isinstance(target, LEO):
             return "cyan"
-        elif isinstance(source, BaseStation) or isinstance(target, BaseStation):
+        if isinstance(source, BaseStation) or isinstance(target, BaseStation):
             return "yellow"
-        elif isinstance(source, HAPS) or isinstance(target, HAPS):
+        if isinstance(source, HAPS) or isinstance(target, HAPS):
             return "orange"
         return "white"
 
 
 class FarView:
+    """Far view (Orbit view)"""
+
     @staticmethod
     def load(view, simulation, is_dark_theme=True):
         """Load the far view of the network"""
@@ -243,15 +247,6 @@ class FarView:
         x = radius * math.cos(angle_rad)
         y = -radius * math.sin(angle_rad)
 
-        leo_item = scene.addRect(
-            x - 5,
-            y - 5,
-            10,
-            10,
-            QtGui.QPen(QtGui.QColor("yellow")),
-            QtGui.QBrush(QtGui.QColor("yellow")),
-        )
-
         text = scene.addText(f"LEO {node.node_id}")
         text.setDefaultTextColor(QtGui.QColor("white"))
         text.setPos(x + 10, y)
@@ -260,15 +255,6 @@ class FarView:
     def _add_haps(scene, node, radius):
         x = radius * math.cos(math.radians(0))
         y = -radius * math.sin(math.radians(0))
-
-        haps_item = scene.addRect(
-            x - 5,
-            y - 5,
-            10,
-            10,
-            QtGui.QPen(QtGui.QColor("orange")),
-            QtGui.QBrush(QtGui.QColor("orange")),
-        )
 
         text = scene.addText(f"HAPS {node.node_id}")
         text.setDefaultTextColor(QtGui.QColor("white"))

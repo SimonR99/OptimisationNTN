@@ -1,3 +1,5 @@
+"""Enlarged graph dialog (popup)"""
+
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis
 
@@ -5,6 +7,8 @@ from PySide6.QtCore import Qt
 
 
 class EnlargedGraphDialog(QtWidgets.QDialog):
+    """Enlarged graph dialog"""
+
     def __init__(self, chart_view, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Enlarged Graph View")
@@ -84,9 +88,11 @@ class EnlargedGraphDialog(QtWidgets.QDialog):
         self.setLayout(layout)
 
     def zoom(self, factor):
+        """Zoom in or out"""
         self.chart_view.chart().zoom(factor)
 
     def reset_view(self):
+        """Reset view"""
         self.chart_view.chart().zoomReset()
 
     def update_stats(self, original_chart):
