@@ -49,6 +49,10 @@ This command will start the real-time NTN optimization simulation GUI. In the ap
 - Start, stop, and reset the simulation.
 - Adjust the speed of the simulation in real time.
 - View the current number of base stations, HAPS, and LEO satellites.
+- Test multiple algorithms and compare their performance.
+
+
+![Simple Simulation](./docs/simple_simulation.png)
 
 
 ## Testing and Formatting
@@ -58,7 +62,9 @@ Before committing your changes, please run the following commands to ensure your
 ```sh
 black .
 pytest
+pylint ./src
 ```
 
 - `black` : checks the code formatting.
 - `pytest` : runs the tests.
+- `pylint` : checks the code quality.
