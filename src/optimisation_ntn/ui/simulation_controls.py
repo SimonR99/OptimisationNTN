@@ -12,6 +12,7 @@ from optimisation_ntn.nodes.base_station import BaseStation
 from optimisation_ntn.nodes.haps import HAPS
 from optimisation_ntn.nodes.user_device import UserDevice
 from optimisation_ntn.simulation import Simulation, SimulationConfig
+from optimisation_ntn.algorithms.assignment.matrix_based import MatrixBasedAssignment
 
 
 # pylint: disable=too-many-instance-attributes
@@ -32,6 +33,7 @@ class SimulationControls:
         self.time_inputs = {}
         self.strategy_combos = {}
         self.widget = None
+        self._assignment_vector = None
 
         # Initialize timer
         self.timer = QtCore.QTimer()
@@ -92,15 +94,14 @@ class SimulationControls:
     def _create_strategy_controls(self):
         """Create strategy selection controls"""
         # Assignment strategy combo
-        all_strategies = AssignmentStrategyFactory.available_strategies() + [
-            "GA",
-            "DE",
-            "PSO",
-        ]
+        all_strategies = AssignmentStrategyFactory.available_strategies()
+
+        assignment_combo = self._create_combobox(
+            all_strategies, self._on_assignment_strategy_changed
+        )
+
         self.strategy_combos = {
-            "assignment": self._create_combobox(
-                all_strategies, self._on_assignment_strategy_changed
-            ),
+            "assignment": assignment_combo,
             "power": self._create_combobox(
                 ["AllOn", "OnDemand", "OnDemandWithTimeout"],
                 self._on_power_strategy_changed,
@@ -167,34 +168,20 @@ class SimulationControls:
 
             # Set assignment strategy
             strategy = self.strategy_combos["assignment"].currentText()
-            if strategy in ["GA", "DE", "PSO"]:
-                simulation.optimizer = strategy
-                self.simulations[simulation_name] = simulation
-                self.current_simulation = simulation
 
-                # Add to list and select it
-                self.sim_list.addItem(simulation_name)
-                self.sim_list.setCurrentRow(self.sim_list.count() - 1)
+            strategy_obj = AssignmentStrategyFactory.get_strategy(
+                strategy, simulation.network
+            )
+            simulation.assignment_strategy = strategy_obj
+            self.simulations[simulation_name] = simulation
+            self.current_simulation = simulation
 
-                # Update UI parameters
-                self.update_ui_parameters()
+            # Add to list and select it
+            self.sim_list.addItem(simulation_name)
+            self.sim_list.setCurrentRow(self.sim_list.count() - 1)
 
-                # Prompt for vector before enabling simulation
-                self._prompt_for_assignment_vector()
-            else:
-                strategy_obj = AssignmentStrategyFactory.get_strategy(
-                    strategy, simulation.network
-                )
-                simulation.assignment_strategy = strategy_obj
-                self.simulations[simulation_name] = simulation
-                self.current_simulation = simulation
-
-                # Add to list and select it
-                self.sim_list.addItem(simulation_name)
-                self.sim_list.setCurrentRow(self.sim_list.count() - 1)
-
-                # Update UI parameters
-                self.update_ui_parameters()
+            # Update UI parameters
+            self.update_ui_parameters()
 
             # Enable step duration input
             self.time_inputs["step_duration"].setEnabled(True)
@@ -320,7 +307,20 @@ class SimulationControls:
             # Re-enable step duration input
             self.time_inputs["step_duration"].setEnabled(True)
 
+            # Reset the simulation
             self.current_simulation.reset()
+
+            # If using matrix-based strategy, reapply the assignment vector
+            if isinstance(
+                self.current_simulation.assignment_strategy, MatrixBasedAssignment
+            ):
+                if hasattr(self, "_assignment_vector"):
+                    matrix_strategy = MatrixBasedAssignment(
+                        self.current_simulation.network
+                    )
+                    matrix_strategy.set_assignment_matrix(self._assignment_vector)
+                    self.current_simulation.assignment_strategy = matrix_strategy
+
             self.update_ui_parameters()
 
             # Notify parent of reset
@@ -398,16 +398,18 @@ class SimulationControls:
 
     def _on_assignment_strategy_changed(self, strategy):
         """Handle assignment strategy changes"""
-        if self.current_simulation:
-            if strategy in ["GA", "DE", "PSO"]:
-                self.current_simulation.optimizer = strategy
-                self._prompt_for_assignment_vector()
-            else:
-                self.current_simulation.optimizer = None
-                strategy_obj = AssignmentStrategyFactory.get_strategy(
-                    strategy, self.current_simulation.network
-                )
-                self.current_simulation.assignment_strategy = strategy_obj
+        if not self.current_simulation:
+            self.create_new_simulation()
+
+        if strategy == "MatrixBased":
+            self.current_simulation.optimizer = None
+            self._setup_matrix_assignment()
+        else:
+            self.current_simulation.optimizer = None
+            strategy_obj = AssignmentStrategyFactory.get_strategy(
+                strategy, self.current_simulation.network
+            )
+            self.current_simulation.assignment_strategy = strategy_obj
 
     def _on_power_strategy_changed(self, strategy):
         """Handle power strategy changes"""
@@ -424,8 +426,8 @@ class SimulationControls:
             # Notify parent of reset
             self.parent.on_simulation_reset()
 
-    def _prompt_for_assignment_vector(self):
-        """Prompt user for initial assignment vector when using optimization"""
+    def _setup_matrix_assignment(self):
+        """Setup matrix-based assignment with user input vector"""
         if not self.current_simulation:
             return
 
@@ -434,14 +436,14 @@ class SimulationControls:
 
         # Create dialog for vector input
         dialog = QtWidgets.QDialog(self.parent)
-        dialog.setWindowTitle("Initial Assignment Vector")
+        dialog.setWindowTitle("Assignment Vector")
         layout = QtWidgets.QVBoxLayout()
 
         # Add explanation
         layout.addWidget(
             QtWidgets.QLabel(
                 f"Enter {n_users} comma-separated integers between 0 and {n_nodes-1}\n"
-                "representing the initial node assignments for each user."
+                "representing the node assignments for each user."
             )
         )
 
@@ -477,19 +479,40 @@ class SimulationControls:
                     [int(x.strip()) for x in text_input.text().split(",")]
                 )
                 if len(vector) == n_users and all(0 <= x < n_nodes for x in vector):
-                    self.current_simulation.initial_assignment = vector
+                    # Store the vector for later use
+                    self._assignment_vector = vector
+
+                    # Reset simulation first
+                    self.current_simulation.reset()
+
+                    # Create and set matrix-based strategy after reset
+                    matrix_strategy = MatrixBasedAssignment(
+                        self.current_simulation.network
+                    )
+                    matrix_strategy.set_assignment_matrix(self._assignment_vector)
+                    self.current_simulation.assignment_strategy = matrix_strategy
+
+                    # Update UI
+                    self.update_ui_parameters()
+
+                    # Notify parent of reset
+                    self.parent.on_simulation_reset()
                 else:
                     QtWidgets.QMessageBox.warning(
                         self.parent,
                         "Invalid Input",
                         f"Please enter exactly {n_users} integers between 0 and {n_nodes-1}.",
                     )
+                    # Revert to default strategy
+                    self.strategy_combos["assignment"].setCurrentText("TimeGreedy")
             except ValueError:
                 QtWidgets.QMessageBox.warning(
                     self.parent,
                     "Invalid Input",
                     "Please enter valid comma-separated integers.",
                 )
+                # Revert to default strategy
+                self.strategy_combos["assignment"].setCurrentText("TimeGreedy")
 
     def _setup_ui_layout(self):
         """Setup the layout of UI components"""
