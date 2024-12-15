@@ -1,5 +1,9 @@
+""" Close up view and far view panel """
+
 import math
+
 from PySide6 import QtCore, QtGui, QtWidgets
+
 from optimisation_ntn.nodes.base_station import BaseStation
 from optimisation_ntn.nodes.haps import HAPS
 from optimisation_ntn.nodes.leo import LEO
@@ -9,6 +13,8 @@ from optimisation_ntn.ui.theme_manager import ThemeManager
 
 
 class CloseUpView:
+    """Close up view"""
+
     @staticmethod
     def load(view, simulation, show_links=True, is_dark_theme=True):
         """Load the close-up view of the network"""
@@ -16,8 +22,6 @@ class CloseUpView:
         if not simulation:
             view.setScene(scene)
             return
-
-        theme = ThemeManager.DARK_THEME if is_dark_theme else ThemeManager.LIGHT_THEME
 
         # Add green floor
         scene.addRect(
@@ -65,6 +69,10 @@ class CloseUpView:
 
         view.setScene(scene)
         view.centerOn(0, 200)
+
+    def reset(self, view):
+        """Reset the close-up view"""
+        view.setScene(None)
 
     @staticmethod
     def _add_haps(scene, node, pixmap, node_positions):
@@ -166,14 +174,16 @@ class CloseUpView:
     def _get_link_color(source, target):
         if isinstance(source, LEO) or isinstance(target, LEO):
             return "cyan"
-        elif isinstance(source, BaseStation) or isinstance(target, BaseStation):
+        if isinstance(source, BaseStation) or isinstance(target, BaseStation):
             return "yellow"
-        elif isinstance(source, HAPS) or isinstance(target, HAPS):
+        if isinstance(source, HAPS) or isinstance(target, HAPS):
             return "orange"
         return "white"
 
 
 class FarView:
+    """Far view (Orbit view)"""
+
     @staticmethod
     def load(view, simulation, is_dark_theme=True):
         """Load the far view of the network"""
@@ -218,58 +228,76 @@ class FarView:
                 -radius,
                 2 * radius,
                 2 * radius,
-                QtGui.QPen(QtGui.QColor("gray"), 1, QtCore.Qt.DashLine),
+                QtGui.QPen(QtGui.QColor("gray"), 1, QtCore.Qt.PenStyle.DashLine),
             )
 
         if simulation:
             FarView._add_nodes(scene, simulation.network.nodes, leo_radius, haps_radius)
 
         view.setScene(scene)
-        view.fitInView(scene.sceneRect(), QtCore.Qt.KeepAspectRatio)
-        view.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        view.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        view.fitInView(scene.sceneRect(), QtCore.Qt.AspectRatioMode.KeepAspectRatio)
+        view.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        view.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+    @staticmethod
+    def reset(view):
+        """Reset the far view"""
+        view.setScene(None)
 
     @staticmethod
     def _add_nodes(scene, nodes, leo_radius, haps_radius):
+        """Add nodes with images to the far view"""
+        # Load node images
+        leo_pixmap = QtGui.QPixmap("images/leo.png").scaled(20, 20)
+        haps_pixmap = QtGui.QPixmap("images/haps.png").scaled(20, 20)
+
         for node in nodes:
             if isinstance(node, LEO):
-                FarView._add_leo(scene, node, leo_radius)
+                FarView._add_leo(scene, node, leo_radius, leo_pixmap)
             elif isinstance(node, HAPS):
-                FarView._add_haps(scene, node, haps_radius)
+                FarView._add_haps(scene, node, haps_radius, haps_pixmap)
 
     @staticmethod
-    def _add_leo(scene, node, radius):
+    def _add_leo(scene, node, radius, pixmap):
+        """Add LEO satellite with image"""
         angle_rad = math.radians(node.current_angle)
         x = radius * math.cos(angle_rad)
         y = -radius * math.sin(angle_rad)
 
-        leo_item = scene.addRect(
-            x - 5,
-            y - 5,
-            10,
-            10,
-            QtGui.QPen(QtGui.QColor("yellow")),
-            QtGui.QBrush(QtGui.QColor("yellow")),
-        )
+        # Add LEO image
+        item = QtWidgets.QGraphicsPixmapItem(pixmap)
+        # Center the image on the calculated position
+        item.setPos(x - pixmap.width() / 2, y - pixmap.height() / 2)
 
+        if not node.state:
+            item.setOpacity(0.2)
+
+        scene.addItem(item)
+
+        # Add text label
         text = scene.addText(f"LEO {node.node_id}")
         text.setDefaultTextColor(QtGui.QColor("white"))
-        text.setPos(x + 10, y)
+        text.setPos(x + pixmap.width(), y)
 
     @staticmethod
-    def _add_haps(scene, node, radius):
-        x = radius * math.cos(math.radians(0))
-        y = -radius * math.sin(math.radians(0))
+    def _add_haps(scene, node, radius, pixmap):
+        """Add HAPS with image"""
+        # Calculate position based on node's x position
+        angle_rad = math.radians(node.position.x * 30)  # Scale x position to angle
+        x = radius * math.cos(angle_rad)
+        y = -radius * math.sin(angle_rad)
 
-        haps_item = scene.addRect(
-            x - 5,
-            y - 5,
-            10,
-            10,
-            QtGui.QPen(QtGui.QColor("orange")),
-            QtGui.QBrush(QtGui.QColor("orange")),
-        )
+        # Add HAPS image
+        item = QtWidgets.QGraphicsPixmapItem(pixmap)
+        # Center the image on the calculated position
+        item.setPos(x - pixmap.width() / 2, y - pixmap.height() / 2)
 
+        if not node.state:
+            item.setOpacity(0.2)
+
+        scene.addItem(item)
+
+        # Add text label
         text = scene.addText(f"HAPS {node.node_id}")
         text.setDefaultTextColor(QtGui.QColor("white"))
-        text.setPos(x + 10, y)
+        text.setPos(x + pixmap.width(), y)

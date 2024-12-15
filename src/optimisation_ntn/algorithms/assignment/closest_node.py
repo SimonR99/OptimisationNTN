@@ -1,5 +1,6 @@
+""" Closest node assignment strategy """
+
 from typing import List
-import numpy as np
 
 from ...networks.request import Request
 from ...nodes.base_node import BaseNode
@@ -30,10 +31,6 @@ class ClosestNodeAssignment(AssignmentStrategy):
                 )
 
         # Calculate total delay for the chosen path
-        total_delay = (
-            self.network.get_network_delay(request, best_path)
-            if best_path
-            else float("inf")
-        )
+        total_delay = self.network.get_network_delay(request, best_path)
 
         return best_node, best_path, total_delay

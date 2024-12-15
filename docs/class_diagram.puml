@@ -1,0 +1,150 @@
+@startuml class diagram
+
+' Core Components
+class Simulation {
+  - current_time: float
+  - time_step: float
+  - network: Network
+  - matrices: DecisionMatrices
+  - assignment_strategy: AssignmentStrategy
+  - power_strategy: PowerStrategy
+  - system_energy_consumed: float
+  - system_energy_history: List[float]
+  - track_stats: bool
+  - request_state_stats: Dict[RequestStatus, int]
+  + run() -> float
+  + step() -> bool
+  + reset()
+  + enable_stats_tracking()
+  + disable_stats_tracking()
+  + evaluate_qos_satisfaction() -> float
+}
+
+' Network Components
+class Network {
+  - nodes: List[BaseNode]
+  - communication_links: List[CommunicationLink]
+  - compute_nodes: List[BaseNode]
+  - user_nodes: List[UserDevice]
+  - haps_nodes: List[HAPS]
+  - base_stations: List[BaseStation]
+  - leo_nodes: List[LEO]
+  + add_node(node: BaseNode)
+  + get_compute_nodes() -> List[BaseNode]
+  + generate_request_path() -> List[BaseNode]
+  + get_network_delay() -> float
+  + tick(time: float)
+  + get_total_energy_consumed() -> float
+}
+
+abstract class BaseNode {
+  # node_id: int
+  # position: Position
+  # state: bool
+  # antennas: List[Antenna]
+  # energy_consumed: float
+  # energy_history: List[float]
+  # processing_queue: List[Request]
+  + can_process(request: Request) -> bool
+  + tick(time: float)
+  + transmission_energy() -> float
+  + processing_energy() -> float
+}
+
+class Request {
+  - id: int
+  - status: RequestStatus
+  - size: float
+  - priority: Priority
+  - path: List[BaseNode]
+  - processing_progress: float
+  - qos_limit: float
+  + update_status(status: RequestStatus)
+}
+
+enum RequestStatus {
+  CREATED
+  IN_TRANSIT
+  IN_PROCESSING_QUEUE
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+class CommunicationLink {
+  - node_a: BaseNode
+  - node_b: BaseNode
+  - transmission_queue: List[Request]
+  - config: LinkConfig
+  + calculate_capacity() -> float
+  + calculate_transmission_delay() -> float
+  + tick(time: float)
+}
+
+' Node Types
+class BaseStation extends BaseNode {
+  - processing_frequency: float
+  - k_const: float
+}
+
+class HAPS extends BaseNode {
+  - battery_capacity: float
+  - processing_frequency: float
+  - transmission_power: float
+}
+
+class LEO extends BaseNode {
+  - battery_capacity: float
+  - current_angle: float
+  - processing_frequency: float
+  - is_visible: bool
+}
+
+class UserDevice extends BaseNode {
+  - current_requests: List[Request]
+  - transmission_power: float
+  + add_request(request: Request)
+  + assign_target_node(request: Request, node: BaseNode)
+}
+
+' Assignment Strategy Hierarchy
+abstract class AssignmentStrategy {
+  + {abstract} select_compute_node(request: Request, nodes: List[BaseNode]) -> tuple[BaseNode, List[BaseNode], float]
+}
+
+class TimeGreedyAssignment extends AssignmentStrategy
+class EnergyGreedyAssignment extends AssignmentStrategy
+class ClosestNodeAssignment extends AssignmentStrategy
+class MatrixBasedAssignment extends AssignmentStrategy
+class RandomAssignment extends AssignmentStrategy
+class HAPSOnlyAssignment extends AssignmentStrategy
+
+' Power Strategy Hierarchy
+abstract class PowerStrategy {
+  + {abstract} apply_strategy(node: BaseNode)
+}
+
+class AllOnPowerStrategy extends PowerStrategy {
+  + apply_strategy(node: BaseNode)
+}
+
+class OnDemandPowerStrategy extends PowerStrategy {
+  + apply_strategy(node: BaseNode)
+}
+
+class OnDemandWithTimeoutPowerStrategy extends PowerStrategy {
+  - timeout: float
+  + apply_strategy(node: BaseNode)
+}
+
+' Relationships
+Simulation *-- Network
+Simulation o-- AssignmentStrategy
+Simulation o-- PowerStrategy
+Network o-- "1..*" BaseNode
+Network o-- "0..*" CommunicationLink
+BaseNode o-- "1..*" Request
+CommunicationLink o-- "0..*" Request
+Request o-- RequestStatus
+
+@enduml

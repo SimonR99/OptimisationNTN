@@ -1,15 +1,19 @@
+""" Decision matrices class """
+
 from enum import Enum
 from typing import Dict
 
 import numpy as np
 
+from ..networks.network import Network
 from ..networks.request import RequestStatus
 from ..nodes.base_station import BaseStation
 from ..nodes.user_device import UserDevice
-from ..networks.network import Network
 
 
 class MatrixType(Enum):
+    """Matrix type enum"""
+
     COVERAGE_ZONE = "A"
     POWER_STATE = "B"
     REQUEST = "K"
@@ -17,6 +21,8 @@ class MatrixType(Enum):
 
 
 class DecisionMatrices:
+    """Decision matrices class"""
+
     def __init__(self, dimension: int = 0):
         """Initialize matrices used in network decision processes."""
         self.matrices: Dict[MatrixType, np.ndarray] = {
@@ -56,12 +62,19 @@ class DecisionMatrices:
 
         self.matrices[MatrixType.COVERAGE_ZONE] = coverage_matrix
 
-    def generate_request_matrix(self, num_requests: int, num_steps: int):
+    def generate_request_matrix(
+        self, num_requests: int, num_steps: int, time=0.1, time_buffer=None
+    ):
         """Generate request matrix where each user generates exactly one request."""
+        np.random.seed(42)
         if num_requests <= 0 or num_steps <= 0:
             raise ValueError("Number of requests and steps must be positive")
 
-        request_matrix = np.zeros((num_requests, num_steps))
+        if time_buffer is None:
+            request_matrix = np.zeros((num_requests, num_steps))
+        else:
+            num_steps = num_steps - int(time_buffer / time)
+            request_matrix = np.zeros((num_requests, num_steps))
 
         # Generate Poisson distribution of requests
         count = 0
@@ -78,21 +91,11 @@ class DecisionMatrices:
                 self.matrices[MatrixType.REQUEST] = request_matrix
                 break
 
-    def generate_power_matrix(
-        self, num_devices: int, num_steps: int, strategy: "PowerStateStrategy"
-    ):
-        """Generate power state matrix based on a given strategy.
-
-        Args:
-            num_devices: Number of devices
-            num_steps: Number of time steps
-            strategy: PowerStateStrategy object
-
-        Returns:
-            np.ndarray: Power state matrix
-        """
-        power_matrix = strategy.generate_power_matrix(num_devices, num_steps)
-        self.matrices[MatrixType.POWER_STATE] = power_matrix
+        # Add padding to the request matrix if time_buffer is provided (padding with 0s)
+        if time_buffer is not None:
+            self.matrices[MatrixType.REQUEST] = np.pad(
+                request_matrix, (0, int(time_buffer / time)), mode="constant"
+            )
 
     def update_assignment_matrix(self, network: Network):
         """Update real-time request assignment matrix"""
@@ -127,8 +130,8 @@ class DecisionMatrices:
         """
         try:
             return self.matrices[name]
-        except (KeyError, ValueError):
-            raise ValueError(f"Matrix '{name}' does not exist.")
+        except KeyError as exc:
+            raise ValueError(f"Matrix '{name}' does not exist.") from exc
 
     def set_matrix(self, name: MatrixType, matrix: np.ndarray) -> None:
         """Set matrix by enum value.

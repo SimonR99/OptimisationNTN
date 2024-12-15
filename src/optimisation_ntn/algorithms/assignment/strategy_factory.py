@@ -1,0 +1,53 @@
+""" Assignment strategy factory. Returns a strategy instance based on the name """
+
+from typing import Dict, Type
+
+from optimisation_ntn.networks.network import Network
+
+from .assignment_strategy import AssignmentStrategy
+from .closest_node import ClosestNodeAssignment
+from .energy_greedy import EnergyGreedyAssignment
+from .haps_only import HAPSOnlyAssignment
+from .matrix_based import MatrixBasedAssignment
+from .random_assignment import RandomAssignment
+from .time_greedy import TimeGreedyAssignment
+
+
+class AssignmentStrategyFactory:
+    """Factory class for creating assignment strategies"""
+
+    _strategies: Dict[str, Type[AssignmentStrategy]] = {
+        "TimeGreedy": TimeGreedyAssignment,
+        "ClosestNode": ClosestNodeAssignment,
+        "EnergyGreedy": EnergyGreedyAssignment,
+        "HAPSOnly": HAPSOnlyAssignment,
+        "Random": RandomAssignment,
+        "MatrixBased": MatrixBasedAssignment,
+    }
+
+    @classmethod
+    def get_strategy(cls, strategy, network: Network) -> AssignmentStrategy:
+        """Get assignment strategy instance from string name or class"""
+        if isinstance(strategy, str):
+            if strategy not in cls._strategies:
+                raise ValueError(f"Unknown strategy: {strategy}")
+            return cls._strategies[strategy](network)
+        if isinstance(strategy, type) and issubclass(strategy, AssignmentStrategy):
+            return strategy(network)
+        if isinstance(strategy, AssignmentStrategy):
+            return strategy
+        raise ValueError(
+            "Strategy must be a string name, AssignmentStrategy class, or instance"
+        )
+
+    @classmethod
+    def register_strategy(cls, name: str, strategy_class: Type[AssignmentStrategy]):
+        """Register a new assignment strategy"""
+        if not issubclass(strategy_class, AssignmentStrategy):
+            raise ValueError("Strategy must inherit from AssignmentStrategy")
+        cls._strategies[name] = strategy_class
+
+    @classmethod
+    def available_strategies(cls) -> list[str]:
+        """Get list of available strategy names"""
+        return list(cls._strategies.keys())

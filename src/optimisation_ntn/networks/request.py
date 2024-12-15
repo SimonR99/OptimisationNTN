@@ -1,10 +1,13 @@
+"""Request module"""
+
 import random
-import time
 from enum import Enum
 from typing import Callable, List, Optional, Tuple
 
 
 class RequestStatus(Enum):
+    """Request status"""
+
     CREATED = 0
     IN_TRANSIT = 1
     IN_PROCESSING_QUEUE = 2
@@ -14,12 +17,17 @@ class RequestStatus(Enum):
 
 
 class Priority(Enum):
+    """Request priority"""
+
     LOW = 1
     MEDIUM = 2
     HIGH = 3
 
 
+# pylint: disable=R0902,R0913,R0917
 class Request:
+    """Request class"""
+
     id_counter = 0
 
     def __init__(
@@ -27,17 +35,15 @@ class Request:
         tick: int,
         tick_time: float,
         initial_node: "BaseNode",
+        get_tick: Callable[[], float],
         target_node: Optional["BaseNode"] = None,
         debug: bool = False,
-        get_tick=time.time,
     ):
         self.debug = debug
-
         self.id = Request.id_counter
         Request.id_counter += 1
-        self.tick = tick
         self.current_node = initial_node
-        self.next_node = None
+        self.next_node: Optional["BaseNode"] = None
         self.target_node = target_node
         self.status = RequestStatus.CREATED
         self.processing_progress: float = 0.0  # bits
@@ -49,7 +55,7 @@ class Request:
         self.status_history: List[Tuple[RequestStatus, float]] = [
             (RequestStatus.CREATED, float(tick))
         ]
-        self.path: Optional[List["BaseNode"]] = None
+        self.path: Optional[List["BaseNode"]] = []
         self.path_index = 0
         self.get_tick = get_tick
         self.tick_time = tick_time
@@ -62,9 +68,11 @@ class Request:
             print(*args, **kwargs)
 
     def set_size(self, size: int | float):
+        """Set request size"""
         self.size = size
 
     def set_priority_type(self, priority):
+        """Set priority type"""
         match priority:
             case Priority.HIGH:
                 self.qos_limit = 0.2  # 200 ms
@@ -95,4 +103,8 @@ class Request:
             self.status = RequestStatus.FAILED
 
     def __str__(self):
-        return f"Priority: {self.priority} + \nAppearing time: {self.tick} + \nStatus:{self.status}"
+        return (
+            f"Priority: {self.priority} "
+            f"Appearing time: {self.creation_time} "
+            f"Status:{self.status}"
+        )

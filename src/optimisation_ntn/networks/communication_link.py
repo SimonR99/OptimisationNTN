@@ -1,3 +1,6 @@
+""" Communication link class """
+
+from dataclasses import dataclass
 from typing import List
 
 import numpy as np
@@ -10,31 +13,37 @@ from ..utils.earth import Earth
 from .request import Request
 
 
+@dataclass
+class LinkConfig:
+    """Configuration for communication link"""
+
+    total_bandwidth: float
+    signal_power: float
+    carrier_frequency: float
+    debug: bool = False
+
+
 class CommunicationLink:
+    """Communication link class"""
+
     def __init__(
         self,
         node_a: BaseNode,
         node_b: BaseNode,
-        signal_power: float,
-        carrier_frequency: float,
-        total_bandwidth: float,
-        debug: bool = False,
+        config: LinkConfig,
     ):
         self.node_a = node_a
         self.node_b = node_b
-        self.signal_power = signal_power
-        self.carrier_frequency = carrier_frequency
-        self.total_bandwidth = total_bandwidth
+        self.config = config
         self.transmission_queue: List[Request] = []  # FIFO queue
         self.request_progress = 0.0
-        self.debug = debug
         self.completed_requests = []
 
         # Identify compatible antennas for communication
-        self.antenna_a, self.antenna_b = self.find_compatible_antennas()
+        self.antennas = self.find_compatible_antennas()
         self.node_a.add_destination(self.node_b)
 
-        if not self.antenna_a or not self.antenna_b:
+        if not self.antennas:
             raise ValueError(
                 f"No compatible antennas found between {node_a} and {node_b}"
             )
@@ -44,8 +53,11 @@ class CommunicationLink:
         for antenna_a in self.node_a.antennas:
             antenna_b = self.node_b.get_compatible_antenna(antenna_a)
             if antenna_b:
-                return antenna_a, antenna_b
-        return None, None
+                return [antenna_a, antenna_b]
+
+        raise ValueError(
+            f"No compatible antennas found between {self.node_a} and {self.node_b}"
+        )
 
     @property
     def link_length(self) -> float:
@@ -59,8 +71,7 @@ class CommunicationLink:
     def adjusted_bandwidth(self) -> float:
         """Adjusts bandwidth based on the number of active links with the same type."""
         active_count = self.node_b.get_active_count(type(self.node_a))
-
-        return self.total_bandwidth / max(1, active_count)
+        return self.config.total_bandwidth / max(1, active_count)
 
     @property
     def noise_power(self) -> float:
@@ -83,13 +94,13 @@ class CommunicationLink:
     def calculate_free_space_path_loss(self) -> float:
         """Calculates Free Space Path Loss for (user-haps, haps-base station, haps-leo)."""
         return Earth.speed_of_light / (
-            4 * np.pi * self.link_length * self.carrier_frequency
+            4 * np.pi * self.link_length * self.config.carrier_frequency
         )
 
     def calculate_gain(self) -> float:
         """Calculates Gain of the channel user - base station."""
         if isinstance(self.node_a, UserDevice) and isinstance(self.node_b, BaseStation):
-            """Linear Scale the path loss link of 40 dB. 40 dB selon études"""
+            # Linear Scale the path loss link of 40 dB. 40 dB selon études
             path_loss = self.linear_scale_db(40)
 
             return (
@@ -97,19 +108,18 @@ class CommunicationLink:
                 * (np.abs(self.node_a.attenuation_coefficient) ** 2)
                 / self.link_length**self.node_a.path_loss_exponent
             )
-            """Calculates Gain of the current channel that is different from user - bs."""
-        else:
-            path_loss = self.calculate_free_space_path_loss()
-            tx_antenna = self.linear_scale_db(self.antenna_a.gain)
-            rx_antenna = self.linear_scale_db(self.antenna_b.gain)
 
-            return tx_antenna * rx_antenna * path_loss
+        # Calculates Gain of the current channel that is different from user - bs.
+        path_loss = self.calculate_free_space_path_loss()
+        tx_antenna = self.linear_scale_db(self.antennas[0].gain)
+        rx_antenna = self.linear_scale_db(self.antennas[1].gain)
+
+        return tx_antenna * rx_antenna * path_loss
 
     def calculate_snr(self) -> float:
         """Calculates SNR (Signal to Noise Ratio) of the current channel."""
         gain = self.calculate_gain()
-        power = self.linear_scale_dbm(self.signal_power)
-
+        power = self.linear_scale_dbm(self.config.signal_power)
         return power * gain / self.noise_power
 
     def calculate_capacity(self) -> float:
@@ -128,7 +138,7 @@ class CommunicationLink:
 
     def debug_print(self, *args, **kwargs):
         """Print only if debug mode is enabled"""
-        if self.debug:
+        if self.config.debug:
             print(*args, **kwargs)
 
     def tick(self, time: float):
@@ -140,15 +150,15 @@ class CommunicationLink:
             capacity = self.calculate_capacity()
             transmission_delay = self.calculate_transmission_delay(current_request)
             bits_transmitted = capacity * time
-            if isinstance(
-                self.node_a, HAPS
-            ):  # Only HAPS->LEO transmission energy need to be taken into account
+
+            # Only HAPS->LEO transmission energy need to be taken into account
+            if isinstance(self.node_a, HAPS):
                 self.node_a.energy_consumed += self.node_a.transmission_energy() * time
 
-            if self.debug:
-                print(f"Capacity: {capacity} \n")
-                print(f"Request size: {current_request.size} \n")
-                print(f"Transmission time: {transmission_delay} \n")
+            self.debug_print(f"Capacity: {capacity}")
+            self.debug_print(f"Request size: {current_request.size}")
+            self.debug_print(f"Transmission time: {transmission_delay}")
+
             self.request_progress += bits_transmitted
 
             self.debug_print(
@@ -159,7 +169,8 @@ class CommunicationLink:
             # Only complete transmission at the end of a tick if enough bits were transmitted
             if self.request_progress >= current_request.size:
                 self.debug_print(
-                    f"Request {current_request.id} completed transmission from {self.node_a} to {self.node_b}"
+                    f"Request {current_request.id} "
+                    f"completed transmission from {self.node_a} to {self.node_b}"
                 )
                 self.completed_requests.append(current_request)
                 self.transmission_queue.pop(0)

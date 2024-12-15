@@ -3,7 +3,7 @@ import unittest
 
 import numpy as np
 
-from optimisation_ntn.networks.communication_link import CommunicationLink
+from optimisation_ntn.networks.communication_link import CommunicationLink, LinkConfig
 from optimisation_ntn.networks.request import Request
 from optimisation_ntn.nodes.base_node import BaseNode
 from optimisation_ntn.nodes.user_device import UserDevice
@@ -11,6 +11,11 @@ from optimisation_ntn.nodes.base_station import BaseStation
 from optimisation_ntn.nodes.haps import HAPS
 from optimisation_ntn.nodes.leo import LEO
 from optimisation_ntn.utils.position import Position
+
+
+def get_tick():
+    """Get a random tick"""
+    return np.random.randint(0, 100)
 
 
 class TestCommunicationLink(unittest.TestCase):
@@ -31,9 +36,7 @@ class TestCommunicationLink(unittest.TestCase):
         link = CommunicationLink(
             self.node_a,
             self.node_b,
-            total_bandwidth=174e3,
-            signal_power=23,
-            carrier_frequency=2e9,
+            LinkConfig(total_bandwidth=174e3, signal_power=23, carrier_frequency=2e9),
         )
         self.assertEqual(link.link_length, 500.0)
 
@@ -41,9 +44,7 @@ class TestCommunicationLink(unittest.TestCase):
         link = CommunicationLink(
             self.node_a,
             self.node_b,
-            total_bandwidth=174e3,
-            signal_power=23,
-            carrier_frequency=2e9,
+            LinkConfig(total_bandwidth=174e3, signal_power=23, carrier_frequency=2e9),
         )
         self.assertEqual(link.linear_scale_db(40), 10000.0)
 
@@ -51,21 +52,17 @@ class TestCommunicationLink(unittest.TestCase):
         link = CommunicationLink(
             self.node_a,
             self.node_b,
-            total_bandwidth=174e3,
-            signal_power=23,
-            carrier_frequency=2e9,
+            LinkConfig(total_bandwidth=174e3, signal_power=23, carrier_frequency=2e9),
         )
         self.assertEqual(
-            link.linear_scale_dbm(link.signal_power), 10 ** ((23 - 30) / 10)
+            link.linear_scale_dbm(link.config.signal_power), 10 ** ((23 - 30) / 10)
         )
 
     def test_linear_scale_noise_dbm(self):
         link = CommunicationLink(
             self.node_a,
             self.node_b,
-            total_bandwidth=174e3,
-            signal_power=23,
-            carrier_frequency=2e9,
+            LinkConfig(total_bandwidth=174e3, signal_power=23, carrier_frequency=2e9),
         )
         self.assertEqual(
             link.linear_scale_dbm(self.node_a.spectral_noise_density),
@@ -77,9 +74,7 @@ class TestCommunicationLink(unittest.TestCase):
         link = CommunicationLink(
             self.node_a,
             self.node_b,
-            total_bandwidth=174e3,
-            signal_power=23,
-            carrier_frequency=2e9,
+            LinkConfig(total_bandwidth=174e3, signal_power=23, carrier_frequency=2e9),
         )
         self.assertEqual(link.calculate_gain(), 9 / 12500)
 
@@ -87,9 +82,7 @@ class TestCommunicationLink(unittest.TestCase):
         link = CommunicationLink(
             self.node_a,
             self.node_b,
-            total_bandwidth=174e3,
-            signal_power=23,
-            carrier_frequency=2e9,
+            LinkConfig(total_bandwidth=174e3, signal_power=23, carrier_frequency=2e9),
         )
         self.assertEqual(link.adjusted_bandwidth, 174e3)
 
@@ -97,9 +90,7 @@ class TestCommunicationLink(unittest.TestCase):
         link = CommunicationLink(
             self.node_a,
             self.node_b,
-            total_bandwidth=174e3,
-            signal_power=23,
-            carrier_frequency=2e9,
+            LinkConfig(total_bandwidth=174e3, signal_power=23, carrier_frequency=2e9),
         )
         self.assertEqual(link.noise_power, (10 ** ((-174 - 30) / 10)) * 174e3)
 
@@ -107,9 +98,7 @@ class TestCommunicationLink(unittest.TestCase):
         link = CommunicationLink(
             self.node_a,
             self.node_b,
-            total_bandwidth=174e3,
-            signal_power=23,
-            carrier_frequency=2e9,
+            LinkConfig(total_bandwidth=174e3, signal_power=23, carrier_frequency=2e9),
         )
         self.assertAlmostEqual(link.calculate_snr(), 207387820811.28, places=0)
 
@@ -117,9 +106,7 @@ class TestCommunicationLink(unittest.TestCase):
         link = CommunicationLink(
             self.node_a,
             self.node_b,
-            total_bandwidth=174e3,
-            signal_power=23,
-            carrier_frequency=2e9,
+            LinkConfig(total_bandwidth=174e3, signal_power=23, carrier_frequency=2e9),
         )
         self.assertAlmostEqual(link.calculate_capacity(), 6541275.9975462, places=0)
 
@@ -129,9 +116,7 @@ class TestCommunicationLink(unittest.TestCase):
         node_leo = LEO(1)
 
         # Communication link between HAPS and LEO
-        link = CommunicationLink(
-            node_haps, node_leo, total_bandwidth=1, signal_power=1, carrier_frequency=1
-        )
+        link = CommunicationLink(node_haps, node_leo, LinkConfig(1, 1, 1))
         self.assertNotEqual(
             link.calculate_free_space_path_loss(), 0.0
         )  # FSPL should not be zero
@@ -141,13 +126,11 @@ class TestCommunicationLink(unittest.TestCase):
         link = CommunicationLink(
             self.node_a,
             self.node_b,
-            total_bandwidth=100e6,
-            signal_power=23,
-            carrier_frequency=2e9,
+            LinkConfig(total_bandwidth=100e6, signal_power=23, carrier_frequency=2e9),
         )
 
         # Create and add a request
-        request = Request(np.random.randint(0, 100), self.node_a, self.node_b)
+        request = Request(0, 0.1, self.node_a, get_tick, self.node_b)
         request.set_size(100)  # data_size=100 bits
         link.add_to_queue(request)
 
@@ -163,15 +146,13 @@ class TestCommunicationLink(unittest.TestCase):
         link = CommunicationLink(
             self.node_a,
             self.node_b,
-            total_bandwidth=100e6,
-            signal_power=23,
-            carrier_frequency=2e9,
+            LinkConfig(total_bandwidth=100e6, signal_power=23, carrier_frequency=2e9),
         )
 
         # Create and add multiple requests
-        request1 = Request(0, self.node_a, self.node_b)
+        request1 = Request(0, 0.1, self.node_a, get_tick, self.node_b)
         request1.set_size(20e6)  # data size=20 Mbits
-        request2 = Request(0, self.node_a, self.node_b)
+        request2 = Request(0, 0.1, self.node_a, get_tick, self.node_b)
         request2.set_size(10e6)  # data size=10 Mbits
 
         link.add_to_queue(request1)

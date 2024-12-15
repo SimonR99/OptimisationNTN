@@ -1,20 +1,24 @@
+""" Base node class. Does the base computation and transmission power calculation """
+
 from abc import ABC
-from typing import Dict, List, Optional, Tuple
-import numpy as np
+from typing import Dict, List, Literal, Optional, Tuple
 
 from ..networks.antenna import Antenna
 from ..networks.request import Request, RequestStatus
+from ..utils.conversion import convert_dbm_watt
 from ..utils.position import Position
 
-from ..utils.conversion import convert_dbm_watt
 
-
+# pylint: disable=too-many-instance-attributes
 class BaseNode(ABC):
+    """Base node class"""
+
     def __init__(
         self,
         node_id: int,
         initial_position: Position,
         debug: bool = False,
+        power_strategy: Literal["AllOn", "OnDemand", "OnDemandWithTimeout"] = "AllOn",
     ):
         self.node_id = node_id
         self.position = initial_position
@@ -35,18 +39,38 @@ class BaseNode(ABC):
         self.spectral_noise_density = -174  # dBm/Hz
         """Ce peak d'énergie est une constante déterminée sans sources scientifiques."""
         self.turn_on_energy_peak = 150  # J
-        self.standby_energy = 50  # J/s
+        self.idle_energy = 50  # J/s
         self.recently_turned_on = False
         self.debug = debug
         self.name = ""
         self.path_loss_exponent = 0.0
         self.attenuation_coefficient = 0.0
-        self.reference_lenght = 0.0
         self.destinations: List["BaseNode"] = []
         self.last_tick_energy = 0.0
         self.energy_history = []
+        self.timeout = 10
+        self.last_state_change = 0
+        self.power_strategy = power_strategy
+        self.tick_count = 0
+
+    def apply_power_strategy(self):
+        """Apply power strategy"""
+        if self.power_strategy == "AllOn":
+            self._turn_on()
+        elif self.power_strategy == "OnDemand":
+            if self.processing_queue:
+                self._turn_on()
+            else:
+                self._turn_off()
+        elif self.power_strategy == "OnDemandWithTimeout":
+            if self.processing_queue:
+                self.last_state_change = 0
+                self._turn_on()
+            elif self.last_state_change > self.timeout:
+                self._turn_off()
 
     def get_name(self) -> str:
+        """Get node name"""
         return self.name
 
     def add_antenna(self, antenna_type: str, gain: float):
@@ -94,11 +118,15 @@ class BaseNode(ABC):
     def _turn_on(self):
         """Turn node on and add energy consumed."""
 
-        if self.battery_capacity - self.energy_consumed <= 0:
+        if (
+            self.battery_capacity != -1
+            and self.battery_capacity - self.energy_consumed <= 0
+        ):
+            return
+        if self.state:
             return
         self.energy_consumed += self.turn_on_energy_peak
         self.state = True
-        self.recently_turned_on = True
 
     def _turn_off(self):
         """Turn node off"""
@@ -134,6 +162,13 @@ class BaseNode(ABC):
         if check_state and not self.state:
             return False
 
+        # check battery
+        if (
+            self.battery_capacity != -1
+            and self.battery_capacity - self.energy_consumed <= 0
+        ):
+            return False
+
         # If no specific request, just check basic capability
         if request is None:
             return True
@@ -143,7 +178,7 @@ class BaseNode(ABC):
 
     def add_request_to_process(self, request: Request):
         """Add request to processing queue"""
-        if self.can_process(request):
+        if self.can_process(request, check_state=False):
             self.processing_queue.append(request)
             self.current_load += request.size
             request.update_status(RequestStatus.PROCESSING)
@@ -154,7 +189,8 @@ class BaseNode(ABC):
             )
         else:
             self.debug_print(
-                f"Node {self} cannot process request {request.id} (current load: {self.current_load}, power: {self.processing_frequency})"
+                f"Node {self} cannot process request {request.id} "
+                f"(current load: {self.current_load}, power: {self.processing_frequency})"
             )
 
     def process_requests(self, time: float):
@@ -197,6 +233,8 @@ class BaseNode(ABC):
 
     def tick(self, time: float):
         """Update node state including request processing"""
+        self.apply_power_strategy()
+
         if (
             self.battery_capacity != -1
             and self.battery_capacity - self.energy_consumed <= 0
@@ -206,13 +244,14 @@ class BaseNode(ABC):
         self.process_requests(time)
 
         if self.state:
-            self.energy_consumed += self.standby_energy * time
+            self.energy_consumed += self.idle_energy * time
 
         # Store energy consumed during this time step
         energy_this_tick = self.energy_consumed - self.last_tick_energy
         self.last_tick_energy = self.energy_consumed
 
         self.energy_history.append(energy_this_tick)
+        self.last_state_change += time
 
     def debug_print(self, *args, **kwargs):
         """Print only if debug mode is enabled"""
@@ -220,8 +259,9 @@ class BaseNode(ABC):
             print(*args, **kwargs)
 
     def transmission_energy(self):
-        """Calculates the transmission energy consumed from the haps to the next node (bs or Leo) and turns off the node
-        if the battery is depleted.
+        """Calculates the transmission energy consumed
+        from the haps to the next node (bs or Leo) and
+        turns off the node if the battery is depleted.
         :param link_bandwidth:
         :param request:
         :return: energy consumed in joules
