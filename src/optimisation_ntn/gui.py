@@ -12,6 +12,9 @@ from optimisation_ntn.ui.simulation_controls import SimulationControls
 from optimisation_ntn.ui.stats_table import NodeStatsTable
 from optimisation_ntn.ui.theme_manager import ThemeManager
 from optimisation_ntn.ui.views import CloseUpView, FarView
+from optimisation_ntn.algorithms.assignment.strategy_factory import (
+    AssignmentStrategyFactory,
+)
 
 # Task bar Icon on Windows
 if platform.system() == "Windows":

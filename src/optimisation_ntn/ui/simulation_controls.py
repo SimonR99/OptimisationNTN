@@ -141,6 +141,24 @@ class SimulationControls:
         combo.currentTextChanged.connect(on_change)
         return combo
 
+        # Create strategy selection combos
+        self.assignment_strategy_combo = QtWidgets.QComboBox()
+        all_strategies = AssignmentStrategyFactory.available_strategies() + [
+            "GA",
+            "DE",
+            "PSO",
+        ]
+        self.assignment_strategy_combo.addItems(all_strategies)
+        self.assignment_strategy_combo.currentTextChanged.connect(
+            self._on_assignment_strategy_changed
+        )
+
+        self.power_strategy_combo = QtWidgets.QComboBox()
+        self.power_strategy_combo.addItems(["AllOn", "OnDemand", "OnDemandWithTimeout"])
+        self.power_strategy_combo.currentTextChanged.connect(
+            self._on_power_strategy_changed
+        )
+
     def create_new_simulation(self):
         """Create a new simulation and add it to the list"""
         try:
@@ -246,6 +264,22 @@ class SimulationControls:
                     self.current_simulation.assignment_strategy.__class__.__name__
                 )
                 self.strategy_combos["assignment"].setCurrentText(strategy_name)
+
+            # Update strategy combos
+            if hasattr(self.current_simulation, "power_strategy"):
+                self.power_strategy_combo.setCurrentText(
+                    self.current_simulation.power_strategy
+                )
+
+            if self.current_simulation.optimizer:
+                self.assignment_strategy_combo.setCurrentText(
+                    self.current_simulation.optimizer
+                )
+            elif hasattr(self.current_simulation.assignment_strategy, "__class__"):
+                strategy_name = (
+                    self.current_simulation.assignment_strategy.__class__.__name__
+                )
+                self.assignment_strategy_combo.setCurrentText(strategy_name)
 
             # Re-enable signals
             self.node_inputs["bs"].blockSignals(False)
