@@ -39,6 +39,10 @@ class SimulationControls:
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.simulation_step)
 
+        # Initialize simulation timer
+        self.simulation_timer = QtCore.QTimer()
+        self.simulation_timer.timeout.connect(self.simulation_step)
+
         # Create UI components
         self._create_ui_components()
         self._setup_ui_layout()
@@ -82,14 +86,28 @@ class SimulationControls:
             "initial": 0.001,
         }
 
+        simulation_speed_config = {
+            "min_val": 0.1,
+            "max_val": 1000.0,
+            "decimals": 1,
+            "step": 1.0,
+            "initial": 10.0,
+        }
+
         self.time_inputs = {
             "step_duration": self._create_double_spinbox(
                 config=step_duration_config, on_change=self._on_step_duration_changed
             ),
-            "time_step": self._create_spinbox(
-                1, 100, self._on_time_step_changed, initial_value=100
+            "simulation_speed": self._create_double_spinbox(
+                config=simulation_speed_config,
+                on_change=self._on_simulation_speed_changed,
             ),
+            "max_time": self._create_spinbox(1, 3600, self._on_max_time_changed, 300),
         }
+        self.time_inputs["simulation_speed"].setRange(1, 1000)
+        self.time_inputs["simulation_speed"].setValue(100)
+        self.time_inputs["max_time"].setRange(1, 3600)
+        self.time_inputs["max_time"].setValue(300)
 
     def _create_strategy_controls(self):
         """Create strategy selection controls"""
@@ -163,8 +181,11 @@ class SimulationControls:
                     debug=False,
                     power_strategy=power_strategy,
                     optimizer=None,
+                    time_step=1.0 / self.time_inputs["simulation_speed"].value(),
+                    max_time=self.time_inputs["max_time"].value(),
                 )
             )
+            simulation.enable_stats_tracking()
 
             # Set assignment strategy
             strategy = self.strategy_combos["assignment"].currentText()
@@ -202,6 +223,7 @@ class SimulationControls:
             self.time_inputs["step_duration"].blockSignals(True)
             self.strategy_combos["power"].blockSignals(True)
             self.strategy_combos["assignment"].blockSignals(True)
+            self.time_inputs["max_time"].blockSignals(True)
 
             # Count nodes of each type
             bs_count = self.current_simulation.network.count_nodes_by_type(BaseStation)
@@ -234,6 +256,9 @@ class SimulationControls:
                 )
                 self.strategy_combos["assignment"].setCurrentText(strategy_name)
 
+            # Update max time
+            self.time_inputs["max_time"].setValue(int(self.current_simulation.max_time))
+
             # Re-enable signals
             self.node_inputs["bs"].blockSignals(False)
             self.node_inputs["haps"].blockSignals(False)
@@ -241,13 +266,14 @@ class SimulationControls:
             self.time_inputs["step_duration"].blockSignals(False)
             self.strategy_combos["power"].blockSignals(False)
             self.strategy_combos["assignment"].blockSignals(False)
+            self.time_inputs["max_time"].blockSignals(False)
 
     def toggle_simulation(self):
         """Toggle between running and paused states"""
         if self.current_simulation:
-            if self.timer.isActive():
+            if self.simulation_timer.isActive():
                 # Pause simulation
-                self.timer.stop()
+                self.simulation_timer.stop()
                 self.current_simulation.is_paused = True
                 self.run_pause_btn.setText("Resume")
             else:
@@ -259,12 +285,9 @@ class SimulationControls:
         """Start or resume simulation"""
         if self.current_simulation:
             self.current_simulation.is_paused = False
-            update_interval = self.time_inputs["time_step"].value()
-
-            # Disable step duration input while simulation is running
-            self.time_inputs["step_duration"].setEnabled(False)
-
-            self.timer.start(update_interval)
+            speed = self.time_inputs["simulation_speed"].value()
+            interval = int(1000 / speed)  # Convert steps/s to timer interval in ms
+            self.simulation_timer.start(interval)
             self.run_pause_btn.setText("Pause")
 
     def simulation_step(self):
@@ -273,13 +296,12 @@ class SimulationControls:
             try:
                 can_continue = self.current_simulation.step()
 
-                if can_continue:
-                    # Notify parent to update UI
-                    self.parent.on_simulation_step()
-                else:
-                    self.timer.stop()
+                # Notify parent of step completion
+                self.parent.on_simulation_step()
+
+                if not can_continue:
+                    self.simulation_timer.stop()
                     self.run_pause_btn.setText("Run")
-                    # Optionally show a message that simulation has ended
                     QtWidgets.QMessageBox.information(
                         self.parent,
                         "Simulation Complete",
@@ -287,8 +309,7 @@ class SimulationControls:
                     )
 
             except IndexError as e:
-                # Handle matrix bounds error
-                self.timer.stop()
+                self.simulation_timer.stop()
                 self.run_pause_btn.setText("Run")
                 QtWidgets.QMessageBox.warning(
                     self.parent,
@@ -391,10 +412,13 @@ class SimulationControls:
         if self.current_simulation:
             self.current_simulation.time_step = value
 
-    def _on_time_step_changed(self, value):
-        """Handle UI update interval changes"""
-        if self.timer.isActive():
-            self.timer.setInterval(value)
+    def _on_simulation_speed_changed(self, value):
+        """Handle simulation speed changes"""
+        if value > 0:
+            # Only update timer interval, don't change step duration
+            interval = int(1000 / value)
+            if self.simulation_timer.isActive():
+                self.simulation_timer.setInterval(interval)
 
     def _on_assignment_strategy_changed(self, strategy):
         """Handle assignment strategy changes"""
@@ -519,10 +543,28 @@ class SimulationControls:
         # Create main layout
         layout = QtWidgets.QVBoxLayout()
 
-        # Add control buttons
-        button_layout = QtWidgets.QHBoxLayout()
-        button_layout.addWidget(self.run_pause_btn)
-        button_layout.addWidget(self.reset_btn)
+        # Add control buttons in two rows
+        button_layout = QtWidgets.QVBoxLayout()
+
+        # First row: New, Run/Pause and Reset
+        top_buttons = QtWidgets.QHBoxLayout()
+        new_btn = QtWidgets.QPushButton("New Simulation")
+        new_btn.clicked.connect(self.create_new_simulation)
+        top_buttons.addWidget(new_btn)
+        top_buttons.addWidget(self.run_pause_btn)
+        top_buttons.addWidget(self.reset_btn)
+        button_layout.addLayout(top_buttons)
+
+        # Second row: Delete and Apply
+        bottom_buttons = QtWidgets.QHBoxLayout()
+        delete_btn = QtWidgets.QPushButton("Delete Simulation")
+        delete_btn.clicked.connect(self.delete_current_simulation)
+        self.apply_btn = QtWidgets.QPushButton("Apply Changes")
+        self.apply_btn.clicked.connect(self.apply_changes)
+        bottom_buttons.addWidget(delete_btn)
+        bottom_buttons.addWidget(self.apply_btn)
+        button_layout.addLayout(bottom_buttons)
+
         layout.addLayout(button_layout)
 
         # Add node count controls
@@ -538,7 +580,10 @@ class SimulationControls:
         time_group = QtWidgets.QGroupBox("Time Controls")
         time_layout = QtWidgets.QFormLayout()
         time_layout.addRow("Step Duration (s):", self.time_inputs["step_duration"])
-        time_layout.addRow("UI Update Interval (ms):", self.time_inputs["time_step"])
+        time_layout.addRow(
+            "Simulation Speed (steps/s):", self.time_inputs["simulation_speed"]
+        )
+        time_layout.addRow("Max Simulation Time (s):", self.time_inputs["max_time"])
         time_group.setLayout(time_layout)
         layout.addWidget(time_group)
 
@@ -556,6 +601,112 @@ class SimulationControls:
         self.widget = QtWidgets.QWidget()
         self.widget.setLayout(layout)
 
+    def delete_current_simulation(self):
+        """Delete the currently selected simulation"""
+        if not self.sim_list.currentItem():
+            return
+
+        simulation_name = self.sim_list.currentItem().text()
+        reply = QtWidgets.QMessageBox.question(
+            self.parent,
+            "Delete Simulation",
+            f"Are you sure you want to delete {simulation_name}?",
+            QtWidgets.QMessageBox.StandardButton.Yes
+            | QtWidgets.QMessageBox.StandardButton.No,
+        )
+
+        if reply == QtWidgets.QMessageBox.StandardButton.Yes:
+            # Remove from simulations dict
+            del self.simulations[simulation_name]
+
+            # Remove from list widget
+            self.sim_list.takeItem(self.sim_list.row(self.sim_list.currentItem()))
+
+            # Clear current simulation if it was deleted
+            if (
+                self.current_simulation
+                and simulation_name == self.sim_list.currentItem().text()
+            ):
+                self.current_simulation = None
+
+            # Update UI
+            self.parent.on_simulation_selected()
+
+    def apply_changes(self):
+        """Apply parameter changes to current simulation"""
+        if not self.current_simulation:
+            return
+
+        # Store current values
+        config = SimulationConfig(
+            time_step=self.time_inputs[
+                "step_duration"
+            ].value(),  # Use step duration directly
+            max_time=self.time_inputs["max_time"].value(),
+            power_strategy=self.strategy_combos["power"].currentText(),
+            assignment_strategy=self.strategy_combos["assignment"].currentText(),
+            user_count=self.node_inputs["users"].value(),
+            debug=self.current_simulation.debug,  # Preserve debug setting
+            save_results=self.current_simulation.save_results,  # Preserve save setting
+            print_output=self.current_simulation.print_output,  # Preserve print setting
+            optimizer=self.current_simulation.optimizer,  # Preserve optimizer setting
+        )
+
+        # Create new simulation with current config
+        new_simulation = Simulation(config)
+        new_simulation.enable_stats_tracking()
+
+        # Set node counts
+        new_simulation.set_nodes(BaseStation, self.node_inputs["bs"].value())
+        new_simulation.set_nodes(HAPS, self.node_inputs["haps"].value())
+        new_simulation.set_nodes(UserDevice, self.node_inputs["users"].value())
+
+        # Replace current simulation
+        simulation_name = self.sim_list.currentItem().text()
+        self.simulations[simulation_name] = new_simulation
+        self.current_simulation = new_simulation
+
+        # Stop any running simulation
+        if self.simulation_timer.isActive():
+            self.simulation_timer.stop()
+            self.run_pause_btn.setText("Run")
+
+        # Update UI without resetting parameters
+        self.update_ui_parameters_preserve()
+        self.parent.on_simulation_reset()
+
+        QtWidgets.QMessageBox.information(
+            self.parent,
+            "Changes Applied",
+            "Simulation parameters have been updated.",
+        )
+
+    def update_ui_parameters_preserve(self):
+        """Update UI controls while preserving current parameter values"""
+        if self.current_simulation:
+            # Only update what needs to be synchronized
+            self.time_inputs["simulation_speed"].blockSignals(True)
+            self.time_inputs["simulation_speed"].setValue(
+                1.0 / self.current_simulation.time_step
+            )
+            self.time_inputs["simulation_speed"].blockSignals(False)
+
+            # Update strategy combos if needed
+            if hasattr(self.current_simulation, "power_strategy"):
+                self.strategy_combos["power"].setCurrentText(
+                    self.current_simulation.power_strategy
+                )
+
+            if self.current_simulation.optimizer:
+                self.strategy_combos["assignment"].setCurrentText(
+                    self.current_simulation.optimizer
+                )
+            elif hasattr(self.current_simulation.assignment_strategy, "__class__"):
+                strategy_name = (
+                    self.current_simulation.assignment_strategy.__class__.__name__
+                )
+                self.strategy_combos["assignment"].setCurrentText(strategy_name)
+
     @property
     def num_bs_input(self):
         """Get base station count input"""
@@ -570,3 +721,11 @@ class SimulationControls:
     def num_users_input(self):
         """Get user count input"""
         return self.node_inputs["users"]
+
+    def _on_max_time_changed(self, value):
+        """Handle max time changes"""
+        if self.current_simulation:
+            self.current_simulation.max_time = value
+            # Reset if current time is beyond new max time
+            if self.current_simulation.current_time >= value:
+                self.reset_simulation()

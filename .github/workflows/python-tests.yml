@@ -35,5 +35,11 @@ jobs:
         black --check .
     - name: Lint with pylint
       run: |
-        pylint --rcfile=.pylintrc --disable=E0611,E0401 ./src
+        pylint --rcfile=.pylintrc --disable=E0611,E0401 ./src > pylint_report.txt || true
+        score=$(grep "Your code has been rated at" pylint_report.txt | awk '{print $7}' | cut -d'/' -f1)
+        if (( $(echo "$score < 9.5" | bc -l) )); then
+          echo "Pylint score ($score) is below 0.95. Failing the workflow."
+          exit 1
+        fi
+
 

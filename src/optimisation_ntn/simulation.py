@@ -78,14 +78,17 @@ class Simulation:
         self.total_requests = 0
         self.is_paused = False
         self.system_energy_consumed = 0
+        self.system_energy_history = []
         self.print_output = config.print_output
         self.optimizer = config.optimizer
 
+        self.track_stats = False
+
+        # Initialize stats only when needed
+        self.request_state_stats = {}
+
         # self.reset()
         self.reset()
-
-        # Initialize request state stats
-        self.request_state_stats = {status: 0 for status in RequestStatus}
 
     @property
     def max_tick_time(self) -> int:
@@ -119,14 +122,19 @@ class Simulation:
 
         # Calculate total energy consumed
         self.system_energy_consumed = self.network.get_total_energy_consumed()
+
+        # Always collect request list for saving results
         request_list = []
         for user in self.network.user_nodes:
             requests = user.current_requests
             for request in requests:
                 request_list.append(request.__dict__)
 
-        for request in request_list:
-            self.request_state_stats[request["status"]] += 1
+        # Process statistics only if tracking is enabled
+        if self.track_stats:
+            self.request_state_stats = {status: 0 for status in RequestStatus}
+            for request in request_list:
+                self.request_state_stats[request["status"]] += 1
 
         if self.print_output:
             print("\nSimulation completed:")
@@ -137,9 +145,11 @@ class Simulation:
             print(f"\nQoS Success Rate: {success_rate:.2f}%")
             print(f"Average speed: {self.current_step/execution_time:.0f} steps/second")
             print(f"Total energy consumed: {self.system_energy_consumed} joules\n")
-            print("\nRequest Statistics:")
-            for status, count in self.request_state_stats.items():
-                print(f"{status.name}: {count}")
+
+            if self.track_stats:
+                print("\nRequest Statistics:")
+                for status, count in self.request_state_stats.items():
+                    print(f"{status.name}: {count}")
 
         if self.save_results:
             if self.optimizer:
@@ -254,12 +264,25 @@ class Simulation:
         # Update total energy consumed
         self.system_energy_consumed = self.network.get_total_energy_consumed()
 
-        # Update matrices and stats
-        self.matrices.update_assignment_matrix(self.network)
+        # Track statistics only when needed
+        if self.track_stats:
+            # Add the energy consumed in this step to history
+            step_energy = sum(
+                node.energy_history[-1] if node.energy_history else 0
+                for node in self.network.compute_nodes
+            )
+            self.system_energy_history.append(step_energy)
+
+            # Update request statistics
+            self.request_state_stats = {status: 0 for status in RequestStatus}
+            for user in self.network.user_nodes:
+                for request in user.current_requests:
+                    self.request_state_stats[request.status] += 1
 
         # Update time and step counter
         self.current_time += self.time_step
         self.current_step += 1
+
         return self.current_time < self.max_time
 
     def reset(self):
@@ -269,6 +292,7 @@ class Simulation:
         self.network = Network(debug=self.debug)
         self.total_requests = 0
         self.system_energy_consumed = 0
+        self.system_energy_history = []
 
         self.assignment_strategy = AssignmentStrategyFactory.get_strategy(
             self.config.assignment_strategy, self.network
@@ -280,6 +304,10 @@ class Simulation:
 
         self.initialize_default_nodes()
         self.initialize_matrices()
+
+        if self.track_stats:
+            self.system_energy_history = []
+            self.request_state_stats = {status: 0 for status in RequestStatus}
 
     def initialize_default_nodes(
         self,
@@ -389,3 +417,14 @@ class Simulation:
             energy_consumed,
             satisfaction_rate / 100.0,
         )  # Convert percentage to fraction
+
+    def enable_stats_tracking(self):
+        """Enable tracking of statistics for UI"""
+        self.track_stats = True
+        self.request_state_stats = {status: 0 for status in RequestStatus}
+
+    def disable_stats_tracking(self):
+        """Disable tracking of statistics"""
+        self.track_stats = False
+        self.system_energy_history = []
+        self.request_state_stats = {}

@@ -36,13 +36,15 @@ class EnergyGraph:
         self.chart.addAxis(self.axis_x, QtCore.Qt.AlignmentFlag.AlignBottom)
         self.chart.addAxis(self.axis_y, QtCore.Qt.AlignmentFlag.AlignLeft)
 
+        # Initialize series
         if title == "Total Energy":
             self.series = QLineSeries()
             self.chart.addSeries(self.series)
             self.series.attachAxis(self.axis_x)
             self.series.attachAxis(self.axis_y)
+            self.point_count = 0  # Track points for total energy
         else:
-            self.series = {}
+            self.node_series = {}  # Dictionary to store node series
 
         # Create chart view
         self.chart_view = QChartView(self.chart)
@@ -55,6 +57,9 @@ class EnergyGraph:
         # Track current step
         self.current_step = 0
 
+        self.max_points = 1000  # Maximum number of points to display
+        self.decimation_factor = 1  # Will be adjusted based on data size
+
     def show_enlarged_graph(self, event):
         """Show the enlarged version of the graph"""
         if event.button() != QtCore.Qt.MouseButton.LeftButton:
@@ -64,32 +69,61 @@ class EnergyGraph:
             dialog = EnlargedGraphDialog(self.chart_view, self.parent)
             dialog.exec()
 
-    def add_point(self, y):
+    def decimate_data(self, series):
+        """Reduce number of points in a series if it exceeds max_points"""
+        point_count = series.count()
+        if point_count > self.max_points:
+            self.decimation_factor = (
+                point_count + self.max_points - 1
+            ) // self.max_points
+
+            # Create new decimated series
+            decimated_series = QLineSeries()
+            decimated_series.setName(series.name())
+
+            # Keep first and last points, decimate points in between
+            decimated_series.append(series.at(0).x(), series.at(0).y())
+            for i in range(1, point_count - 1, self.decimation_factor):
+                point = series.at(i)
+                decimated_series.append(point.x(), point.y())
+            decimated_series.append(
+                series.at(point_count - 1).x(), series.at(point_count - 1).y()
+            )
+
+            return decimated_series
+        return series
+
+    def add_point(self, value):
         """Add a point to the total energy series"""
-        if hasattr(self, "series") and isinstance(self.series, QLineSeries):
-            self.current_step += 1
-            self.series.append(self.current_step, y)
+        if not hasattr(self, "series"):
+            return
 
-            # Adjust x-axis range more fluidly
-            if self.current_step >= self.axis_x.max():
-                new_max = self.current_step + int(
-                    self.current_step * 0.05
-                )  # Increase by 50 steps
-                self.axis_x.setRange(0, new_max)
+        self.series.append(self.point_count, value)
+        self.point_count += 1
 
-            self.update_y_axis_range()
+        # Apply decimation if needed
+        if self.series.count() > self.max_points:
+            decimated = self.decimate_data(self.series)
+            self.chart.removeSeries(self.series)
+            self.series = decimated
+            self.chart.addSeries(self.series)
+            self.series.attachAxis(self.axis_x)
+            self.series.attachAxis(self.axis_y)
 
-    def add_node_point(self, node_text, y):
+        # Update axis ranges
+        if self.point_count >= self.axis_x.max():
+            new_max = self.point_count + int(self.point_count * 0.1)
+            self.axis_x.setRange(0, new_max)
+        self.update_y_axis_range()
+
+    def add_node_point(self, node_name, value):
         """Add a point to a node's energy series"""
-        if node_text not in self.series:
-            series = QLineSeries()
-            series.setName(node_text)
-            self.chart.addSeries(series)
-            series.attachAxis(self.axis_x)
-            series.attachAxis(self.axis_y)
-            self.series[node_text] = series
-            self.series[node_text].current_step = 0
+        if not hasattr(self, "node_series"):
+            return
 
+        if node_name not in self.node_series:
+            series = QLineSeries()
+            series.setName(node_name)
             # Assign a random color
             color = QtGui.QColor(
                 random.randint(50, 255),
@@ -97,37 +131,48 @@ class EnergyGraph:
                 random.randint(50, 255),
             )
             series.setColor(color)
+            self.node_series[node_name] = series
+            self.chart.addSeries(series)
+            series.attachAxis(self.axis_x)
+            series.attachAxis(self.axis_y)
 
-        self.series[node_text].current_step += 1
-        self.series[node_text].append(self.series[node_text].current_step, y)
+        series = self.node_series[node_name]
+        current_count = series.count()
+        series.append(current_count, value)
 
-        # Adjust x-axis range more fluidly
-        if self.series[node_text].current_step >= self.axis_x.max():
-            new_max = self.series[node_text].current_step + int(
-                self.series[node_text].current_step * 0.05
-            )  # Increase by 50 steps
+        # Apply decimation if needed
+        if series.count() > self.max_points:
+            decimated = self.decimate_data(series)
+            self.chart.removeSeries(series)
+            self.node_series[node_name] = decimated
+            self.chart.addSeries(decimated)
+            decimated.attachAxis(self.axis_x)
+            decimated.attachAxis(self.axis_y)
+
+        # Update axis ranges
+        if current_count >= self.axis_x.max():
+            new_max = current_count + int(current_count * 0.1)
             self.axis_x.setRange(0, new_max)
-
         self.update_y_axis_range()
-        self.chart.legend().setVisible(len(self.series) > 1)
+        self.chart.legend().setVisible(len(self.node_series) > 1)
 
     def remove_node_series(self, node_text):
         """Remove a node's energy series"""
-        if node_text in self.series:
-            series = self.series[node_text]
+        if hasattr(self, "node_series") and node_text in self.node_series:
+            series = self.node_series[node_text]
             self.chart.removeSeries(series)
-            del self.series[node_text]
+            del self.node_series[node_text]
             self.update_y_axis_range()
-            self.chart.legend().setVisible(len(self.series) > 1)
+            self.chart.legend().setVisible(len(self.node_series) > 1)
 
     def update_y_axis_range(self):
         """Update the y-axis range based on the maximum value"""
         max_energy = 0
-        if isinstance(self.series, dict):
-            for series in self.series.values():
+        if hasattr(self, "node_series"):
+            for series in self.node_series.values():
                 for i in range(series.count()):
                     max_energy = max(max_energy, series.at(i).y())
-        else:
+        elif hasattr(self, "series"):
             for i in range(self.series.count()):
                 max_energy = max(max_energy, self.series.at(i).y())
 
@@ -136,12 +181,14 @@ class EnergyGraph:
 
     def clear(self):
         """Clear all data from the graph"""
-        if isinstance(self.series, dict):
-            for series in list(self.series.values()):
+        if hasattr(self, "node_series"):
+            for series in list(self.node_series.values()):
                 self.chart.removeSeries(series)
+            self.node_series.clear()
+        elif hasattr(self, "series"):
             self.series.clear()
-        else:
-            self.series.clear()
+            self.point_count = 0
+
         self.axis_y.setRange(0, 100)  # Reset to default range
         self.axis_x.setRange(0, 100)  # Reset x-axis range
         self.current_step = 0  # Reset step counter
