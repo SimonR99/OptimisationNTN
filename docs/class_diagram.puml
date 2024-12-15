@@ -7,6 +7,7 @@ class Simulation {
   - network: Network
   - matrices: DecisionMatrices
   - assignment_strategy: AssignmentStrategy
+  - power_strategy: PowerStrategy
   - system_energy_consumed: float
   - system_energy_history: List[float]
   - track_stats: bool
@@ -115,10 +116,31 @@ class TimeGreedyAssignment extends AssignmentStrategy
 class EnergyGreedyAssignment extends AssignmentStrategy
 class ClosestNodeAssignment extends AssignmentStrategy
 class MatrixBasedAssignment extends AssignmentStrategy
+class RandomAssignment extends AssignmentStrategy
+class HAPSOnlyAssignment extends AssignmentStrategy
+
+' Power Strategy Hierarchy
+abstract class PowerStrategy {
+  + {abstract} apply_strategy(node: BaseNode)
+}
+
+class AllOnPowerStrategy extends PowerStrategy {
+  + apply_strategy(node: BaseNode)
+}
+
+class OnDemandPowerStrategy extends PowerStrategy {
+  + apply_strategy(node: BaseNode)
+}
+
+class OnDemandWithTimeoutPowerStrategy extends PowerStrategy {
+  - timeout: float
+  + apply_strategy(node: BaseNode)
+}
 
 ' Relationships
 Simulation *-- Network
 Simulation o-- AssignmentStrategy
+Simulation o-- PowerStrategy
 Network o-- "1..*" BaseNode
 Network o-- "0..*" CommunicationLink
 BaseNode o-- "1..*" Request
