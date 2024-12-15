@@ -580,9 +580,6 @@ class SimulationControls:
         time_group = QtWidgets.QGroupBox("Time Controls")
         time_layout = QtWidgets.QFormLayout()
         time_layout.addRow("Step Duration (s):", self.time_inputs["step_duration"])
-        time_layout.addRow(
-            "Simulation Speed (steps/s):", self.time_inputs["simulation_speed"]
-        )
         time_layout.addRow("Max Simulation Time (s):", self.time_inputs["max_time"])
         time_group.setLayout(time_layout)
         layout.addWidget(time_group)
