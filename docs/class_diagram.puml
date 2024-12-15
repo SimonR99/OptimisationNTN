@@ -6,71 +6,17 @@ class Simulation {
   - time_step: float
   - network: Network
   - matrices: DecisionMatrices
-  - power_strategy: PowerStateStrategy
   - assignment_strategy: AssignmentStrategy
-  - matrix_history: List
-  - is_paused: bool
+  - system_energy_consumed: float
+  - system_energy_history: List[float]
+  - track_stats: bool
+  - request_state_stats: Dict[RequestStatus, int]
   + run() -> float
   + step() -> bool
   + reset()
-  + set_power_strategy(strategy: PowerStateStrategy)
-  + set_assignment_strategy(strategy: AssignmentStrategy)
-  + initialize_default_nodes()
-  + set_nodes(node_type: type, count: int)
+  + enable_stats_tracking()
+  + disable_stats_tracking()
   + evaluate_qos_satisfaction() -> float
-  + run_with_assignment(assign_vector: List[int]) -> (float, float)
-}
-
-' Power Strategy Hierarchy
-abstract class PowerStateStrategy {
-  + {abstract} generate_power_matrix(num_devices: int, num_steps: int) -> ndarray
-  + get_name() -> str
-}
-
-class AllOnStrategy extends PowerStateStrategy
-class OnDemandStrategy extends PowerStateStrategy
-class OnDemandWithTimeoutStrategy extends PowerStateStrategy {
-  - timeout: float
-}
-
-' Assignment Strategy Hierarchy
-abstract class AssignmentStrategy {
-  + {abstract} select_compute_node(request: Request, nodes: List[BaseNode]) -> tuple[BaseNode, List[BaseNode], float]
-  + get_name() -> str
-}
-
-class TimeGreedyAssignment extends AssignmentStrategy {
-  - network: Network
-}
-
-class EnergyGreedyAssignment extends AssignmentStrategy {
-  - network: Network
-}
-
-class ClosestNodeAssignment extends AssignmentStrategy {
-  - network: Network
-}
-
-class HAPSOnlyAssignment extends AssignmentStrategy {
-  - network: Network
-}
-
-class RandomAssignment extends AssignmentStrategy {
-  - network: Network
-}
-
-class MatrixBasedAssignment extends AssignmentStrategy {
-  - network: Network
-  - assignment_matrix: ndarray
-  - current_request_index: int
-  + set_assignment_matrix(matrix: ndarray)
-}
-
-class AssignmentStrategyFactory {
-  - _strategies: Dict[str, Type[AssignmentStrategy]]
-  + get_strategy(strategy, network) -> AssignmentStrategy
-  + register_strategy(name: str, strategy_class: Type[AssignmentStrategy])
-  + available_strategies() -> list[str]
 }
 
 ' Network Components
@@ -78,13 +24,14 @@ class Network {
   - nodes: List[BaseNode]
   - communication_links: List[CommunicationLink]
   - compute_nodes: List[BaseNode]
+  - user_nodes: List[UserDevice]
   - haps_nodes: List[HAPS]
   - base_stations: List[BaseStation]
   - leo_nodes: List[LEO]
   + add_node(node: BaseNode)
   + get_compute_nodes() -> List[BaseNode]
-  + generate_request_path(source: BaseNode, target: BaseNode) -> List[BaseNode]
-  + get_network_delay(request: Request, path: List[BaseNode]) -> float
+  + generate_request_path() -> List[BaseNode]
+  + get_network_delay() -> float
   + tick(time: float)
   + get_total_energy_consumed() -> float
 }
@@ -95,82 +42,87 @@ abstract class BaseNode {
   # state: bool
   # antennas: List[Antenna]
   # energy_consumed: float
+  # energy_history: List[float]
   # processing_queue: List[Request]
-  # battery_capacity: float
-  # processing_frequency: float
-  # transmission_power: float
-  + set_state(state: bool)
-  + add_antenna(type: str, gain: float)
   + can_process(request: Request) -> bool
   + tick(time: float)
   + transmission_energy() -> float
   + processing_energy() -> float
 }
 
-class Position {
-  + x: float
-  + y: float
-  + distance_to(other: Position) -> float
+class Request {
+  - id: int
+  - status: RequestStatus
+  - size: float
+  - priority: Priority
+  - path: List[BaseNode]
+  - processing_progress: float
+  - qos_limit: float
+  + update_status(status: RequestStatus)
 }
 
-class Antenna {
-  - antenna_type: str
-  - gain: float
-  + is_compatible_with(other: Antenna) -> bool
-}
-
-class BaseStation extends BaseNode {
-  - k_const: float
-}
-
-class HAPS extends BaseNode {
-  - k_const: float
-  {static} + haps_altitude: float
-  {static} + sky_visibility_angle: float
-}
-
-class LEO extends BaseNode {
-  - current_angle: float
-  - k_const: float
-  {static} + leo_altitude: float
-  {static} + leo_temperature: float
-  + speed: float
-  + angular_speed: float
-  + is_visible: bool
-}
-
-class UserDevice extends BaseNode {
-  - current_requests: List[Request]
-  - path_loss_exponent: float
-  - attenuation_coefficient: float
-  - reference_length: float
-  + add_request(request: Request)
-  + assign_target_node(request: Request, target_node: BaseNode)
+enum RequestStatus {
+  CREATED
+  IN_TRANSIT
+  IN_PROCESSING_QUEUE
+  PROCESSING
+  COMPLETED
+  FAILED
 }
 
 class CommunicationLink {
   - node_a: BaseNode
   - node_b: BaseNode
   - transmission_queue: List[Request]
-  - signal_power: float
-  - carrier_frequency: float
-  - total_bandwidth: float
+  - config: LinkConfig
   + calculate_capacity() -> float
-  + calculate_transmission_delay(request: Request) -> float
-  + add_to_queue(request: Request)
+  + calculate_transmission_delay() -> float
   + tick(time: float)
 }
+
+' Node Types
+class BaseStation extends BaseNode {
+  - processing_frequency: float
+  - k_const: float
+}
+
+class HAPS extends BaseNode {
+  - battery_capacity: float
+  - processing_frequency: float
+  - transmission_power: float
+}
+
+class LEO extends BaseNode {
+  - battery_capacity: float
+  - current_angle: float
+  - processing_frequency: float
+  - is_visible: bool
+}
+
+class UserDevice extends BaseNode {
+  - current_requests: List[Request]
+  - transmission_power: float
+  + add_request(request: Request)
+  + assign_target_node(request: Request, node: BaseNode)
+}
+
+' Assignment Strategy Hierarchy
+abstract class AssignmentStrategy {
+  + {abstract} select_compute_node(request: Request, nodes: List[BaseNode]) -> tuple[BaseNode, List[BaseNode], float]
+}
+
+class TimeGreedyAssignment extends AssignmentStrategy
+class EnergyGreedyAssignment extends AssignmentStrategy
+class ClosestNodeAssignment extends AssignmentStrategy
+class MatrixBasedAssignment extends AssignmentStrategy
 
 ' Relationships
 Simulation *-- Network
 Simulation o-- AssignmentStrategy
-Simulation o-- PowerStateStrategy
 Network o-- "1..*" BaseNode
 Network o-- "0..*" CommunicationLink
-BaseNode *-- Position
-BaseNode o-- "1..*" Antenna
-BaseNode o-- "0..*" Request
+BaseNode o-- "1..*" Request
 CommunicationLink o-- "0..*" Request
-AssignmentStrategyFactory ..> AssignmentStrategy
+Request o-- RequestStatus
 
 @enduml
