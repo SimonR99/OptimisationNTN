@@ -1,0 +1,45 @@
+@startuml
+' Core Components
+class Simulation {
+  - current_time: float
+  - time_step: float
+  + run()
+  + step()
+  + reset()
+  + set_power_strategy(strategy)
+  + set_assignment_strategy(strategy)
+}
+
+class Network {
+  - nodes: List
+  + add_node(node)
+  + get_compute_nodes()
+}
+
+abstract class BaseNode {
+  # node_id: int
+  + set_state(state)
+  + tick(time)
+}
+
+class PowerStateStrategy {
+  + {abstract} generate_power_matrix()
+}
+
+class AssignmentStrategy {
+  + {abstract} select_compute_node(request, nodes)
+}
+
+' Simplified Strategy Implementations
+class AllOnStrategy extends PowerStateStrategy
+class OnDemandStrategy extends PowerStateStrategy
+
+class TimeGreedyAssignment extends AssignmentStrategy
+class EnergyGreedyAssignment extends AssignmentStrategy
+
+' Relationships
+Simulation *-- Network
+Simulation o-- AssignmentStrategy
+Simulation o-- PowerStateStrategy
+Network *-- BaseNode
+@enduml

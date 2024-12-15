@@ -16,12 +16,14 @@ class EnergyGraph:
 
         # Create axes
         self.axis_x = QValueAxis()
-        self.axis_x.setTitleText("Time (s)")
-        self.axis_x.setRange(0, max_time)
+        self.axis_x.setTitleText("Steps")
+        self.axis_x.setRange(0, 100)
+        self.axis_x.setTickCount(11)
+        self.axis_x.setLabelFormat("%d")
 
         self.axis_y = QValueAxis()
         self.axis_y.setTitleText(
-            "Energy (J)" if title == "Total Energy" else "Energy per tick (J)"
+            "Energy (J)" if title == "Total Energy" else "Energy per tick (W)"
         )
 
         # Add axes to chart
@@ -44,6 +46,9 @@ class EnergyGraph:
         self.chart_view.setMouseTracking(True)
         self.chart_view.mouseDoubleClickEvent = self.show_enlarged_graph
 
+        # Track current step
+        self.current_step = 0
+
     def show_enlarged_graph(self, event):
         """Show the enlarged version of the graph"""
         if self.parent:
@@ -53,7 +58,16 @@ class EnergyGraph:
     def add_point(self, x, y):
         """Add a point to the total energy series"""
         if hasattr(self, "series") and isinstance(self.series, QLineSeries):
-            self.series.append(x, y)
+            self.current_step += 1
+            self.series.append(self.current_step, y)
+
+            # Adjust x-axis range more fluidly
+            if self.current_step >= self.axis_x.max():
+                new_max = self.current_step + int(
+                    self.current_step * 0.05
+                )  # Increase by 50 steps
+                self.axis_x.setRange(0, new_max)
+
             self.update_y_axis_range()
 
     def add_node_point(self, node_text, x, y):
@@ -65,6 +79,7 @@ class EnergyGraph:
             series.attachAxis(self.axis_x)
             series.attachAxis(self.axis_y)
             self.series[node_text] = series
+            self.series[node_text].current_step = 0
 
             # Assign a random color
             color = QtGui.QColor(
@@ -74,7 +89,16 @@ class EnergyGraph:
             )
             series.setColor(color)
 
-        self.series[node_text].append(x, y)
+        self.series[node_text].current_step += 1
+        self.series[node_text].append(self.series[node_text].current_step, y)
+
+        # Adjust x-axis range more fluidly
+        if self.series[node_text].current_step >= self.axis_x.max():
+            new_max = self.series[node_text].current_step + int(
+                self.series[node_text].current_step * 0.05
+            )  # Increase by 50 steps
+            self.axis_x.setRange(0, new_max)
+
         self.update_y_axis_range()
         self.chart.legend().setVisible(len(self.series) > 1)
 
@@ -110,3 +134,5 @@ class EnergyGraph:
         else:
             self.series.clear()
         self.axis_y.setRange(0, 100)  # Reset to default range
+        self.axis_x.setRange(0, 100)  # Reset x-axis range
+        self.current_step = 0  # Reset step counter

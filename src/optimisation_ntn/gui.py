@@ -11,6 +11,9 @@ from optimisation_ntn.ui.simulation_controls import SimulationControls
 from optimisation_ntn.ui.stats_table import NodeStatsTable
 from optimisation_ntn.ui.theme_manager import ThemeManager
 from optimisation_ntn.ui.views import CloseUpView, FarView
+from optimisation_ntn.algorithms.assignment.strategy_factory import (
+    AssignmentStrategyFactory,
+)
 
 # Task bar Icon on Windows
 if platform.system() == "Windows":
@@ -140,6 +143,14 @@ class SimulationUI(QtWidgets.QMainWindow):
         node_controls.addWidget(QtWidgets.QLabel("Users:"), 2, 0)
         node_controls.addWidget(self.sim_controls.num_users_input, 2, 1)
         control_layout.addLayout(node_controls)
+
+        # Add strategy selection
+        strategy_layout = QtWidgets.QGridLayout()
+        strategy_layout.addWidget(QtWidgets.QLabel("Assignment Strategy:"), 0, 0)
+        strategy_layout.addWidget(self.sim_controls.assignment_strategy_combo, 0, 1)
+        strategy_layout.addWidget(QtWidgets.QLabel("Power Strategy:"), 1, 0)
+        strategy_layout.addWidget(self.sim_controls.power_strategy_combo, 1, 1)
+        control_layout.addLayout(strategy_layout)
 
         # Add step duration and time step controls
         step_controls = QtWidgets.QGridLayout()

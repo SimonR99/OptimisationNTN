@@ -39,9 +39,6 @@ class OptimizationProblem(ElementwiseProblem):
         # Run simulation with this assignment vector
         self.simulation.reset()
         energy, satisfaction = self.simulation.run_with_assignment(x)
-        print(
-            f"Running simulation with assignment: {x} - Energy: {energy}, Satisfaction: {satisfaction}"
-        )
 
         # Set objective (energy consumption)
         out["F"] = [energy]
