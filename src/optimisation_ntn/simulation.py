@@ -87,6 +87,9 @@ class Simulation:
         # Initialize stats only when needed
         self.request_state_stats = {}
 
+        # UI variables
+        self.steps_since_last_ui_update = 0
+
         # self.reset()
         self.reset()
 

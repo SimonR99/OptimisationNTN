@@ -246,27 +246,58 @@ class FarView:
 
     @staticmethod
     def _add_nodes(scene, nodes, leo_radius, haps_radius):
+        """Add nodes with images to the far view"""
+        # Load node images
+        leo_pixmap = QtGui.QPixmap("images/leo.png").scaled(20, 20)
+        haps_pixmap = QtGui.QPixmap("images/haps.png").scaled(20, 20)
+
         for node in nodes:
             if isinstance(node, LEO):
-                FarView._add_leo(scene, node, leo_radius)
+                FarView._add_leo(scene, node, leo_radius, leo_pixmap)
             elif isinstance(node, HAPS):
-                FarView._add_haps(scene, node, haps_radius)
+                FarView._add_haps(scene, node, haps_radius, haps_pixmap)
 
     @staticmethod
-    def _add_leo(scene, node, radius):
+    def _add_leo(scene, node, radius, pixmap):
+        """Add LEO satellite with image"""
         angle_rad = math.radians(node.current_angle)
         x = radius * math.cos(angle_rad)
         y = -radius * math.sin(angle_rad)
 
+        # Add LEO image
+        item = QtWidgets.QGraphicsPixmapItem(pixmap)
+        # Center the image on the calculated position
+        item.setPos(x - pixmap.width() / 2, y - pixmap.height() / 2)
+
+        if not node.state:
+            item.setOpacity(0.2)
+
+        scene.addItem(item)
+
+        # Add text label
         text = scene.addText(f"LEO {node.node_id}")
         text.setDefaultTextColor(QtGui.QColor("white"))
-        text.setPos(x + 10, y)
+        text.setPos(x + pixmap.width(), y)
 
     @staticmethod
-    def _add_haps(scene, node, radius):
-        x = radius * math.cos(math.radians(0))
-        y = -radius * math.sin(math.radians(0))
+    def _add_haps(scene, node, radius, pixmap):
+        """Add HAPS with image"""
+        # Calculate position based on node's x position
+        angle_rad = math.radians(node.position.x * 30)  # Scale x position to angle
+        x = radius * math.cos(angle_rad)
+        y = -radius * math.sin(angle_rad)
 
+        # Add HAPS image
+        item = QtWidgets.QGraphicsPixmapItem(pixmap)
+        # Center the image on the calculated position
+        item.setPos(x - pixmap.width() / 2, y - pixmap.height() / 2)
+
+        if not node.state:
+            item.setOpacity(0.2)
+
+        scene.addItem(item)
+
+        # Add text label
         text = scene.addText(f"HAPS {node.node_id}")
         text.setDefaultTextColor(QtGui.QColor("white"))
-        text.setPos(x + 10, y)
+        text.setPos(x + pixmap.width(), y)
