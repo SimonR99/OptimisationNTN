@@ -21,4 +21,4 @@ class OnDemandWithTimeoutPowerStrategy(PowerStrategy):
             elif node.node_id in self.last_active:
                 if time - self.last_active[node.node_id] > self.timeout:
                     node._turn_off()
-                    del self.last_active[node.node_id] 
+                    del self.last_active[node.node_id]

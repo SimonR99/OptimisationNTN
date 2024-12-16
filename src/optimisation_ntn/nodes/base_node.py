@@ -1,7 +1,7 @@
 """ Base node class. Does the base computation and transmission power calculation """
 
 from abc import ABC
-from typing import Dict, List, Literal, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from ..networks.antenna import Antenna
 from ..networks.request import Request, RequestStatus
@@ -215,7 +215,10 @@ class BaseNode(ABC):
 
     def tick(self, time: float):
         """Update node state including request processing"""
-        if self.battery_capacity != -1 and self.battery_capacity - self.energy_consumed <= 0:
+        if (
+            self.battery_capacity != -1
+            and self.battery_capacity - self.energy_consumed <= 0
+        ):
             self._turn_off()
 
         self.process_requests(time)

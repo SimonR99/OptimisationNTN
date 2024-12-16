@@ -2,7 +2,7 @@
 
 import random
 import time
-from typing import Literal, Optional, Type
+from typing import Literal, Optional
 from dataclasses import dataclass
 
 import numpy as np
@@ -10,7 +10,6 @@ import pandas as pd
 
 from optimisation_ntn.networks.request import Request, RequestStatus
 
-from .algorithms.assignment import AssignmentStrategy
 from .algorithms.assignment.matrix_based import MatrixBasedAssignment
 from .algorithms.assignment.strategy_factory import AssignmentStrategyFactory
 from .matrices.decision_matrices import DecisionMatrices, MatrixType
@@ -67,10 +66,7 @@ class Simulation:
         self.seed = config.seed
         self.debug = config.debug
         self.matrices = DecisionMatrices(dimension=config.user_count)
-        self.network = Network(
-            debug=self.debug,
-            power_strategy=config.power_strategy
-        )
+        self.network = Network(debug=self.debug, power_strategy=config.power_strategy)
         self.assignment_strategy = AssignmentStrategyFactory.get_strategy(
             config.assignment_strategy, self.network
         )
@@ -293,8 +289,7 @@ class Simulation:
         self.current_time = 0.0
         self.current_step = 0
         self.network = Network(
-            debug=self.debug,
-            power_strategy=self.config.power_strategy
+            debug=self.debug, power_strategy=self.config.power_strategy
         )
         self.total_requests = 0
         self.system_energy_consumed = 0
@@ -362,7 +357,8 @@ class Simulation:
                 x_pos = start_x + (i * 2)
                 self.network.add_node(
                     node_type(
-                        i, Position(x_pos, height),
+                        i,
+                        Position(x_pos, height),
                     )
                 )
 
@@ -372,7 +368,8 @@ class Simulation:
                 height = -2
                 self.network.add_node(
                     node_type(
-                        i, Position(x_pos, height),
+                        i,
+                        Position(x_pos, height),
                     )
                 )
 

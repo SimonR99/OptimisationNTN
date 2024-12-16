@@ -14,4 +14,4 @@ class OnDemandPowerStrategy(PowerStrategy):
             if node.processing_queue:
                 node._turn_on()
             else:
-                node._turn_off() 
+                node._turn_off()

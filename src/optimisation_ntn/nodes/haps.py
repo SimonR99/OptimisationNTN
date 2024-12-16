@@ -21,9 +21,7 @@ class HAPS(BaseNode):
         initial_position: Position = Position(0, haps_altitude),
         debug: bool = False,
     ):
-        super().__init__(
-            node_id, initial_position, debug=debug
-        )
+        super().__init__(node_id, initial_position, debug=debug)
         self.add_antenna("UHF", 15.0)
         self.add_antenna("VHF", 15.0)
         self.battery_capacity = 2e3

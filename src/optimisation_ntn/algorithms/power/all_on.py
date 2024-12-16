@@ -11,4 +11,4 @@ class AllOnPowerStrategy(PowerStrategy):
 
     def apply_strategy(self, nodes: List[BaseNode], time: float) -> None:
         for node in nodes:
-            node._turn_on() 
+            node._turn_on()

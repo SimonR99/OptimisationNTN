@@ -20,4 +20,4 @@ class PowerStrategy(ABC):
 
     def get_name(self) -> str:
         """Get strategy name for display/logging"""
-        return self.__class__.__name__ 
+        return self.__class__.__name__

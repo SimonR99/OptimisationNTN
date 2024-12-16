@@ -19,9 +19,7 @@ class UserDevice(BaseNode):
         initial_position: Position,
         debug: bool = False,
     ):
-        super().__init__(
-            node_id, initial_position, debug=debug
-        )
+        super().__init__(node_id, initial_position, debug=debug)
         self.add_antenna("VHF", 3)
         self.transmission_power = 23
         self.path_loss_exponent = 3
