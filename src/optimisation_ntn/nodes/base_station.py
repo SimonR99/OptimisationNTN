@@ -15,10 +15,9 @@ class BaseStation(BaseNode):
         node_id: int,
         initial_position: Position,
         debug: bool = False,
-        power_strategy: Literal["AllOn", "OnDemand", "OnDemandWithTimeout"] = "AllOn",
     ):
         super().__init__(
-            node_id, initial_position, debug=debug, power_strategy=power_strategy
+            node_id, initial_position, debug=debug
         )
         self.state = True
         self.processing_frequency = 3e9  # 3 GHz

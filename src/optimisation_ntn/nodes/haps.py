@@ -20,10 +20,9 @@ class HAPS(BaseNode):
         node_id: int,
         initial_position: Position = Position(0, haps_altitude),
         debug: bool = False,
-        power_strategy: Literal["AllOn", "OnDemand", "OnDemandWithTimeout"] = "AllOn",
     ):
         super().__init__(
-            node_id, initial_position, debug=debug, power_strategy=power_strategy
+            node_id, initial_position, debug=debug
         )
         self.add_antenna("UHF", 15.0)
         self.add_antenna("VHF", 15.0)

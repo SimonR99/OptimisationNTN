@@ -18,7 +18,6 @@ class BaseNode(ABC):
         node_id: int,
         initial_position: Position,
         debug: bool = False,
-        power_strategy: Literal["AllOn", "OnDemand", "OnDemandWithTimeout"] = "AllOn",
     ):
         self.node_id = node_id
         self.position = initial_position
@@ -50,24 +49,7 @@ class BaseNode(ABC):
         self.energy_history = []
         self.timeout = 10
         self.last_state_change = 0
-        self.power_strategy = power_strategy
         self.tick_count = 0
-
-    def apply_power_strategy(self):
-        """Apply power strategy"""
-        if self.power_strategy == "AllOn":
-            self._turn_on()
-        elif self.power_strategy == "OnDemand":
-            if self.processing_queue:
-                self._turn_on()
-            else:
-                self._turn_off()
-        elif self.power_strategy == "OnDemandWithTimeout":
-            if self.processing_queue:
-                self.last_state_change = 0
-                self._turn_on()
-            elif self.last_state_change > self.timeout:
-                self._turn_off()
 
     def get_name(self) -> str:
         """Get node name"""
@@ -233,12 +215,7 @@ class BaseNode(ABC):
 
     def tick(self, time: float):
         """Update node state including request processing"""
-        self.apply_power_strategy()
-
-        if (
-            self.battery_capacity != -1
-            and self.battery_capacity - self.energy_consumed <= 0
-        ):
+        if self.battery_capacity != -1 and self.battery_capacity - self.energy_consumed <= 0:
             self._turn_off()
 
         self.process_requests(time)

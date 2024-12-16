@@ -18,6 +18,7 @@ from optimisation_ntn.algorithms.assignment.strategy_factory import (
 )
 from optimisation_ntn.optimization.optimization_problem import OptimizationProblem
 from optimisation_ntn.simulation import Simulation, SimulationConfig
+from optimisation_ntn.algorithms.power.strategy_factory import PowerStrategyFactory
 
 
 def create_argument_parser():
@@ -46,17 +47,19 @@ def create_argument_parser():
     )
 
     arg_parser.add_argument(
-        "--power_strategy",
-        type=str,
-        choices=["AllOn", "OnDemand", "OnDemandWithTimeout"],
-        default="AllOn",
-        help="Power strategy to use",
-    )
-
-    arg_parser.add_argument(
         "--debug",
         action="store_true",
         help="Enable debug printing",
+    )
+
+    # Power strategy choice
+    power_strategies = PowerStrategyFactory.available_strategies()
+    arg_parser.add_argument(
+        "--power",
+        type=str,
+        choices=power_strategies,
+        default="AllOn",
+        help="Power management strategy to use",
     )
 
     # Combined assignment strategy and optimization algorithm choice
@@ -93,6 +96,13 @@ def create_argument_parser():
         action="store_true",
         default=False,
         help="Hide output",
+    )
+
+    arg_parser.add_argument(
+        "--no-save",
+        action="store_true",
+        default=False,
+        help="Disable saving results to files",
     )
 
     return arg_parser
@@ -179,8 +189,13 @@ def main(cli_args):
         max_time=cli_args.max_time,
         debug=cli_args.debug,
         user_count=cli_args.user_count,
-        power_strategy=cli_args.power_strategy,
         print_output=not cli_args.hide_output,
+        assignment_strategy=cli_args.strategy,
+        power_strategy=cli_args.power,
+        save_results=not cli_args.no_save,
+        optimizer=(
+            cli_args.strategy if cli_args.strategy in ["GA", "DE", "PSO"] else None
+        ),
     )
 
     # Create simulation instance
@@ -188,8 +203,6 @@ def main(cli_args):
 
     # Check if using an optimization algorithm
     if cli_args.strategy in ["GA", "DE", "PSO"]:
-        simulation.optimizer = cli_args.strategy
-
         baseline_energy, baseline_satisfaction = simulation.run_with_assignment(
             np.random.randint(
                 0, len(simulation.network.compute_nodes) - 1, simulation.user_count
@@ -215,10 +228,6 @@ def main(cli_args):
         return energy
 
     # Run with traditional assignment strategy
-    strategy = AssignmentStrategyFactory.get_strategy(
-        cli_args.strategy, simulation.network
-    )
-    simulation.assignment_strategy = strategy
     return simulation.run()
 
 

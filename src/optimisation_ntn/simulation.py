@@ -32,12 +32,10 @@ class SimulationConfig:
     max_time: float = 300
     debug: bool = False
     user_count: int = 10
-    power_strategy: Literal["AllOn", "OnDemand", "OnDemandWithTimeout"] = "OnDemand"
-    assignment_strategy: str | Type[AssignmentStrategy] | AssignmentStrategy = (
-        "TimeGreedy"
-    )
-    save_results: bool = True
     print_output: bool = False
+    assignment_strategy: str = "TimeGreedy"
+    power_strategy: str = "AllOn"
+    save_results: bool = True
     optimizer: None | Literal["GA", "PSO", "DE"] = None
 
 
@@ -68,9 +66,11 @@ class Simulation:
         self.max_time = config.max_time
         self.seed = config.seed
         self.debug = config.debug
-        self.power_strategy = config.power_strategy
         self.matrices = DecisionMatrices(dimension=config.user_count)
-        self.network = Network(debug=self.debug)
+        self.network = Network(
+            debug=self.debug,
+            power_strategy=config.power_strategy
+        )
         self.assignment_strategy = AssignmentStrategyFactory.get_strategy(
             config.assignment_strategy, self.network
         )
@@ -164,7 +164,7 @@ class Simulation:
                 {str(node): node.energy_history for node in self.network.nodes}
             )
             energy_history.to_csv(
-                f"output/energy_history_{self.power_strategy}_"
+                f"output/energy_history_{self.config.power_strategy}_"
                 f"{assignment_strategy_name}_{self.user_count}.csv",
                 index=False,
             )
@@ -172,7 +172,7 @@ class Simulation:
             # Save request stats to csv
             request_stats = pd.DataFrame(request_list)
             request_stats.to_csv(
-                f"output/request_stats_{self.power_strategy}_"
+                f"output/request_stats_{self.config.power_strategy}_"
                 f"{assignment_strategy_name}_{self.user_count}.csv",
                 index=False,
             )
@@ -292,7 +292,10 @@ class Simulation:
         """Reset the simulation to initial state."""
         self.current_time = 0.0
         self.current_step = 0
-        self.network = Network(debug=self.debug)
+        self.network = Network(
+            debug=self.debug,
+            power_strategy=self.config.power_strategy
+        )
         self.total_requests = 0
         self.system_energy_consumed = 0
         self.system_energy_history = []
@@ -327,7 +330,7 @@ class Simulation:
 
         # Add default LEO satellites
         for i in range(nb_leo):
-            self.network.add_node(LEO(i, power_strategy=self.power_strategy))
+            self.network.add_node(LEO(i))
 
         # Add default user devices
         self.set_nodes(UserDevice, self.user_count)
@@ -349,7 +352,6 @@ class Simulation:
                         i,
                         Position(x_pos, 0),
                         debug=self.debug,
-                        power_strategy=self.power_strategy,
                     )
                 )
 
@@ -360,7 +362,7 @@ class Simulation:
                 x_pos = start_x + (i * 2)
                 self.network.add_node(
                     node_type(
-                        i, Position(x_pos, height), power_strategy=self.power_strategy
+                        i, Position(x_pos, height),
                     )
                 )
 
@@ -370,7 +372,7 @@ class Simulation:
                 height = -2
                 self.network.add_node(
                     node_type(
-                        i, Position(x_pos, height), power_strategy=self.power_strategy
+                        i, Position(x_pos, height),
                     )
                 )
 

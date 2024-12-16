@@ -18,10 +18,9 @@ class UserDevice(BaseNode):
         node_id: int,
         initial_position: Position,
         debug: bool = False,
-        power_strategy: Literal["AllOn", "OnDemand", "OnDemandWithTimeout"] = "AllOn",
     ):
         super().__init__(
-            node_id, initial_position, debug=debug, power_strategy=power_strategy
+            node_id, initial_position, debug=debug
         )
         self.add_antenna("VHF", 3)
         self.transmission_power = 23

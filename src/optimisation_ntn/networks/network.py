@@ -10,12 +10,13 @@ from ..nodes.haps import HAPS
 from ..nodes.leo import LEO
 from ..nodes.user_device import UserDevice
 from .communication_link import CommunicationLink, LinkConfig
+from ..algorithms.power.strategy_factory import PowerStrategyFactory
 
 
 class Network:
     """Network class"""
 
-    def __init__(self, debug: bool = False):
+    def __init__(self, debug: bool = False, power_strategy: str = "AllOn"):
         self.nodes: List[BaseNode] = []
         self.communication_links: List[CommunicationLink] = []
         self.debug = debug
@@ -23,6 +24,7 @@ class Network:
         self.haps_nodes: List[HAPS] = []
         self.base_stations: List[BaseStation] = []
         self.leo_nodes: List[LEO] = []
+        self.power_strategy = PowerStrategyFactory.get_strategy(power_strategy)
 
     @property
     def compute_nodes(self):
@@ -208,6 +210,9 @@ class Network:
 
     def tick(self, time: float):
         """Update network state including request routing"""
+        # Apply power strategy to compute nodes
+        self.power_strategy.apply_strategy(self.compute_nodes, time)
+
         # Update all compute nodes
         for node in self.nodes:
             node.tick(time)
