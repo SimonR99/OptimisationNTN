@@ -1,7 +1,5 @@
 """ LEO node class """
 
-from typing import Literal
-
 import numpy as np
 
 from optimisation_ntn.nodes.haps import HAPS

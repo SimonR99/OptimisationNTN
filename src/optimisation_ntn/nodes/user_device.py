@@ -1,7 +1,5 @@
 """ User device class """
 
-from typing import Literal
-
 from optimisation_ntn.networks.request import Request
 from optimisation_ntn.utils.position import Position
 

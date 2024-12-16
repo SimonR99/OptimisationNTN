@@ -121,7 +121,7 @@ class SimulationControls:
         self.strategy_combos = {
             "assignment": assignment_combo,
             "power": self._create_combobox(
-                ["AllOn", "OnDemand", "OnDemandWithTimeout"],
+                ["AllOn", "OnDemand", "OnDemandWithTimeout", "Random"],
                 self._on_power_strategy_changed,
             ),
         }
@@ -167,12 +167,18 @@ class SimulationControls:
 
             # Get power strategy as proper Literal type
             power_strategy_text = self.strategy_combos["power"].currentText()
-            if power_strategy_text not in ["AllOn", "OnDemand", "OnDemandWithTimeout"]:
+            if power_strategy_text not in [
+                "AllOn",
+                "OnDemand",
+                "OnDemandWithTimeout",
+                "Random",
+            ]:
                 power_strategy_text = "OnDemand"  # Default fallback
 
             # cast to Literal
             power_strategy = cast(
-                Literal["AllOn", "OnDemand", "OnDemandWithTimeout"], power_strategy_text
+                Literal["AllOn", "OnDemand", "OnDemandWithTimeout", "Random"],
+                power_strategy_text,
             )
 
             # Create simulation with selected strategies
@@ -243,7 +249,7 @@ class SimulationControls:
             # Update strategy combos
             if hasattr(self.current_simulation, "power_strategy"):
                 self.strategy_combos["power"].setCurrentText(
-                    self.current_simulation.power_strategy
+                    self.current_simulation.config.power_strategy
                 )
 
             if self.current_simulation.optimizer:
@@ -691,7 +697,7 @@ class SimulationControls:
             # Update strategy combos if needed
             if hasattr(self.current_simulation, "power_strategy"):
                 self.strategy_combos["power"].setCurrentText(
-                    self.current_simulation.power_strategy
+                    self.current_simulation.config.power_strategy
                 )
 
             if self.current_simulation.optimizer:
