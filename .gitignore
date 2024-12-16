@@ -171,3 +171,5 @@ statistic_csv/*
 .idea/*
 output/*
 !output/.gitkeep
+
+*qtable.npy

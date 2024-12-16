@@ -11,6 +11,7 @@ from .haps_only import HAPSOnlyAssignment
 from .matrix_based import MatrixBasedAssignment
 from .random_assignment import RandomAssignment
 from .time_greedy import TimeGreedyAssignment
+from .qlearning import QLearningAssignment
 
 
 class AssignmentStrategyFactory:
@@ -23,6 +24,7 @@ class AssignmentStrategyFactory:
         "HAPSOnly": HAPSOnlyAssignment,
         "Random": RandomAssignment,
         "MatrixBased": MatrixBasedAssignment,
+        "QLearning": QLearningAssignment,
     }
 
     @classmethod

@@ -7,6 +7,7 @@ from .energy_greedy import EnergyGreedyAssignment
 from .haps_only import HAPSOnlyAssignment
 from .random_assignment import RandomAssignment
 from .strategy_factory import AssignmentStrategyFactory
+from .qlearning import QLearningAssignment
 
 __all__ = [
     "AssignmentStrategy",
@@ -16,4 +17,5 @@ __all__ = [
     "HAPSOnlyAssignment",
     "RandomAssignment",
     "AssignmentStrategyFactory",
+    "QLearningAssignment",
 ]
