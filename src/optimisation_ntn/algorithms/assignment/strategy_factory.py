@@ -27,10 +27,18 @@ class AssignmentStrategyFactory:
         "QLearning": QLearningAssignment,
     }
 
+    # Add optimization algorithms as valid strategies
+    _optimization_strategies = {"GA", "PSO", "DE"}
+
     @classmethod
     def get_strategy(cls, strategy, network: Network) -> AssignmentStrategy:
         """Get assignment strategy instance from string name or class"""
         if isinstance(strategy, str):
+            # Check if it's an optimization strategy
+            if strategy in cls._optimization_strategies:
+                return cls._strategies["MatrixBased"](
+                    network
+                )  # Use MatrixBased for optimization
             if strategy not in cls._strategies:
                 raise ValueError(f"Unknown strategy: {strategy}")
             return cls._strategies[strategy](network)
@@ -52,4 +60,4 @@ class AssignmentStrategyFactory:
     @classmethod
     def available_strategies(cls) -> list[str]:
         """Get list of available strategy names"""
-        return list(cls._strategies.keys())
+        return list(cls._strategies.keys()) + list(cls._optimization_strategies)

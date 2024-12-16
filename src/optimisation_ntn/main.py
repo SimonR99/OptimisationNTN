@@ -105,6 +105,12 @@ def create_argument_parser():
         help="Disable saving results to files",
     )
 
+    arg_parser.add_argument(
+        "--qtable_path",
+        type=str,
+        help="Path to trained Q-table for QLearning strategy",
+    )
+
     return arg_parser
 
 

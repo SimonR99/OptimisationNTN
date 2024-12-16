@@ -173,3 +173,6 @@ output/*
 !output/.gitkeep
 
 *qtable.npy
+
+trained_models/*
+*/qtable.pkl
