@@ -36,6 +36,7 @@ class SimulationConfig:
     power_strategy: str = "AllOn"
     save_results: bool = True
     optimizer: None | Literal["GA", "PSO", "DE"] = None
+    qtable_path: Optional[str] = None
 
 
 class Simulation:
@@ -46,7 +47,7 @@ class Simulation:
     DEFAULT_LEO_COUNT = 1
     DEFAULT_USER_COUNT = 10
     DEFAULT_TICK_TIME = 0.1
-    DEFAULT_MAX_SIMULATION_TIME = 300
+    DEFAULT_MAX_SIMULATION_TIME = 10
 
     def __init__(self, config: Optional[SimulationConfig] = None):
         """Initialize simulation with given configuration."""
@@ -68,7 +69,7 @@ class Simulation:
         self.matrices = DecisionMatrices(dimension=config.user_count)
         self.network = Network(debug=self.debug, power_strategy=config.power_strategy)
         self.assignment_strategy = AssignmentStrategyFactory.get_strategy(
-            config.assignment_strategy, self.network
+            config.assignment_strategy, self.network, config.qtable_path
         )
         self.save_results = config.save_results
         self.total_requests = 0
@@ -226,7 +227,7 @@ class Simulation:
 
                 # Use assignment strategy to select node
                 best_node, best_path, _ = self.assignment_strategy.select_compute_node(
-                    request, compute_nodes
+                    request, self.network.compute_nodes
                 )
 
                 # If we found a suitable compute node, assign it and initialize routing
@@ -296,7 +297,7 @@ class Simulation:
         self.system_energy_history = []
 
         self.assignment_strategy = AssignmentStrategyFactory.get_strategy(
-            self.config.assignment_strategy, self.network
+            self.config.assignment_strategy, self.network, self.config.qtable_path
         )
 
         # Reset energy consumption for all nodes

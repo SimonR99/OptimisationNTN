@@ -89,6 +89,9 @@ class Request:
 
     def update_status(self, new_status: RequestStatus):
         """Update request status and track timing"""
+
+        if self.status == RequestStatus.COMPLETED:
+            return
         self.status_history.append((new_status, self.get_tick()))
         self.debug_print(
             f"Request {self.id} status changed: {self.status} -> {new_status} "

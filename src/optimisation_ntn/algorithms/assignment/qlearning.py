@@ -1,5 +1,6 @@
 """Q-Learning based assignment strategy"""
 
+from calendar import c
 import numpy as np
 from typing import List, Dict, Tuple, Optional
 import pickle
@@ -12,9 +13,17 @@ from .assignment_strategy import AssignmentStrategy
 class QLearningAssignment(AssignmentStrategy):
     """Assigns requests using Q-Learning"""
 
-    def __init__(self, network, epsilon=0.1, alpha=0.1, gamma=0.9, qtable_path=None):
+    def __init__(
+        self,
+        network,
+        epsilon=0.0,
+        alpha=0.1,
+        gamma=0.9,
+        qtable_path=None,
+    ):
         self.network = network
-        self.epsilon = epsilon  # Exploration rate
+        # Set very low epsilon if using a pre-trained model
+        self.epsilon = epsilon
         self.alpha = alpha  # Learning rate
         self.gamma = gamma  # Discount factor
         self.q_table: Dict[str, np.ndarray] = {}
@@ -27,41 +36,87 @@ class QLearningAssignment(AssignmentStrategy):
         if qtable_path and os.path.exists(qtable_path):
             with open(qtable_path, "rb") as f:
                 self.q_table = pickle.load(f)
+                # print the first 10 states and their corresponding q-values
+                # print(f"Number of states: {len(self.q_table)}")
+                # print first q-table entry
+                # print(f"First state: {list(self.q_table.keys())[0]}")
+                # print(f"First q-values: {self.q_table[list(self.q_table.keys())[0]]}")
 
     def get_state(self, request: Request, nodes: List[BaseNode]) -> str:
-        """Convert current system state to a string representation"""
+        """Convert current system state to a string representation
+
+        State format for each node:
+        - on/off state (1/0)
+        - remaining battery category (i/-1/l/m/h for infinite/-1/<100/<1000/>=1000)
+        - can process (1/0)
+        - processing power category (J/Mbit)
+        """
         state_parts = []
 
-        # Add node states
-        for node in nodes:
-            # Node on/off state
-            state_parts.append(str(int(node.state)))
-
-            # Battery level (discretized to 10 levels)
-            if node.battery_capacity == -1:
-                battery_level = 5
-            else:
-                remaining = (
-                    node.battery_capacity - node.energy_consumed
-                ) / node.battery_capacity
-                battery_level = max(0, int(remaining * 5))
-            state_parts.append(str(battery_level))
-
-            # Queue length (capped at 5)
-            state_parts.append(str(min(5, len(node.processing_queue))))
-
-            # Can process request
-            state_parts.append(str(int(node.can_process(request))))
-
-        # Request size category (small: 0, medium: 1, large: 2)
+        # Request features - keep the existing size categorization
         size_category = 0
         if request.size > 5e6:
             size_category = 2
         elif request.size > 3e6:
             size_category = 1
-        state_parts.append(str(size_category))
+        state_parts.append(f"s{size_category}")  # Request size category
 
-        return "_".join(state_parts)
+        # Node states with new features
+        for node in nodes:
+            node_state = []
+
+            # Node on/off state
+            node_state.append(f"{'1' if node.state else '0'}")
+
+            # Remaining battery energy categorization
+            if node.battery_capacity == -1:
+                battery_cat = "i"  # infinite
+            else:
+                remaining_energy = node.battery_capacity - node.energy_consumed
+                if remaining_energy < 100:
+                    battery_cat = "l"  # low
+                elif remaining_energy < 1000:
+                    battery_cat = "m"  # medium
+                else:
+                    battery_cat = "h"  # high
+            node_state.append(f"{battery_cat}")
+
+            # Can process check
+            can_process = "1" if node.can_process(request) else "0"
+            node_state.append(f"{can_process}")
+
+            # Processing power category (in J/Mbit)
+            processing_time = (
+                request.size * node.cycle_per_bit / node.processing_frequency
+            )
+            processing_energy = node.processing_energy() * processing_time
+
+            processing_power = processing_energy / request.size
+            processing_power = processing_power * 1e6
+            discretized_power = 0
+            if processing_power < 2:
+                discretized_power = 0
+            elif processing_power < 5:
+                discretized_power = 1
+            elif processing_power < 10:
+                discretized_power = 2
+            else:
+                discretized_power = 3
+            node_state.append(f"{discretized_power}")
+
+            # Add the discretized request size
+            discretized_request_size = 0
+            if request.size > 3e6:
+                discretized_request_size = 2
+            elif request.size > 6e6:
+                discretized_request_size = 1
+            else:
+                discretized_request_size = 0
+            node_state.append(f"{discretized_request_size}")
+
+            state_parts.append("_".join(node_state))
+
+        return "|".join(state_parts)
 
     def get_q_values(self, state: str, num_actions: int) -> np.ndarray:
         """Get Q-values for a state, initializing if needed"""
@@ -72,8 +127,14 @@ class QLearningAssignment(AssignmentStrategy):
     def select_compute_node(
         self, request: Request, nodes: List[BaseNode]
     ) -> tuple[BaseNode, List[BaseNode], float]:
-        if self.last_request is not None:
-            if self.last_request.status == RequestStatus.COMPLETED:
+        # Calculate reward for previous action if applicable
+        if self.last_request is not None and self.last_action is not None:
+            if self.last_request.status == RequestStatus.FAILED:
+                reward = -100.0
+            elif (
+                self.last_request.status == RequestStatus.COMPLETED
+                and 0 <= self.last_action < len(nodes)
+            ):  # Validate index
                 selected_node = nodes[self.last_action]
 
                 # Calculate processing energy
@@ -101,20 +162,32 @@ class QLearningAssignment(AssignmentStrategy):
 
                 # Total energy consumed
                 total_energy = processing_energy + transmission_energy
-                reward = -total_energy / 1000
+                # print(f"Total energy: {total_energy:.2f} J")
+                # print(f"request size: {request.size}")
+                energy_per_m_bit = (total_energy / request.size) * 1e6
+                # print(f"energy/size: {energy_per_m_bit:.2f} J/Mbit")
+                # print(f"node: {selected_node.name}")
+                reward = -(energy_per_m_bit**2)
             else:
-                reward = -1.0
+                reward = 0.0
 
+            # print(f"Reward: {reward:.2f}")
             self.update(reward, request, nodes)
 
         state = self.get_state(request, nodes)
         q_values = self.get_q_values(state, len(nodes))
 
         # Epsilon-greedy action selection
+        valid_actions = list(range(len(nodes)))
+        if not valid_actions:
+            raise ValueError("No valid nodes available for assignment")
+
         if np.random.random() < self.epsilon:
-            action = np.random.randint(len(nodes))
+            action = np.random.choice(valid_actions)
         else:
             action = np.argmax(q_values)
+            if action >= len(valid_actions):  # Safety check
+                action = np.random.choice(valid_actions)
 
         self.last_state = state
         self.last_action = action
@@ -154,6 +227,9 @@ class QLearningAssignment(AssignmentStrategy):
 
         self.q_table[self.last_state][self.last_action] = new_value
 
+        # print(f"Updated Q-value from {old_value:.2f} to {new_value:.2f}")
+        # print(self.q_table)
+
         if self.debug:
             print(f"Updated Q-value from {old_value:.2f} to {new_value:.2f}")
 
@@ -161,3 +237,33 @@ class QLearningAssignment(AssignmentStrategy):
         """Save Q-table to file"""
         with open(path, "wb") as f:
             pickle.dump(self.q_table, f)
+
+    def calculate_request_reward(
+        self, request: Request, selected_node: BaseNode
+    ) -> float:
+        """Calculate reward for a single request completion"""
+        if request.status == RequestStatus.FAILED:
+            return -100.0  # Heavy penalty for failure
+
+        if request.status == RequestStatus.COMPLETED:
+            # Calculate QoS satisfaction
+            completion_time = request.get_tick() - request.creation_time
+            qos_satisfaction = completion_time <= request.qos_limit
+
+            # Calculate energy efficiency
+            processing_time = (
+                request.size
+                * selected_node.cycle_per_bit
+                / selected_node.processing_frequency
+            )
+            energy_consumed = (
+                selected_node.processing_energy() * processing_time
+            ) / 1000  # Convert to kJ
+
+            # Combine metrics
+            reward = 50.0 if qos_satisfaction else -50.0  # Base reward/penalty
+            reward -= energy_consumed * 10  # Energy penalty (scaled)
+
+            return reward
+
+        return 0.0  # Neutral reward for other states

@@ -35,6 +35,13 @@ class UserDevice(BaseNode):
         )
         return request
 
+    def tick(self, time: float):
+        super().tick(time)
+
+        # Update request status if it has been in the queue for too long
+        for request in self.current_requests:
+            request.update_status(request.status)
+
     def assign_target_node(self, request: Request, target_node: BaseNode):
         """Assign a target node to an existing request"""
         request.target_node = target_node

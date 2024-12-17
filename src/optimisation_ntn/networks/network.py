@@ -197,8 +197,8 @@ class Network:
 
     def get_network_delay(self, request: Request, path: List[BaseNode]) -> float:
         """Get the total network delay for a request"""
-        if len(path) < 2:
-            raise ValueError(f"Path must have at least 2 nodes: {path}")
+        if path is None:
+            return float("inf")
 
         time = 0.0
         for i in range(len(path) - 1):

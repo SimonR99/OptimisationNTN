@@ -2,14 +2,16 @@
 
 import subprocess
 import itertools
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 from multiprocessing import Pool, cpu_count
 import logging
 from datetime import datetime
 import time
 import os
 
-from optimisation_ntn.algorithms.qlearning.trainer import QLearningTrainer
+from optimisation_ntn.simulation import Simulation, SimulationConfig
+from optimisation_ntn.algorithms.assignment.qlearning_trainer import QLearningTrainer
+from optimisation_ntn.algorithms.assignment.strategy_factory import QLearningAssignment
 
 # Configure logging
 logging.basicConfig(
@@ -30,8 +32,44 @@ PARAMETERS = {
         "DE",
         "QLearning",
     ],
-    "user_counts": [10, 30, 50, 70, 100],
+    "user_counts": [10, 30, 50, 100],
 }
+
+
+def train_qlearning(user_count: int) -> str:
+    """Train Q-learning model for specific user count and return path to saved model"""
+    qtable_path = f"trained_models/qtable_users_{user_count}.pkl"
+
+    # Skip if model already exists
+    if os.path.exists(qtable_path):
+        logging.info(f"Q-learning model for {user_count} users already exists")
+        return qtable_path
+
+    logging.info(f"Training Q-learning model for {user_count} users...")
+
+    # Create simulation
+    sim = Simulation(
+        config=SimulationConfig(
+            seed=None,
+            debug=False,
+            user_count=user_count,
+            power_strategy="OnDemand",
+            save_results=False,
+        )
+    )
+
+    # Create and run trainer
+    trainer = QLearningTrainer(
+        simulation=sim,
+        episodes=2000,  # Adjust as needed
+        save_path=qtable_path,
+    )
+
+    # Create directory if it doesn't exist
+    os.makedirs("trained_models", exist_ok=True)
+
+    trainer.train()
+    return qtable_path
 
 
 def generate_command(params: Dict) -> str:
@@ -47,11 +85,11 @@ def generate_command(params: Dict) -> str:
 
     # Add optimization parameters if using an optimization algorithm
     if params["assignment_strategy"] in ["GA", "PSO", "DE"]:
-        cmd_parts.extend(["--generations 5", "--population 30"])
+        cmd_parts.extend(["--generations 20", "--population 50"])
 
     # Add Q-learning specific parameters
     if params["assignment_strategy"] == "QLearning":
-        qtable_path = f"trained_models/qtable_users_{params['user_count']}.npy"
+        qtable_path = f"trained_models/qtable_users_{params['user_count']}.pkl"
         cmd_parts.append(f"--qtable_path {qtable_path}")
 
     return " ".join(cmd_parts)
@@ -65,6 +103,10 @@ def run_single_simulation(params: Tuple) -> Dict:
         "assignment_strategy": assign_strat,
         "user_count": user_count,
     }
+
+    # If using Q-learning, ensure model exists
+    if assign_strat == "QLearning":
+        train_qlearning(user_count)
 
     cmd = generate_command(simulation_params)
     try:
@@ -86,15 +128,10 @@ def run_single_simulation(params: Tuple) -> Dict:
     }
 
 
-def run_parallel_simulations(max_workers: int = None):
+def run_parallel_simulations(max_workers: Optional[int] = None):
     """Run all simulation combinations in parallel"""
     if max_workers is None:
         max_workers = max(1, cpu_count() - 1)
-
-    # First, train Q-learning agents for all user counts if needed
-    if "QLearning" in PARAMETERS["assignment_strategies"]:
-        trainer = QLearningTrainer()
-        trainer.train_all(PARAMETERS["user_counts"])
 
     # Generate all parameter combinations
     combinations = list(

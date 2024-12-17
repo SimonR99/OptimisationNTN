@@ -184,6 +184,14 @@ class BaseNode(ABC):
         completed = []
         if self.processing_queue:
             request = self.processing_queue[0]
+            if (
+                self.energy_consumed >= self.battery_capacity
+                and self.battery_capacity != -1
+            ):
+                request.update_status(RequestStatus.FAILED)
+                self.processing_queue.remove(request)
+                return
+
             bits_processed = self.processing_frequency * time / self.cycle_per_bit
             request.processing_progress += bits_processed
             self.energy_consumed += self.processing_energy() * time
@@ -196,13 +204,7 @@ class BaseNode(ABC):
 
             # Only complete processing at the end of a tick if enough bits were processed
             if request.processing_progress >= request.size:
-                if (
-                    self.energy_consumed >= self.battery_capacity
-                    and self.battery_capacity != -1
-                ):
-                    request.update_status(RequestStatus.FAILED)
-                else:
-                    request.update_status(RequestStatus.COMPLETED)
+                request.update_status(RequestStatus.COMPLETED)
                 completed.append(request)
                 self.current_load -= request.size
                 self.debug_print(

@@ -202,6 +202,7 @@ def main(cli_args):
         optimizer=(
             cli_args.strategy if cli_args.strategy in ["GA", "DE", "PSO"] else None
         ),
+        qtable_path=cli_args.qtable_path,
     )
 
     # Create simulation instance
