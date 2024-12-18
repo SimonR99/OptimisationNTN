@@ -1,10 +1,11 @@
 """Q-Learning based assignment strategy"""
 
-from calendar import c
 import numpy as np
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict
 import pickle
 import os
+
+from optimisation_ntn.networks.network import Network
 from ...networks.request import Request, RequestStatus
 from ...nodes.base_node import BaseNode
 from .assignment_strategy import AssignmentStrategy
@@ -21,7 +22,7 @@ class QLearningAssignment(AssignmentStrategy):
         gamma=0.9,
         qtable_path=None,
     ):
-        self.network = network
+        self.network: Network = network
         # Set very low epsilon if using a pre-trained model
         self.epsilon = epsilon
         self.alpha = alpha  # Learning rate
@@ -38,9 +39,10 @@ class QLearningAssignment(AssignmentStrategy):
                 self.q_table = pickle.load(f)
                 # print the first 10 states and their corresponding q-values
                 # print(f"Number of states: {len(self.q_table)}")
-                # print first q-table entry
-                # print(f"First state: {list(self.q_table.keys())[0]}")
-                # print(f"First q-values: {self.q_table[list(self.q_table.keys())[0]]}")
+
+        # Add new attributes for tracking request history
+        self.pending_requests = {}  # Dict[request_id, (state, action, start_time)]
+        self.all_requests = {}  # Dict[request_id, (state, action, start_time)]
 
     def get_state(self, request: Request, nodes: List[BaseNode]) -> str:
         """Convert current system state to a string representation
@@ -79,10 +81,40 @@ class QLearningAssignment(AssignmentStrategy):
                     battery_cat = "m"  # medium
                 else:
                     battery_cat = "h"  # high
-            node_state.append(f"{battery_cat}")
+            # node_state.append(f"{battery_cat}")
+
+            # processing queue (% of request size)
+            processing_queue_size = np.sum(
+                [request.size for request in node.processing_queue]
+            )
+
+            estimated_processing_time = node.estimated_processing_time(request)
+
+            path_time = self.network.get_network_delay(
+                request, self.network.generate_request_path(request.current_node, node)
+            )
+            estimated_time_to_complete = path_time + estimated_processing_time
+
+            processing_time_buffer = estimated_time_to_complete - (
+                request.qos_limit * request.tick_time
+            )
+            discretized_processing_time_buffer = 0
+            if processing_time_buffer < 0.05:
+                discretized_processing_time_buffer = 0
+            elif processing_time_buffer < 0.1:
+                discretized_processing_time_buffer = 1
+            elif processing_time_buffer < 0.2:
+                discretized_processing_time_buffer = 2
+            else:
+                discretized_processing_time_buffer = 3
+            # node_state.append(f"{discretized_processing_time_buffer}")
 
             # Can process check
-            can_process = "1" if node.can_process(request) else "0"
+            can_process = (
+                "1"
+                if node.can_process(request, check_state=False, network_delay=path_time)
+                else "0"
+            )
             node_state.append(f"{can_process}")
 
             # Processing power category (in J/Mbit)
@@ -127,52 +159,8 @@ class QLearningAssignment(AssignmentStrategy):
     def select_compute_node(
         self, request: Request, nodes: List[BaseNode]
     ) -> tuple[BaseNode, List[BaseNode], float]:
-        # Calculate reward for previous action if applicable
-        if self.last_request is not None and self.last_action is not None:
-            if self.last_request.status == RequestStatus.FAILED:
-                reward = -100.0
-            elif (
-                self.last_request.status == RequestStatus.COMPLETED
-                and 0 <= self.last_action < len(nodes)
-            ):  # Validate index
-                selected_node = nodes[self.last_action]
-
-                # Calculate processing energy
-                processing_time = (
-                    self.last_request.size
-                    * selected_node.cycle_per_bit
-                    / selected_node.processing_frequency
-                )
-                processing_energy = selected_node.processing_energy() * processing_time
-
-                # Calculate transmission energy - use the first link's bandwidth as reference
-                # Find the communication link for this node
-                for link in self.network.communication_links:
-                    if link.node_b == selected_node:
-                        transmission_time = (
-                            self.last_request.size / link.config.total_bandwidth
-                        )
-                        transmission_energy = (
-                            selected_node.transmission_energy() * transmission_time
-                        )
-                        break
-                else:
-                    # If no link found, only use processing energy
-                    transmission_energy = 0
-
-                # Total energy consumed
-                total_energy = processing_energy + transmission_energy
-                # print(f"Total energy: {total_energy:.2f} J")
-                # print(f"request size: {request.size}")
-                energy_per_m_bit = (total_energy / request.size) * 1e6
-                # print(f"energy/size: {energy_per_m_bit:.2f} J/Mbit")
-                # print(f"node: {selected_node.name}")
-                reward = -(energy_per_m_bit**2)
-            else:
-                reward = 0.0
-
-            # print(f"Reward: {reward:.2f}")
-            self.update(reward, request, nodes)
+        # Process any completed requests first
+        self.process_completed_requests(nodes)
 
         state = self.get_state(request, nodes)
         q_values = self.get_q_values(state, len(nodes))
@@ -185,13 +173,26 @@ class QLearningAssignment(AssignmentStrategy):
         if np.random.random() < self.epsilon:
             action = np.random.choice(valid_actions)
         else:
+            # print(f"state: {state}")
+            # print(f"q_values: {q_values}")
             action = np.argmax(q_values)
-            if action >= len(valid_actions):  # Safety check
-                action = np.random.choice(valid_actions)
+            # print(f"action: {action}")
 
-        self.last_state = state
-        self.last_action = action
-        self.last_request = request
+        # Store the request, state and action for later processing
+        self.pending_requests[request.id] = {
+            "state": state,
+            "action": action,
+            "request": request,
+            "selected_node": nodes[action],
+        }
+
+        self.all_requests[request.id] = {
+            "state": state,
+            "action": action,
+            "request": request,
+            "selected_node": nodes[action],
+            "nodes": nodes,
+        }
 
         selected_node = nodes[action]
         path = self.network.generate_request_path(request.current_node, selected_node)
@@ -203,35 +204,75 @@ class QLearningAssignment(AssignmentStrategy):
 
         return selected_node, path, total_delay
 
-    def update(
-        self, reward: float, new_request: Optional[Request], nodes: List[BaseNode]
-    ):
-        """Update Q-values based on reward and new state"""
-        if self.last_state is None:
-            return
+    def process_completed_requests(self, nodes: List[BaseNode]):
+        """Process completed or failed requests and update Q-values"""
+        completed_requests = []
 
-        if new_request is None:
-            # Terminal state - only use immediate reward
-            old_value = self.q_table[self.last_state][self.last_action]
-            new_value = (1 - self.alpha) * old_value + self.alpha * reward
-        else:
-            # Non-terminal state - use Q-learning update
-            new_state = self.get_state(new_request, nodes)
-            new_q_values = self.get_q_values(new_state, len(nodes))
+        for request_id, info in self.pending_requests.items():
+            request = info["request"]
 
-            old_value = self.q_table[self.last_state][self.last_action]
-            next_max = np.max(new_q_values)
-            new_value = (1 - self.alpha) * old_value + self.alpha * (
-                reward + self.gamma * next_max
-            )
+            # Check if request is completed or failed
+            if request.status in [RequestStatus.COMPLETED, RequestStatus.FAILED]:
+                selected_node = info["selected_node"]
 
-        self.q_table[self.last_state][self.last_action] = new_value
+                # Calculate immediate reward for this request
+                if request.status == RequestStatus.FAILED:
+                    reward = -1000.0
+                else:
+                    # Get energy consumption between start and end time
+                    desired_tick = 0
+                    desired_tick_status = RequestStatus.PROCESSING
+                    for status in request.status_history:
+                        if status[0] == desired_tick_status:
+                            desired_tick = status[1]
+                            break
 
-        # print(f"Updated Q-value from {old_value:.2f} to {new_value:.2f}")
-        # print(self.q_table)
+                    start_time = desired_tick
+                    end_time = request.last_status_change
+                    energy_consumption = np.sum(
+                        selected_node.energy_history[start_time:end_time]
+                    )
 
-        if self.debug:
-            print(f"Updated Q-value from {old_value:.2f} to {new_value:.2f}")
+                    # Calculate energy per Mbit
+                    energy_per_mbit = (energy_consumption / request.size) * 1e6
+                    reward = -energy_per_mbit
+
+                # Update Q-values
+                state = info["state"]
+                action = info["action"]
+
+                if self.debug:
+                    print(f"state: {state}")
+                    print(f"reward: {reward}")
+
+                old_value = self.q_table[state][action]
+                new_value = (1 - self.alpha) * old_value + self.alpha * reward
+                self.q_table[state][action] = new_value
+
+                completed_requests.append(request_id)
+
+        # Remove processed requests
+        for request_id in completed_requests:
+            del self.pending_requests[request_id]
+
+    def apply_episode_reward(self, episode_reward: float, qos_score: float):
+        """Apply episode-level reward to all states visited in this episode"""
+        # Get all states visited in this episode, ordered by timestamp
+        episode_states = []
+        for request_id, info in self.all_requests.items():
+            request = info["request"]
+            nodes = info["nodes"]
+            state = info["state"]
+            episode_states.append((request_id, state, info["action"], request))
+
+        # If QoS is bad, apply penalties to all states that led to this outcome
+        if qos_score < 95:
+            penalty = -100000.0 * (1 - qos_score / 100)  # Large penalty for bad QoS
+            for _, state, action, request in episode_states:
+                if request.status == RequestStatus.FAILED:
+                    old_value = self.q_table[state][action]
+                    new_value = (1 - self.alpha) * old_value + self.alpha * penalty
+                    self.q_table[state][action] = new_value
 
     def save_qtable(self, path: str):
         """Save Q-table to file"""
@@ -243,13 +284,9 @@ class QLearningAssignment(AssignmentStrategy):
     ) -> float:
         """Calculate reward for a single request completion"""
         if request.status == RequestStatus.FAILED:
-            return -100.0  # Heavy penalty for failure
+            return -1000.0  # Penalty for failure
 
         if request.status == RequestStatus.COMPLETED:
-            # Calculate QoS satisfaction
-            completion_time = request.get_tick() - request.creation_time
-            qos_satisfaction = completion_time <= request.qos_limit
-
             # Calculate energy efficiency
             processing_time = (
                 request.size
@@ -261,9 +298,9 @@ class QLearningAssignment(AssignmentStrategy):
             ) / 1000  # Convert to kJ
 
             # Combine metrics
-            reward = 50.0 if qos_satisfaction else -50.0  # Base reward/penalty
-            reward -= energy_consumed * 10  # Energy penalty (scaled)
+            reward = 50.0
+            reward -= energy_consumed  # Energy penalty (scaled)
 
             return reward
 
-        return 0.0  # Neutral reward for other states
+        return -10.0  # encourage quick processing

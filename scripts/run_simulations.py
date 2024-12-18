@@ -32,7 +32,7 @@ PARAMETERS = {
         "DE",
         "QLearning",
     ],
-    "user_counts": [10, 30, 50, 100],
+    "user_counts": [10, 30, 50, 75, 100, 200],
 }
 
 
@@ -52,6 +52,8 @@ def train_qlearning(user_count: int) -> str:
         config=SimulationConfig(
             seed=None,
             debug=False,
+            time_step=Simulation.DEFAULT_TICK_TIME,
+            max_time=Simulation.DEFAULT_MAX_SIMULATION_TIME,
             user_count=user_count,
             power_strategy="OnDemand",
             save_results=False,
@@ -61,7 +63,7 @@ def train_qlearning(user_count: int) -> str:
     # Create and run trainer
     trainer = QLearningTrainer(
         simulation=sim,
-        episodes=2000,  # Adjust as needed
+        episodes=150,
         save_path=qtable_path,
     )
 

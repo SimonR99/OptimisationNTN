@@ -204,7 +204,9 @@ class Network:
         for i in range(len(path) - 1):
             for link in self.communication_links:
                 if link.node_a == path[i] and link.node_b == path[i + 1]:
-                    time += link.calculate_transmission_delay(request)
+                    time += max(
+                        request.tick_time, link.calculate_transmission_delay(request)
+                    )
 
         return time
 

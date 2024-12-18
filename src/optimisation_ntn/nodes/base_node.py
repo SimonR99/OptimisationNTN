@@ -127,7 +127,10 @@ class BaseNode(ABC):
         return f"Node {self.node_id}"
 
     def can_process(
-        self, request: Request | None = None, check_state: bool = True
+        self,
+        request: Request | None = None,
+        check_state: bool = True,
+        network_delay: float = 0,
     ) -> bool:
         """Check if node can process a request
 
@@ -156,14 +159,15 @@ class BaseNode(ABC):
             return True
 
         # Calculate processing time for the new total load
-        return self.estimated_processing_time(request) <= request.qos_limit
+        return (
+            self.estimated_processing_time(request) + network_delay
+        ) <= request.qos_limit
 
     def add_request_to_process(self, request: Request):
         """Add request to processing queue"""
         if self.can_process(request, check_state=False):
             self.processing_queue.append(request)
             self.current_load += request.size
-            request.update_status(RequestStatus.PROCESSING)
             request.current_node = self
             request.processing_progress = 0
             self.debug_print(
@@ -184,6 +188,8 @@ class BaseNode(ABC):
         completed = []
         if self.processing_queue:
             request = self.processing_queue[0]
+            request.update_status(RequestStatus.PROCESSING)
+
             if (
                 self.energy_consumed >= self.battery_capacity
                 and self.battery_capacity != -1

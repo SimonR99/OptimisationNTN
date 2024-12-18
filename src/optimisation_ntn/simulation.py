@@ -27,8 +27,8 @@ class SimulationConfig:
     """Configuration class for Simulation parameters."""
 
     seed: Optional[int] = None
-    time_step: float = 0.1
-    max_time: float = 300
+    time_step: float = 0.01
+    max_time: float = 10
     debug: bool = False
     user_count: int = 10
     print_output: bool = False
@@ -46,7 +46,7 @@ class Simulation:
     DEFAULT_HAPS_COUNT = 1
     DEFAULT_LEO_COUNT = 1
     DEFAULT_USER_COUNT = 10
-    DEFAULT_TICK_TIME = 0.1
+    DEFAULT_TICK_TIME = 0.01
     DEFAULT_MAX_SIMULATION_TIME = 10
 
     def __init__(self, config: Optional[SimulationConfig] = None):
@@ -179,17 +179,18 @@ class Simulation:
     def evaluate_qos_satisfaction(self) -> float:
         """Evaluate QoS satisfaction for all requests."""
         satisfied_requests = 0
-
+        failed_requests = 0
         for user in [n for n in self.network.nodes if isinstance(n, UserDevice)]:
             for request in user.current_requests:
                 if request.status == RequestStatus.COMPLETED:
                     satisfied_requests += 1
-
+                if request.status == RequestStatus.FAILED:
+                    failed_requests += 1
         if self.total_requests == 0:
             return 100.0  # No requests, success rate is 100%
 
-        success_rate = (satisfied_requests / self.total_requests) * 100
-        return success_rate
+        success_rate = satisfied_requests / (satisfied_requests + failed_requests)
+        return success_rate * 100
 
     def get_current_tick(self):
         """Get current tick"""

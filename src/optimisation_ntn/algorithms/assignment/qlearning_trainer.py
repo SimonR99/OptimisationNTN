@@ -11,11 +11,11 @@ from ...simulation import Simulation
 class QLearningTrainer:
     def __init__(
         self,
-        simulation,
+        simulation: Simulation,
         episodes: int = 1000,
         epsilon_start: float = 1.0,
         epsilon_end: float = 0.1,
-        epsilon_decay: float = 0.995,
+        epsilon_decay: float = 0.99,
         save_path: Optional[str] = None,
     ):
         self.simulation = simulation
@@ -25,33 +25,37 @@ class QLearningTrainer:
         self.epsilon_decay = epsilon_decay
         self.save_path = save_path
 
-        self.max_energy = float("-inf")
-        self.min_energy = float("inf")
+        self.max_energy = self.simulation.user_count * 250
+        self.min_energy = self.simulation.user_count * 100
+
+        self.training_history = []
 
     def calculate_episode_reward(
         self, qos_score: float, total_energy: float
     ) -> tuple[float, float]:
         """Calculate final reward for the episode"""
-        # Heavy penalty if QoS is below threshold
+        # Exponential penalty if QoS is below threshold
         if qos_score < 90:
-            qos_reward = -1000.0
+            qos_reward = -10000.0 * np.exp(90 - qos_score)
         else:
-            qos_reward = ((qos_score / 100) ** 2) * 1000  # Scale QoS to 0-100
+            qos_reward = (
+                (qos_score / 100) ** 2
+            ) * 2000  # Increased reward for good QoS
 
-        # Normalize energy between 0 and 1
+        # Normalize energy between 0 and 1 with less weight
         if self.max_energy == self.min_energy:
             norm_energy = 0
         else:
-            if total_energy > self.max_energy:
-                self.max_energy = total_energy
-            if total_energy < self.min_energy:
-                self.min_energy = total_energy
+            if qos_score > 90:
+                if total_energy > self.max_energy:
+                    self.max_energy = total_energy
+                if total_energy < self.min_energy:
+                    self.min_energy = total_energy
             norm_energy = (total_energy - self.min_energy) / (
                 self.max_energy - self.min_energy
             )
 
-        # Calculate reward components
-        energy_penalty = 500 - (norm_energy * 1000)  # Scale energy penalty to -500-500
+        energy_penalty = 250 - (norm_energy * 500)  # Reduced energy penalty
 
         return qos_reward, energy_penalty
 
@@ -103,39 +107,39 @@ class QLearningTrainer:
             qos_score = self.simulation.evaluate_qos_satisfaction()
             total_energy = self.simulation.system_energy_consumed
 
+            self.training_history.append(
+                {
+                    "qos_score": qos_score,
+                    "total_energy": total_energy,
+                }
+            )
+
+            # update epsilon
+            epsilon = self.epsilon_start * (self.epsilon_decay**episode)
+
             # Calculate and apply final reward
             qos_reward, energy_reward = self.calculate_episode_reward(
                 qos_score, total_energy
             )
-            episode_reward = qos_reward + energy_reward
-            strategy.update(episode_reward, None, self.simulation.network.compute_nodes)
+            episode_reward = energy_reward
 
-            # print(f"Q-table: {strategy.q_table}")
+            # Apply episode reward to the strategy
+            strategy.apply_episode_reward(episode_reward, qos_score)
 
-            # Decay epsilon
-            epsilon = max(self.epsilon_end, epsilon * self.epsilon_decay)
-
-            # Track best performance
-            if episode_reward > best_reward:
-                best_reward = episode_reward
-                best_qos = qos_reward
-                best_energy_score = energy_reward
-
+            # Save Q-table if path provided
             if self.save_path:
                 strategy.save_qtable(self.save_path)
 
             # Print progress
             if (episode + 1) % 10 == 0:
-                print(f"Episode {episode + 1}/{self.episodes}")
-                print(f"Best Reward: {best_reward:.2f}")
-                print(f"Best QoS: {best_qos:.2f}")
-                print(f"Best Energy Score: {best_energy_score:.2f}")
+                print(
+                    f"Episode {episode + 1}/{self.episodes} ({self.simulation.user_count} Users)"
+                )
                 print(f"Total Energy: {total_energy:.2f}J")
-                print(f"Episode Reward: {episode_reward:.2f}")
+                print(f"QoS Score: {qos_score:.2f}")
                 print(f"Epsilon: {epsilon:.3f}")
                 print("---")
 
         print("Training completed!")
-        print(f"Best reward: {best_reward:.2f}")
-        print(f"Best QoS: {best_qos:.2f}")
-        print(f"Best Energy Score: {best_energy_score:.2f}")
+
+        return self.training_history

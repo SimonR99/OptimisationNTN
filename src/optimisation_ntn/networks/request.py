@@ -92,6 +92,9 @@ class Request:
 
         if self.status == RequestStatus.COMPLETED:
             return
+        if self.status == new_status:
+            return
+
         self.status_history.append((new_status, self.get_tick()))
         self.debug_print(
             f"Request {self.id} status changed: {self.status} -> {new_status} "
@@ -109,5 +112,8 @@ class Request:
         return (
             f"Priority: {self.priority} "
             f"Appearing time: {self.creation_time} "
+            f"QoS limit: {self.qos_limit/self.tick_time} ticks "
+            f"Target node: {self.target_node.name if self.target_node else 'None'} "
+            f"Last status change: {self.last_status_change} "
             f"Status:{self.status}"
         )
