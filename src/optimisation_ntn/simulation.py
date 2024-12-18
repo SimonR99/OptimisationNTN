@@ -184,8 +184,10 @@ class Simulation:
             for request in user.current_requests:
                 if request.status == RequestStatus.COMPLETED:
                     satisfied_requests += 1
-                if request.status == RequestStatus.FAILED:
+                elif request.status == RequestStatus.FAILED:
                     failed_requests += 1
+                else:
+                    print(f"request {request.id} is in status {request.status}")
         if self.total_requests == 0:
             return 100.0  # No requests, success rate is 100%
 

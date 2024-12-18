@@ -170,10 +170,12 @@ class BaseNode(ABC):
             self.current_load += request.size
             request.current_node = self
             request.processing_progress = 0
+            request.update_status(RequestStatus.IN_PROCESSING_QUEUE)
             self.debug_print(
                 f"Request {request.id} status changed to {request.status.name} at {self}"
             )
         else:
+            request.update_status(RequestStatus.FAILED)
             self.debug_print(
                 f"Node {self} cannot process request {request.id} "
                 f"(current load: {self.current_load}, power: {self.processing_frequency})"

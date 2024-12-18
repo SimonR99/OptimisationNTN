@@ -90,10 +90,16 @@ class Request:
     def update_status(self, new_status: RequestStatus):
         """Update request status and track timing"""
 
-        if self.status == RequestStatus.COMPLETED:
+        if (
+            self.status == RequestStatus.COMPLETED
+            or self.status == RequestStatus.FAILED
+        ):
             return
-        if self.status == new_status:
-            return
+        if (
+            not ((self.get_tick() - self.creation_time) * self.tick_time)
+            <= self.qos_limit
+        ):
+            self.status = RequestStatus.FAILED
 
         self.status_history.append((new_status, self.get_tick()))
         self.debug_print(
@@ -102,11 +108,6 @@ class Request:
         )
         self.status = new_status
         self.last_status_change = self.get_tick()
-        if (
-            not ((self.get_tick() - self.creation_time) * self.tick_time)
-            <= self.qos_limit
-        ):
-            self.status = RequestStatus.FAILED
 
     def __str__(self):
         return (

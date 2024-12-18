@@ -266,12 +266,26 @@ class QLearningAssignment(AssignmentStrategy):
             episode_states.append((request_id, state, info["action"], request))
 
         # If QoS is bad, apply penalties to all states that led to this outcome
-        if qos_score < 95:
+        if qos_score < 90:
             penalty = -100000.0 * (1 - qos_score / 100)  # Large penalty for bad QoS
             for _, state, action, request in episode_states:
                 if request.status == RequestStatus.FAILED:
                     old_value = self.q_table[state][action]
                     new_value = (1 - self.alpha) * old_value + self.alpha * penalty
+                    self.q_table[state][action] = new_value
+                else:
+                    old_value = self.q_table[state][action]
+                    new_value = (
+                        1 - self.alpha
+                    ) * old_value + self.alpha * episode_reward
+                    self.q_table[state][action] = new_value
+        else:
+            for _, state, action, request in episode_states:
+                if request.status == RequestStatus.COMPLETED:
+                    old_value = self.q_table[state][action]
+                    new_value = (
+                        1 - self.alpha
+                    ) * old_value + self.alpha * episode_reward
                     self.q_table[state][action] = new_value
 
     def save_qtable(self, path: str):

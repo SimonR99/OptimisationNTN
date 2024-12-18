@@ -32,7 +32,7 @@ PARAMETERS = {
         "DE",
         "QLearning",
     ],
-    "user_counts": [10, 30, 50, 75, 100, 200],
+    "user_counts": [10, 20, 30, 40, 50, 60, 80, 100],
 }
 
 
@@ -63,7 +63,7 @@ def train_qlearning(user_count: int) -> str:
     # Create and run trainer
     trainer = QLearningTrainer(
         simulation=sim,
-        episodes=150,
+        episodes=1000,
         save_path=qtable_path,
     )
 
@@ -87,7 +87,7 @@ def generate_command(params: Dict) -> str:
 
     # Add optimization parameters if using an optimization algorithm
     if params["assignment_strategy"] in ["GA", "PSO", "DE"]:
-        cmd_parts.extend(["--generations 20", "--population 50"])
+        cmd_parts.extend(["--generations 50", "--population 100"])
 
     # Add Q-learning specific parameters
     if params["assignment_strategy"] == "QLearning":

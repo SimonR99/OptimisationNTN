@@ -22,7 +22,7 @@ class HAPS(BaseNode):
         super().__init__(node_id, initial_position, debug=debug)
         self.add_antenna("UHF", 15.0)
         self.add_antenna("VHF", 15.0)
-        self.battery_capacity = 5e2
+        self.battery_capacity = 2e4
         self.processing_frequency = 5e9
         self.k_const = 10e-28
         self.transmission_power = 33

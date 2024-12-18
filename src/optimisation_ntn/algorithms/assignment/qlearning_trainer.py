@@ -25,39 +25,44 @@ class QLearningTrainer:
         self.epsilon_decay = epsilon_decay
         self.save_path = save_path
 
-        self.max_energy = self.simulation.user_count * 250
-        self.min_energy = self.simulation.user_count * 100
+        self.max_energy = self.simulation.user_count * 300
+        self.min_energy = self.max_energy
 
         self.training_history = []
 
-    def calculate_episode_reward(
-        self, qos_score: float, total_energy: float
-    ) -> tuple[float, float]:
+    def calculate_episode_reward(self, qos_score: float, total_energy: float) -> float:
         """Calculate final reward for the episode"""
-        # Exponential penalty if QoS is below threshold
-        if qos_score < 90:
-            qos_reward = -10000.0 * np.exp(90 - qos_score)
-        else:
-            qos_reward = (
-                (qos_score / 100) ** 2
-            ) * 2000  # Increased reward for good QoS
-
         # Normalize energy between 0 and 1 with less weight
-        if self.max_energy == self.min_energy:
-            norm_energy = 0
-        else:
-            if qos_score > 90:
-                if total_energy > self.max_energy:
-                    self.max_energy = total_energy
-                if total_energy < self.min_energy:
-                    self.min_energy = total_energy
+        if qos_score > 80:
+            if total_energy > self.max_energy:
+                self.max_energy = total_energy
+            if total_energy < self.min_energy:
+                self.min_energy = total_energy
+
+            # max difference is 20% between min and max energy
+            factor = 1.2
+            print(
+                f"---- Max energy: {self.max_energy:.2f}, Min energy: {self.min_energy:.2f}, energy x factor: {self.min_energy * factor:.2f}"
+            )
+            if self.min_energy * factor < self.max_energy:
+                self.max_energy = self.min_energy * factor
+
             norm_energy = (total_energy - self.min_energy) / (
                 self.max_energy - self.min_energy
             )
+        else:
+            norm_energy = 1
 
+        print(f"Max energy: {self.max_energy:.2f}, Min energy: {self.min_energy:.2f}")
+        print(f"Norm energy: {norm_energy:.2f}")
+        print(f"QoS score: {qos_score:.2f}")
+
+        norm_energy = norm_energy - (qos_score / 100)
         energy_penalty = 250 - (norm_energy * 500)  # Reduced energy penalty
 
-        return qos_reward, energy_penalty
+        print(f"Energy penalty: {energy_penalty:.2f}")
+
+        return energy_penalty
 
     def train(self):
         """Train the Q-learning agent"""
@@ -67,22 +72,9 @@ class QLearningTrainer:
             self.simulation.network
         )
 
-        # get max/min energy consumption
-        for i in range(20):
-            self.simulation.reset()
-            self.simulation.run()
-            energy_consumed = self.simulation.system_energy_consumed
-            if energy_consumed > self.max_energy:
-                self.max_energy = energy_consumed
-            if energy_consumed < self.min_energy:
-                self.min_energy = energy_consumed
-
         self.simulation.reset()
         print(f"Max energy: {self.max_energy:.2f}, Min energy: {self.min_energy:.2f}")
 
-        best_reward = float("-inf")
-        best_qos = float("-inf")
-        best_energy_score = float("-inf")
         epsilon = self.epsilon_start
 
         # delete qtable if it exists
@@ -118,13 +110,10 @@ class QLearningTrainer:
             epsilon = self.epsilon_start * (self.epsilon_decay**episode)
 
             # Calculate and apply final reward
-            qos_reward, energy_reward = self.calculate_episode_reward(
-                qos_score, total_energy
-            )
-            episode_reward = energy_reward
+            energy_reward = self.calculate_episode_reward(qos_score, total_energy)
 
             # Apply episode reward to the strategy
-            strategy.apply_episode_reward(episode_reward, qos_score)
+            strategy.apply_episode_reward(energy_reward, qos_score)
 
             # Save Q-table if path provided
             if self.save_path:

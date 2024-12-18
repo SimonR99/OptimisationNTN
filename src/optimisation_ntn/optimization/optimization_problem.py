@@ -41,7 +41,7 @@ class OptimizationProblem(ElementwiseProblem):
         energy, satisfaction = self.simulation.run_with_assignment(x)
 
         # Set objective (energy consumption)
-        out["F"] = [energy]
+        out["F"] = [energy * ((5 - satisfaction) / 5)]  # bonus of 20% for satisfaction
 
-        # Set constraint (QoS satisfaction must be >= 95%)
-        out["G"] = [0.95 - satisfaction]
+        # Set constraint (QoS satisfaction must be >= 90%)
+        out["G"] = [0.90 - satisfaction]
