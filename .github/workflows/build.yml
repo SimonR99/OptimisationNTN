@@ -1,0 +1,62 @@
+name: Build Executable
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+  # Allow manual trigger
+  workflow_dispatch:
+
+# Add permissions block
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'  # Updated to match your Python version
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+
+    - name: Build executable
+      run: python build.py
+
+    - name: Generate release timestamp
+      if: github.ref == 'refs/heads/main'
+      id: timestamp
+      run: echo "timestamp=$(date +'%Y.%m.%d-%H%M')" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - name: Create Release
+      id: create_release
+      uses: softprops/action-gh-release@v1
+      if: github.ref == 'refs/heads/main'  # Only run on main branch
+      with:
+        files: dist/optimisation_ntn.exe
+        tag_name: v${{ steps.timestamp.outputs.timestamp }}
+        name: Release ${{ steps.timestamp.outputs.timestamp }}
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: optimisation-ntn-windows
+        path: dist/
+        retention-days: 5 
