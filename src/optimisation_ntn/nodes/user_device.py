@@ -1,7 +1,5 @@
 """ User device class """
 
-from typing import Literal
-
 from optimisation_ntn.networks.request import Request
 from optimisation_ntn.utils.position import Position
 
@@ -18,11 +16,8 @@ class UserDevice(BaseNode):
         node_id: int,
         initial_position: Position,
         debug: bool = False,
-        power_strategy: Literal["AllOn", "OnDemand", "OnDemandWithTimeout"] = "AllOn",
     ):
-        super().__init__(
-            node_id, initial_position, debug=debug, power_strategy=power_strategy
-        )
+        super().__init__(node_id, initial_position, debug=debug)
         self.add_antenna("VHF", 3)
         self.transmission_power = 23
         self.path_loss_exponent = 3
@@ -39,6 +34,13 @@ class UserDevice(BaseNode):
             f"User {self.node_id} created request {request.id} with status {request.status}"
         )
         return request
+
+    def tick(self, time: float):
+        super().tick(time)
+
+        # Update request status if it has been in the queue for too long
+        for request in self.current_requests:
+            request.update_status(request.status)
 
     def assign_target_node(self, request: Request, target_node: BaseNode):
         """Assign a target node to an existing request"""

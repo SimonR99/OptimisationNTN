@@ -1,7 +1,5 @@
 """ HAPS node """
 
-from typing import Literal
-
 from optimisation_ntn.utils.earth import Earth
 
 from ..utils.position import Position
@@ -20,14 +18,11 @@ class HAPS(BaseNode):
         node_id: int,
         initial_position: Position = Position(0, haps_altitude),
         debug: bool = False,
-        power_strategy: Literal["AllOn", "OnDemand", "OnDemandWithTimeout"] = "AllOn",
     ):
-        super().__init__(
-            node_id, initial_position, debug=debug, power_strategy=power_strategy
-        )
+        super().__init__(node_id, initial_position, debug=debug)
         self.add_antenna("UHF", 15.0)
         self.add_antenna("VHF", 15.0)
-        self.battery_capacity = 2e3
+        self.battery_capacity = 2e4
         self.processing_frequency = 5e9
         self.k_const = 10e-28
         self.transmission_power = 33

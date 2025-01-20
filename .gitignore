@@ -171,3 +171,8 @@ statistic_csv/*
 .idea/*
 output/*
 !output/.gitkeep
+
+*qtable.npy
+
+trained_models/*
+*/qtable.pkl

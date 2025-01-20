@@ -2,7 +2,7 @@
 
 import random
 import time
-from typing import Literal, Optional, Type
+from typing import Literal, Optional
 from dataclasses import dataclass
 
 import numpy as np
@@ -10,7 +10,6 @@ import pandas as pd
 
 from optimisation_ntn.networks.request import Request, RequestStatus
 
-from .algorithms.assignment import AssignmentStrategy
 from .algorithms.assignment.matrix_based import MatrixBasedAssignment
 from .algorithms.assignment.strategy_factory import AssignmentStrategyFactory
 from .matrices.decision_matrices import DecisionMatrices, MatrixType
@@ -28,17 +27,16 @@ class SimulationConfig:
     """Configuration class for Simulation parameters."""
 
     seed: Optional[int] = None
-    time_step: float = 0.1
-    max_time: float = 300
+    time_step: float = 0.01
+    max_time: float = 10
     debug: bool = False
     user_count: int = 10
-    power_strategy: Literal["AllOn", "OnDemand", "OnDemandWithTimeout"] = "OnDemand"
-    assignment_strategy: str | Type[AssignmentStrategy] | AssignmentStrategy = (
-        "TimeGreedy"
-    )
-    save_results: bool = True
     print_output: bool = False
+    assignment_strategy: str = "TimeGreedy"
+    power_strategy: str = "AllOn"
+    save_results: bool = True
     optimizer: None | Literal["GA", "PSO", "DE"] = None
+    qtable_path: Optional[str] = None
 
 
 class Simulation:
@@ -48,8 +46,8 @@ class Simulation:
     DEFAULT_HAPS_COUNT = 1
     DEFAULT_LEO_COUNT = 1
     DEFAULT_USER_COUNT = 10
-    DEFAULT_TICK_TIME = 0.1
-    DEFAULT_MAX_SIMULATION_TIME = 300
+    DEFAULT_TICK_TIME = 0.01
+    DEFAULT_MAX_SIMULATION_TIME = 10
 
     def __init__(self, config: Optional[SimulationConfig] = None):
         """Initialize simulation with given configuration."""
@@ -68,11 +66,10 @@ class Simulation:
         self.max_time = config.max_time
         self.seed = config.seed
         self.debug = config.debug
-        self.power_strategy = config.power_strategy
         self.matrices = DecisionMatrices(dimension=config.user_count)
-        self.network = Network(debug=self.debug)
+        self.network = Network(debug=self.debug, power_strategy=config.power_strategy)
         self.assignment_strategy = AssignmentStrategyFactory.get_strategy(
-            config.assignment_strategy, self.network
+            config.assignment_strategy, self.network, config.qtable_path
         )
         self.save_results = config.save_results
         self.total_requests = 0
@@ -164,7 +161,7 @@ class Simulation:
                 {str(node): node.energy_history for node in self.network.nodes}
             )
             energy_history.to_csv(
-                f"output/energy_history_{self.power_strategy}_"
+                f"output/energy_history_{self.config.power_strategy}_"
                 f"{assignment_strategy_name}_{self.user_count}.csv",
                 index=False,
             )
@@ -172,7 +169,7 @@ class Simulation:
             # Save request stats to csv
             request_stats = pd.DataFrame(request_list)
             request_stats.to_csv(
-                f"output/request_stats_{self.power_strategy}_"
+                f"output/request_stats_{self.config.power_strategy}_"
                 f"{assignment_strategy_name}_{self.user_count}.csv",
                 index=False,
             )
@@ -182,17 +179,20 @@ class Simulation:
     def evaluate_qos_satisfaction(self) -> float:
         """Evaluate QoS satisfaction for all requests."""
         satisfied_requests = 0
-
+        failed_requests = 0
         for user in [n for n in self.network.nodes if isinstance(n, UserDevice)]:
             for request in user.current_requests:
                 if request.status == RequestStatus.COMPLETED:
                     satisfied_requests += 1
-
+                elif request.status == RequestStatus.FAILED:
+                    failed_requests += 1
+                else:
+                    print(f"request {request.id} is in status {request.status}")
         if self.total_requests == 0:
             return 100.0  # No requests, success rate is 100%
 
-        success_rate = (satisfied_requests / self.total_requests) * 100
-        return success_rate
+        success_rate = satisfied_requests / (satisfied_requests + failed_requests)
+        return success_rate * 100
 
     def get_current_tick(self):
         """Get current tick"""
@@ -230,7 +230,7 @@ class Simulation:
 
                 # Use assignment strategy to select node
                 best_node, best_path, _ = self.assignment_strategy.select_compute_node(
-                    request, compute_nodes
+                    request, self.network.compute_nodes
                 )
 
                 # If we found a suitable compute node, assign it and initialize routing
@@ -292,13 +292,15 @@ class Simulation:
         """Reset the simulation to initial state."""
         self.current_time = 0.0
         self.current_step = 0
-        self.network = Network(debug=self.debug)
+        self.network = Network(
+            debug=self.debug, power_strategy=self.config.power_strategy
+        )
         self.total_requests = 0
         self.system_energy_consumed = 0
         self.system_energy_history = []
 
         self.assignment_strategy = AssignmentStrategyFactory.get_strategy(
-            self.config.assignment_strategy, self.network
+            self.config.assignment_strategy, self.network, self.config.qtable_path
         )
 
         # Reset energy consumption for all nodes
@@ -327,7 +329,7 @@ class Simulation:
 
         # Add default LEO satellites
         for i in range(nb_leo):
-            self.network.add_node(LEO(i, power_strategy=self.power_strategy))
+            self.network.add_node(LEO(i))
 
         # Add default user devices
         self.set_nodes(UserDevice, self.user_count)
@@ -349,7 +351,6 @@ class Simulation:
                         i,
                         Position(x_pos, 0),
                         debug=self.debug,
-                        power_strategy=self.power_strategy,
                     )
                 )
 
@@ -360,7 +361,8 @@ class Simulation:
                 x_pos = start_x + (i * 2)
                 self.network.add_node(
                     node_type(
-                        i, Position(x_pos, height), power_strategy=self.power_strategy
+                        i,
+                        Position(x_pos, height),
                     )
                 )
 
@@ -370,7 +372,8 @@ class Simulation:
                 height = -2
                 self.network.add_node(
                     node_type(
-                        i, Position(x_pos, height), power_strategy=self.power_strategy
+                        i,
+                        Position(x_pos, height),
                     )
                 )
 

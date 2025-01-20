@@ -1,7 +1,5 @@
 """ LEO node class """
 
-from typing import Literal
-
 import numpy as np
 
 from optimisation_ntn.nodes.haps import HAPS
@@ -38,7 +36,6 @@ class LEO(BaseNode):
         node_id,
         start_angle=initial_angle,
         debug: bool = False,
-        power_strategy: Literal["AllOn", "OnDemand", "OnDemandWithTimeout"] = "AllOn",
     ):
         global_position = Earth.calculate_position_from_angle(
             start_angle, self.leo_orbit_radius
@@ -47,7 +44,6 @@ class LEO(BaseNode):
             node_id,
             Earth.global_coordinate_to_local(global_position),
             debug=debug,
-            power_strategy=power_strategy,
         )
         self.add_antenna("UHF", 8)
         self.battery_capacity = 2e3  # J

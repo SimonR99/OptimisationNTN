@@ -1,7 +1,5 @@
 """ Base station node """
 
-from typing import Literal
-
 from optimisation_ntn.utils.position import Position
 
 from .base_node import BaseNode
@@ -15,11 +13,8 @@ class BaseStation(BaseNode):
         node_id: int,
         initial_position: Position,
         debug: bool = False,
-        power_strategy: Literal["AllOn", "OnDemand", "OnDemandWithTimeout"] = "AllOn",
     ):
-        super().__init__(
-            node_id, initial_position, debug=debug, power_strategy=power_strategy
-        )
+        super().__init__(node_id, initial_position, debug=debug)
         self.state = True
         self.processing_frequency = 3e9  # 3 GHz
         self.k_const = 10e-28

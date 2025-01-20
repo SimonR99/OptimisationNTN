@@ -1,7 +1,7 @@
 """ Base node class. Does the base computation and transmission power calculation """
 
 from abc import ABC
-from typing import Dict, List, Literal, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from ..networks.antenna import Antenna
 from ..networks.request import Request, RequestStatus
@@ -18,7 +18,6 @@ class BaseNode(ABC):
         node_id: int,
         initial_position: Position,
         debug: bool = False,
-        power_strategy: Literal["AllOn", "OnDemand", "OnDemandWithTimeout"] = "AllOn",
     ):
         self.node_id = node_id
         self.position = initial_position
@@ -50,24 +49,7 @@ class BaseNode(ABC):
         self.energy_history = []
         self.timeout = 10
         self.last_state_change = 0
-        self.power_strategy = power_strategy
         self.tick_count = 0
-
-    def apply_power_strategy(self):
-        """Apply power strategy"""
-        if self.power_strategy == "AllOn":
-            self._turn_on()
-        elif self.power_strategy == "OnDemand":
-            if self.processing_queue:
-                self._turn_on()
-            else:
-                self._turn_off()
-        elif self.power_strategy == "OnDemandWithTimeout":
-            if self.processing_queue:
-                self.last_state_change = 0
-                self._turn_on()
-            elif self.last_state_change > self.timeout:
-                self._turn_off()
 
     def get_name(self) -> str:
         """Get node name"""
@@ -145,7 +127,10 @@ class BaseNode(ABC):
         return f"Node {self.node_id}"
 
     def can_process(
-        self, request: Request | None = None, check_state: bool = True
+        self,
+        request: Request | None = None,
+        check_state: bool = True,
+        network_delay: float = 0,
     ) -> bool:
         """Check if node can process a request
 
@@ -174,20 +159,23 @@ class BaseNode(ABC):
             return True
 
         # Calculate processing time for the new total load
-        return self.estimated_processing_time(request) <= request.qos_limit
+        return (
+            self.estimated_processing_time(request) + network_delay
+        ) <= request.qos_limit
 
     def add_request_to_process(self, request: Request):
         """Add request to processing queue"""
         if self.can_process(request, check_state=False):
             self.processing_queue.append(request)
             self.current_load += request.size
-            request.update_status(RequestStatus.PROCESSING)
             request.current_node = self
             request.processing_progress = 0
+            request.update_status(RequestStatus.IN_PROCESSING_QUEUE)
             self.debug_print(
                 f"Request {request.id} status changed to {request.status.name} at {self}"
             )
         else:
+            request.update_status(RequestStatus.FAILED)
             self.debug_print(
                 f"Node {self} cannot process request {request.id} "
                 f"(current load: {self.current_load}, power: {self.processing_frequency})"
@@ -202,6 +190,16 @@ class BaseNode(ABC):
         completed = []
         if self.processing_queue:
             request = self.processing_queue[0]
+            request.update_status(RequestStatus.PROCESSING)
+
+            if (
+                self.energy_consumed >= self.battery_capacity
+                and self.battery_capacity != -1
+            ):
+                request.update_status(RequestStatus.FAILED)
+                self.processing_queue.remove(request)
+                return
+
             bits_processed = self.processing_frequency * time / self.cycle_per_bit
             request.processing_progress += bits_processed
             self.energy_consumed += self.processing_energy() * time
@@ -214,13 +212,7 @@ class BaseNode(ABC):
 
             # Only complete processing at the end of a tick if enough bits were processed
             if request.processing_progress >= request.size:
-                if (
-                    self.energy_consumed >= self.battery_capacity
-                    and self.battery_capacity != -1
-                ):
-                    request.update_status(RequestStatus.FAILED)
-                else:
-                    request.update_status(RequestStatus.COMPLETED)
+                request.update_status(RequestStatus.COMPLETED)
                 completed.append(request)
                 self.current_load -= request.size
                 self.debug_print(
@@ -233,8 +225,6 @@ class BaseNode(ABC):
 
     def tick(self, time: float):
         """Update node state including request processing"""
-        self.apply_power_strategy()
-
         if (
             self.battery_capacity != -1
             and self.battery_capacity - self.energy_consumed <= 0
